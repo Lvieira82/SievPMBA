@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Acesso à OPO
+{% endblock %}
+
+{% block content %}
+
+<style>
+
+.validacao-container{
+    width:100%;
+    min-height:calc(100vh - 180px);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:40px 20px;
+}
+
+.validacao-card{
+    width:100%;
+    max-width:520px;
+    background:#fff;
+    padding:40px;
+    border-radius:18px;
+    box-shadow:0 8px 25px rgba(0,0,0,.10);
+    text-align:center;
+}
+
+.validacao-icone{
+    font-size:52px;
+    margin-bottom:12px;
+}
+
+.validacao-card h1{
+    color:#907C64;
+    font-size:30px;
+    margin-bottom:12px;
+}
+
+.validacao-descricao{
+    color:#4b5563;
+    line-height:1.6;
+    margin-bottom:25px;
+}
+
+.evento-info{
+    background:#f4f6f9;
+    border-left:5px solid #907C64;
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:25px;
+    text-align:left;
+    line-height:1.7;
+}
+
+.evento-info strong{
+    color:#111827;
+}
+
+.campo-matricula{
+    width:100%;
+    padding:15px;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+    font-size:17px;
+    margin-bottom:15px;
+    text-align:center;
+    outline:none;
+    transition:.2s;
+}
+
+.campo-matricula:focus{
+    border-color:#907C64;
+    box-shadow:0 0 0 3px rgba(144,124,100,.15);
+}
+
+.btn-validar{
+    width:100%;
+    padding:15px;
+    background:#907C64;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+    transition:.2s;
+}
+
+.btn-validar:hover{
+    background:#111827;
+}
+
+.erro-matricula{
+    background:#fee2e2;
+    color:#991b1b;
+    border:1px solid #fecaca;
+    padding:14px;
+    border-radius:10px;
+    margin-bottom:20px;
+    font-weight:bold;
+}
+
+.area-voltar{
+    display:flex;
+    justify-content:center;
+    margin-top:20px;
+}
+
+.btn-voltar{
+    display:inline-block;
+    background:#6f7786;
+    color:#fff;
+    text-decoration:none;
+    font-weight:bold;
+    padding:12px 25px;
+    border-radius:9px;
+    transition:.2s;
+}
+
+.btn-voltar:hover{
+    background:#596170;
+    color:#fff;
+}
+
+.aviso-acesso{
+    margin-top:20px;
+    color:#6b7280;
+    font-size:13px;
+    line-height:1.5;
+}
+
+@media(max-width:600px){
+
+    .validacao-container{
+        padding:20px 12px;
+        min-height:auto;
+    }
+
+    .validacao-card{
+        padding:25px 18px;
+    }
+
+    .validacao-card h1{
+        font-size:24px;
+    }
+
+    .validacao-icone{
+        font-size:44px;
+    }
+
+}
+
+</style>
+
+
+<div class="validacao-container">
+
+    <div class="validacao-card">
+
+        <div class="validacao-icone">
+            🔐
+        </div>
+
+        <h1>
+            Acesso Restrito
+        </h1>
+
+        <p class="validacao-descricao">
+            Para acessar os detalhes e documentos da Ordem de Policiamento,
+            informe sua matrícula funcional.
+        </p>
+
+
+        <div class="evento-info">
+
+            <strong>Protocolo:</strong>
+            {{ solicitacao.protocolo }}
+
+            <br>
+
+            <strong>Evento:</strong>
+            {{ solicitacao.nome_evento }}
+
+            <br>
+
+            <strong>Data:</strong>
+            {{ solicitacao.data_evento|date:"d/m/Y" }}
+
+            <br>
+
+            <strong>Horário:</strong>
+            {{ solicitacao.hora_inicio|time:"H:i" }}
+
+        </div>
+
+
+        {% if erro %}
+
+            <div class="erro-matricula">
+                ⚠️ {{ erro }}
+            </div>
+
+        {% endif %}
+
+
+        <form method="post">
+
+            {% csrf_token %}
+
+            <input
+                type="text"
+                name="matricula"
+                class="campo-matricula"
+                placeholder="Digite sua matrícula funcional"
+                autocomplete="off"
+                required
+                autofocus
+            >
+
+            <button
+                type="submit"
+                class="btn-validar"
+            >
+                🔓 Validar e abrir OPO
+            </button>
+
+        </form>
+
+
+        <div class="area-voltar">
+
+            <a
+                href="{% url 'consultar_protocolo' %}"
+                class="btn-voltar"
+            >
+                ← Voltar
+            </a>
+
+        </div>
+
+
+        <p class="aviso-acesso">
+            O acesso aos detalhes da Ordem de Policiamento é restrito
+            a policiais com matrícula previamente autorizada no sistema.
+        </p>
+
+    </div>
+
+</div>
+
+{% endblock %}

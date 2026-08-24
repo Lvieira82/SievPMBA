@@ -1,0 +1,304 @@
+:root{
+    --dourado:#9A8665;
+    --cinza:#f5f7fa;
+    --texto:#2d3748;
+    --sombra:0 10px 30px rgba(0,0,0,.12);
+}
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    font-family:Segoe UI,Arial,sans-serif;
+    background:#eef2f7;
+    min-height:100vh;
+}
+
+.overlay{
+    width:100%;
+    padding:40px 20px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+.portal-card{
+
+    background:white;
+
+    border-radius:20px;
+
+    box-shadow:var(--sombra);
+
+    padding:50px;
+
+    text-align:center;
+
+    border-top:6px solid #9A8665;
+
+}
+
+.logo{
+
+    width:160px;
+
+    max-width:100%;
+
+    height:auto;
+
+    display:block;
+
+    margin:0 auto 25px;
+
+}
+
+h1{
+
+    color:#9A8665;
+
+    font-size:38px;
+
+    margin-bottom:8px;
+
+}
+
+h2{
+
+    color:var(--dourado);
+
+    font-size:24px;
+
+    margin-bottom:30px;
+
+    font-weight:600;
+
+}
+
+.descricao{
+
+    max-width:850px;
+
+    margin:0 auto 35px;
+
+    font-size:18px;
+
+    line-height:1.8;
+
+    color:#555;
+
+}
+
+.servico{
+
+    background:white;
+
+    border:1px solid #e3e7ec;
+
+    border-radius:15px;
+
+    padding:30px;
+
+    height:100%;
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:center;
+
+    transition:.25s;
+
+}
+
+.servico:hover{
+
+    transform:translateY(-5px);
+
+    box-shadow:0 10px 25px rgba(0,0,0,.12);
+
+}
+
+.servico i{
+
+    font-size:50px;
+
+    color:#9A8665;
+
+    margin-bottom:20px;
+
+}
+
+.servico h3{
+
+    color:#9A8665;
+
+    margin-bottom:15px;
+
+    height:72px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-align:center;
+
+    width:100%;
+
+}
+
+.servico p{
+
+    color:#666;
+
+    height:70px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    text-align:center;
+
+    width:100%;
+
+}
+
+.servico .btn{
+    width:100%;
+    margin-top:auto;
+    font-weight:600;
+}
+
+.informacoes{
+
+    margin-top:45px;
+
+    text-align:left;
+
+    background:#f8fafc;
+
+    border-radius:15px;
+
+    padding:30px;
+
+}
+
+.informacoes h5{
+
+    color:#9A8665;
+
+    margin-bottom:20px;
+
+}
+
+.informacoes ul{
+
+    margin-left:20px;
+
+}
+
+.informacoes li{
+
+    margin-bottom:10px;
+
+}
+
+footer{
+
+    margin-top:35px;
+
+    color:#777;
+
+    font-size:15px;
+
+}
+
+hr{
+
+    margin:40px 0;
+
+}
+.btn-siev{
+
+    background-color: var(--dourado);
+    border-color: var(--dourado);
+    color: #fff;
+    font-weight: 600;
+
+}
+
+.btn-siev:hover{
+
+    background-color: #866f4d;
+    border-color: #866f4d;
+    color: #fff;
+
+}
+.btn-siev:disabled{
+
+    background-color: var(--dourado);
+    border-color: var(--dourado);
+    color:#fff;
+    opacity:.55;
+    cursor:not-allowed;
+
+}
+
+.btn-siev:focus,
+.btn-siev:active{
+
+    background-color: #866f4d !important;
+    border-color: #866f4d !important;
+    color:#fff !important;
+    box-shadow:none;
+
+}
+
+@media(max-width:768px){
+
+.portal-card{
+
+    padding:25px;
+
+}
+
+.logo{
+
+    width:110px;
+
+}
+
+h1{
+
+    font-size:28px;
+
+}
+
+h2{
+
+    font-size:18px;
+
+}
+
+.descricao{
+
+    font-size:15px;
+
+}
+
+.servico{
+
+    margin-bottom:20px;
+
+}
+
+
+}   

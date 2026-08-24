@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Verificação de Autenticidade</title>
+
+    <style>
+        body{
+            font-family: Arial;
+            background:#f4f6f9;
+            padding:40px;
+        }
+
+        .box{
+            background:white;
+            max-width:700px;
+            margin:auto;
+            padding:40px;
+            border-radius:12px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1{
+            color:#0d3b66;
+        }
+
+        .status{
+            display:inline-block;
+            padding:10px 20px;
+            border-radius:8px;
+            color:white;
+            font-weight:bold;
+            background:green;
+        }
+
+        .voltar{
+            display:inline-block;
+            margin-top:20px;
+            background:#0d3b66;
+            color:white;
+            padding:12px 20px;
+            border-radius:8px;
+            text-decoration:none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="box">
+
+    <h1>Documento Verificado</h1>
+
+    <p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p>
+
+    <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
+
+    <p><strong>Solicitante:</strong> {{ solicitacao.solicitante }}</p>
+
+    <p><strong>Data:</strong> {{ solicitacao.data_evento }}</p>
+
+    <p>
+        <strong>Status:</strong>
+        <span class="status">
+            {{ solicitacao.status }}
+        </span>
+    </p>
+
+    <a href="/" class="voltar">
+        ← Voltar
+    </a>
+
+</div>
+
+</body>
+</html>

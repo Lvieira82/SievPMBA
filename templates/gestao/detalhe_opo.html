@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Detalhes da OPO
+{% endblock %}
+
+{% block content %}
+
+<style>
+.pasta{
+    max-width:1000px;
+    margin:40px auto;
+    background:white;
+    padding:35px;
+    border-radius:16px;
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+}
+
+.pasta h1{
+    color:#907C64;
+    margin-bottom:18px;
+}
+
+.info{
+    margin-bottom:25px;
+    font-weight:bold;
+}
+
+.lista{
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+}
+
+.item{
+    display:block;
+    padding:16px;
+    background:#CEC4B8;
+    color:#111827;
+    text-decoration:none;
+    font-weight:bold;
+    border-radius:10px;
+}
+
+.item:hover{
+    background:#b9ad9e;
+}
+
+.aviso{
+    padding:16px;
+    background:#fee2e2;
+    color:#991b1b;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.btn-voltar{
+    display:inline-block;
+    margin-top:25px;
+    padding:12px 22px;
+    background:#6b7280;
+    color:white;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+}
+</style>
+
+<div class="pasta">
+
+    <h1>📁 Pasta da OPO</h1>
+
+    <div class="info">
+        Protocolo: {{ solicitacao.protocolo }}<br>
+        Evento: {{ solicitacao.nome_evento }}<br>
+        Status: Ordem de Policiamento Criada
+    </div>
+
+    <div class="lista">
+
+        <a href="{% url 'gerar_opo' solicitacao.id %}" target="_blank" class="item">
+            📄 Abrir OPO Gerada
+        </a>
+
+        {% if solicitacao.documento_sanitario %}
+            <a href="{% url 'abrir_documento_solicitacao' solicitacao.id 'sanitario' %}" target="_blank" class="item">
+                📄 Documento Sanitário
+            </a>
+        {% else %}
+            <div class="aviso">⚠ Documento Sanitário não anexado.</div>
+        {% endif %}
+
+        {% if solicitacao.documento_meio_ambiente %}
+            <a href="{% url 'abrir_documento_solicitacao' solicitacao.id 'meio_ambiente' %}" target="_blank" class="item">
+                📄 Documento Meio Ambiente
+            </a>
+        {% else %}
+            <div class="aviso">⚠ Documento Meio Ambiente não anexado.</div>
+        {% endif %}
+
+        {% if solicitacao.oficio_comandante %}
+            <a href="{% url 'abrir_documento_solicitacao' solicitacao.id 'comandante' %}" target="_blank" class="item">
+                📄 Ofício ao Comandante
+            </a>
+        {% else %}
+            <div class="aviso">⚠ Ofício ao Comandante não anexado.</div>
+        {% endif %}
+
+        {% if solicitacao.oficio_bombeiro %}
+            <a href="{% url 'abrir_documento_solicitacao' solicitacao.id 'bombeiro' %}" target="_blank" class="item">
+                📄 Documento Corpo de Bombeiros
+            </a>
+        {% else %}
+            <div class="aviso">⚠ Documento Corpo de Bombeiros não anexado.</div>
+        {% endif %}
+
+    </div>
+
+    <a href="{% url 'opos_geradas' %}" class="btn-voltar">
+        ← Voltar para OPOs Geradas
+    </a>
+
+</div>
+
+{% endblock %}

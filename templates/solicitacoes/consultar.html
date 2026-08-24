@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Consultar Protocolo - SiEv</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: #907C64;
+            min-height: 100vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 30px 12px;
+        }
+
+        .card {
+            width: 500px;
+            max-width: 100%;
+
+            background: white;
+
+            border-radius: 20px;
+
+            padding: 40px;
+
+            text-align: center;
+
+            box-shadow: 0 15px 40px rgba(0, 0, 0, .25);
+        }
+
+        .logo {
+            font-size: 60px;
+            font-weight: bold;
+
+            color: #111827;
+
+            margin-bottom: 10px;
+        }
+
+        .subtitulo {
+            color: #666;
+
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            margin-bottom: 25px;
+
+            color: #907C64;
+        }
+
+        form {
+            width: 100%;
+        }
+
+        input {
+            width: 100%;
+
+            padding: 15px;
+
+            border: 1px solid #ccc;
+
+            border-radius: 10px;
+
+            margin-bottom: 20px;
+
+            font-size: 16px;
+        }
+
+        input:focus {
+            outline: none;
+
+            border-color: #907C64;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(144, 124, 100, .18);
+        }
+
+        button {
+            width: 100%;
+
+            padding: 15px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #907C64;
+
+            color: white;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+        button:hover {
+            background: #111827;
+        }
+
+        .resultado {
+            margin-top: 25px;
+
+            text-align: left;
+
+            background: #f4f6f9;
+
+            padding: 20px;
+
+            border-radius: 10px;
+
+            line-height: 1.7;
+        }
+
+        .resultado p {
+            margin-bottom: 5px;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .pendente {
+            color: #b45309;
+        }
+
+        .correcao {
+            color: #d97706;
+        }
+
+        .aprovado {
+            color: #15803d;
+        }
+
+        .rejeitado {
+            color: #b91c1c;
+        }
+
+        .erro {
+            margin-top: 25px;
+
+            background: #fee2e2;
+
+            color: #b91c1c;
+
+            padding: 15px;
+
+            border-radius: 10px;
+
+            font-weight: bold;
+        }
+
+        .area-voltar {
+            display: flex;
+
+            justify-content: center;
+
+            margin-top: 25px;
+        }
+
+        .btn-voltar {
+            display: inline-block;
+
+            background: #6f7786;
+
+            color: white;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+            padding: 12px 25px;
+
+            border-radius: 9px;
+
+            transition: .2s;
+        }
+
+        .btn-voltar:hover {
+            background: #596170;
+
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+
+            body {
+                align-items: flex-start;
+
+                padding-top: 30px;
+            }
+
+            .card {
+                padding: 25px;
+
+                border-radius: 16px;
+            }
+
+            .logo {
+                font-size: 46px;
+            }
+
+            h2 {
+                font-size: 24px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="card">
+
+
+    <div class="logo">
+        SiEv
+    </div>
+
+
+    <div class="subtitulo">
+        Sistema para Informações de Eventos
+    </div>
+
+
+    <h2>
+        Consultar Informação
+    </h2>
+
+
+    <form method="get">
+
+        <input
+            type="text"
+            name="protocolo"
+            placeholder="Digite o protocolo"
+            value="{{ request.GET.protocolo|default:'' }}"
+            required
+        >
+
+        <button type="submit">
+            Consultar
+        </button>
+
+    </form>
+
+
+    {% if solicitacao %}
+
+        <div class="resultado">
+
+            <p>
+                <strong>Protocolo:</strong>
+                {{ solicitacao.protocolo }}
+            </p>
+
+            <p>
+                <strong>Evento:</strong>
+                {{ solicitacao.nome_evento }}
+            </p>
+
+            <p>
+                <strong>Solicitante:</strong>
+                {{ solicitacao.solicitante }}
+            </p>
+
+            <p>
+                <strong>Status:</strong>
+
+                {% if solicitacao.status == "PENDENTE" %}
+
+                    <span class="status pendente">
+                        PENDENTE
+                    </span>
+
+                {% elif solicitacao.status == "CORRECAO" %}
+
+                    <span class="status correcao">
+                        AGUARDANDO CORREÇÃO
+                    </span>
+
+                {% elif solicitacao.status == "APROVADO" %}
+
+                    <span class="status aprovado">
+                        APROVADO
+                    </span>
+
+                {% elif solicitacao.status == "REJEITADO" %}
+
+                    <span class="status rejeitado">
+                        REJEITADO
+                    </span>
+
+                {% else %}
+
+                    <span class="status">
+                        {{ solicitacao.status|default:"Não informado" }}
+                    </span>
+
+                {% endif %}
+
+            </p>
+
+        </div>
+
+    {% endif %}
+
+
+    {% if erro %}
+
+        <div class="erro">
+            {{ erro }}
+        </div>
+
+    {% endif %}
+
+
+    <div class="area-voltar">
+
+        <a
+            href="{% url 'portal' %}"
+            class="btn-voltar"
+        >
+            ← Voltar
+        </a>
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

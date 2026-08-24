@@ -1,0 +1,32 @@
+<table>
+
+<tr>
+<th>Protocolo</th>
+<th>Evento</th>
+<th>Status</th>
+<th>Ações</th>
+</tr>
+
+{% for s in solicitacoes %}
+
+<tr>
+
+<td>{{ s.protocolo }}</td>
+
+<td>{{ s.nome_evento }}</td>
+
+<td>{{ s.status }}</td>
+
+<td>
+
+<a href="/aprovar/{{ s.id }}/">
+Aprovar
+</a>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>

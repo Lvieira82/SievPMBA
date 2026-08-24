@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}
+Transferir Solicitação - SiEv
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="card shadow-sm">
+
+        <div class="card-header">
+
+            <h2 class="mb-0">
+                <i class="bi bi-arrow-left-right"></i>
+                Transferir Solicitação
+            </h2>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="mb-4">
+
+                <h4>
+                    {{ solicitacao.nome_evento }}
+                </h4>
+
+                <p class="mb-1">
+                    <strong>Protocolo:</strong>
+                    {{ solicitacao.protocolo }}
+                </p>
+
+                <p class="mb-1">
+                    <strong>Município:</strong>
+                    {{ solicitacao.municipio }}
+                </p>
+
+                <p class="mb-1">
+                    <strong>Unidade atual:</strong>
+                    {{ solicitacao.unidade }}
+                </p>
+
+            </div>
+
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                <div class="mb-3">
+
+                    <label
+                        for="unidade_destino"
+                        class="form-label"
+                    >
+                        Unidade responsável pelo evento
+                    </label>
+
+                    <select
+                        name="unidade_destino"
+                        id="unidade_destino"
+                        class="form-select"
+                        required
+                    >
+
+                        <option value="">
+                            Selecione a unidade
+                        </option>
+
+                        {% for unidade in unidades %}
+
+                            <option value="{{ unidade.id }}">
+
+                                {{ unidade.nome }}
+
+                            </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+
+                <div class="mb-4">
+
+                    <label
+                        for="motivo"
+                        class="form-label"
+                    >
+                        Motivo da transferência
+                    </label>
+
+                    <textarea
+                        name="motivo"
+                        id="motivo"
+                        class="form-control"
+                        rows="4"
+                        placeholder="Informe o motivo da transferência..."
+                    ></textarea>
+
+                </div>
+
+
+                <div class="d-flex gap-2">
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+
+                        <i class="bi bi-send"></i>
+
+                        Enviar para Unidade
+
+                    </button>
+
+
+                    <a
+                        href="{% url 'aprovacoes' %}"
+                        class="btn btn-secondary"
+                    >
+
+                        Voltar
+
+                    </a>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

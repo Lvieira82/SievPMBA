@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Sistema para Informações de Eventos{% endblock %}
+
+{% block content %}
+
+<style>
+
+.home-box{
+    background:white;
+    border-radius:28px;
+    padding:70px;
+    box-shadow:0 8px 25px rgba(0,0,0,.10);
+}
+
+.home-conteudo{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:35px;
+}
+
+.home-logo{
+    width:220px;
+    text-align:center;
+    flex-shrink:0;
+}
+
+.home-logo img{
+    width:180px;
+    max-width:100%;
+    height:auto;
+}
+
+.home-centro{
+    flex:1;
+    text-align:center;
+}
+
+.home-centro h1{
+    font-size:78px;
+    margin-bottom:20px;
+    color:#111827;
+    font-weight:bold;
+}
+
+.home-centro p{
+    font-size:24px;
+    color:#111827;
+    margin-bottom:40px;
+    line-height:1.4;
+}
+
+.home-botoes{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    flex-wrap:wrap;
+}
+
+/* ===========================
+   RESPONSIVO
+=========================== */
+
+@media (max-width:900px){
+
+    .home-box{
+        padding:35px 20px;
+    }
+
+    .home-conteudo{
+        flex-direction:column;
+    }
+
+    .home-logo{
+        width:100%;
+    }
+
+    .home-logo img{
+        width:130px;
+    }
+
+    .home-centro h1{
+        font-size:60px;
+    }
+
+    .home-centro p{
+        font-size:22px;
+    }
+
+}
+
+@media (max-width:600px){
+
+    .home-box{
+        padding:25px 15px;
+        border-radius:20px;
+    }
+
+    .home-logo img{
+        width:110px;
+    }
+
+    .home-centro h1{
+        font-size:52px;
+        margin-bottom:15px;
+    }
+
+    .home-centro p{
+        font-size:18px;
+        margin-bottom:25px;
+    }
+
+    .home-botoes{
+        flex-direction:column;
+        align-items:center;
+        gap:12px;
+    }
+
+    .home-botoes a{
+        width:100%;
+        max-width:300px;
+    }
+
+}
+
+</style>
+
+<div class="home-box">
+
+    <div class="home-conteudo">
+
+        <div class="home-logo">
+            <img src="{% static 'logos/logo_pmba.png' %}" alt="Logo PMBA">
+        </div>
+
+        <div class="home-centro">
+
+            <h1>SiEv</h1>
+
+            <p>
+                Plataforma oficial para informação e acompanhamento de eventos.
+            </p>
+
+            <div class="home-botoes">
+
+                <a href="/nova/" class="btn btn-primary">
+                    Nova Informação
+                </a>
+
+                <a href="/consultar/" class="btn btn-success">
+                    Consultar Informação
+                </a>
+
+                <a href="/gestao/" class="btn btn-dark">
+                    Gestão
+                </a>
+
+            </div>
+
+        </div>
+
+        <div class="home-logo">
+            <img src="{% static 'logos/logo95.png' %}" alt="Logo 95ª CIPM">
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

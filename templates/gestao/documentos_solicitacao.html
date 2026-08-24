@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Documentos da Solicitação
+{% endblock %}
+
+{% block content %}
+
+<style>
+.btn-gerar{
+    display:inline-block;
+    padding:14px 26px;
+    background:#28a745;
+    color:white;
+    text-decoration:none;
+    border-radius:10px;
+    font-weight:bold;
+    margin-right:10px;
+    transition:.3s;
+}
+
+.btn-gerar:hover{
+    background:#218838;
+}
+.btn-gerar{
+    display:inline-block;
+    background:#28a745;
+    color:#fff;
+    padding:14px 28px;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:bold;
+    margin-right:12px;
+    transition:.3s;
+}
+
+.btn-gerar:hover{
+    background:#1f8a37;
+}
+.btn-voltar{
+    display:inline-block;
+    padding:14px 26px;
+    background:#6b7280;
+    color:white;
+    text-decoration:none;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.btn-voltar:hover{
+    background:#4b5563;
+}
+.doc-card{
+    background:white;
+    max-width:1000px;
+    margin:40px auto;
+    padding:35px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+}
+.acoes{
+    margin-top:35px;
+}
+
+.btn-voltar{
+    display:inline-block;
+    padding:12px 26px;
+    background:#6b7280;
+    color:#fff;
+    text-decoration:none;
+    border-radius:10px;
+    font-weight:600;
+    transition:.25s;
+}
+
+.btn-voltar:hover{
+    background:#4b5563;
+    transform:translateY(-2px);
+}
+
+.doc-card h1{
+    color:#907C64;
+    margin-bottom:15px;
+}
+
+.doc-info{
+    margin-bottom:25px;
+    font-weight:bold;
+}
+
+.doc-lista{
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+.doc-link{
+    display:block;
+    background:#CEC4B8;
+    color:#111827;
+    padding:15px;
+    border-radius:10px;
+    font-weight:bold;
+    text-decoration:none;
+}
+
+.doc-link:hover{
+    background:#B7AA99;
+}
+
+.aviso{
+    background:#fee2e2;
+    color:#991b1b;
+    padding:15px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.voltar{
+    display:inline-block;
+    margin-top:25px;
+    color:#907C64;
+    font-weight:bold;
+    text-decoration:none;
+}
+</style>
+
+<div class="doc-card">
+
+    <h1>📁 Documentos Anexos</h1>
+
+    <div class="doc-info">
+        Protocolo: {{ solicitacao.protocolo }}<br>
+        Evento: {{ solicitacao.nome_evento }}
+    </div>
+
+    <div class="doc-lista">
+
+        {% for documento in documentos %}
+
+    {% if documento.arquivo %}
+        <a
+            href="{% url 'abrir_documento_solicitacao' solicitacao.id documento.tipo %}"
+            target="_blank"
+            class="item"
+        >
+            📄 Abrir {{ documento.nome }}
+        </a>
+    {% else %}
+        <div class="aviso">
+            ⚠ {{ documento.nome }} não foi anexado.
+        </div>
+    {% endif %}
+
+{% endfor %}
+
+    </div>
+    <div style="margin-top:30px;">
+
+    {% if solicitacao.status == "CORREÇÃO" %}
+
+        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
+           class="btn-gerar">
+            ✔ Gerar OPO
+        </a>
+
+    {% endif %}
+
+    <a href="{% url 'listar_pendentes_opo' %}"
+       class="btn-voltar">
+        ← Voltar para Aprovações
+    </a>
+
+</div>
+    <div class="acoes">
+        {% if solicitacao.status == "CORREÇÃO" %}
+        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
+           class="btn-gerar">
+            ✔ Gerar OPO
+        </a>
+        {% endif %}
+        
+{% endblock %}

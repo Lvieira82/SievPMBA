@@ -1,0 +1,383 @@
+{% extends 'base.html' %}
+
+{% block title %}Histórico de Eventos{% endblock %}
+
+{% block content %}
+
+<style>
+
+.container-historico {
+    max-width: 1100px;
+    margin: 30px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(0,0,0,.08);
+}
+
+.titulo {
+    color: #907C64;
+    margin-bottom: 25px;
+}
+
+.filtros {
+    background: #f5f5f5;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.filtros form {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: end;
+}
+
+.campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.campo label {
+    font-weight: 600;
+    color: #555;
+}
+
+.campo input,
+.campo select {
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background: white;
+}
+
+.btn-filtrar {
+    padding: 11px 20px;
+    border: none;
+    border-radius: 8px;
+    background: #907C64;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-filtrar:hover {
+    opacity: .9;
+}
+
+.btn-limpar {
+    padding: 11px 20px;
+    border-radius: 8px;
+    background: #6b7280;
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.evento-item {
+    padding: 18px;
+    border-bottom: 1px solid #e2e2e2;
+}
+
+.evento-item:last-child {
+    border-bottom: none;
+}
+
+.evento-data {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #555;
+}
+
+.evento-nome {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.evento-local {
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.evento-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.protocolo {
+    font-size: 14px;
+    color: #444;
+}
+
+.status {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-aprovado {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.status-correcao {
+    background: #fff7d6;
+    color: #a16207;
+    border: 1px solid #facc15;
+}
+
+.btn-voltar {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 26px;
+    background: #6b7280;
+    color: #fff;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+</style>
+
+
+<div class="container-historico">
+
+    <h1 class="titulo">
+        📚 Histórico de Eventos
+    </h1>
+
+
+    <!-- ========================================= -->
+    <!-- FILTROS -->
+    <!-- ========================================= -->
+
+    <div class="filtros">
+
+        <form method="get">
+
+            <div class="campo">
+
+                <label for="dia">
+                    Dia
+                </label>
+
+                <input
+                    type="date"
+                    id="dia"
+                    name="dia"
+                    value="{{ filtro_dia|default:'' }}"
+                >
+
+            </div>
+
+
+            <div class="campo">
+
+                <label for="mes">
+                    Mês
+                </label>
+
+                <select id="mes" name="mes">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    <option value="1" {% if filtro_mes == "1" %}selected{% endif %}>
+                        Janeiro
+                    </option>
+
+                    <option value="2" {% if filtro_mes == "2" %}selected{% endif %}>
+                        Fevereiro
+                    </option>
+
+                    <option value="3" {% if filtro_mes == "3" %}selected{% endif %}>
+                        Março
+                    </option>
+
+                    <option value="4" {% if filtro_mes == "4" %}selected{% endif %}>
+                        Abril
+                    </option>
+
+                    <option value="5" {% if filtro_mes == "5" %}selected{% endif %}>
+                        Maio
+                    </option>
+
+                    <option value="6" {% if filtro_mes == "6" %}selected{% endif %}>
+                        Junho
+                    </option>
+
+                    <option value="7" {% if filtro_mes == "7" %}selected{% endif %}>
+                        Julho
+                    </option>
+
+                    <option value="8" {% if filtro_mes == "8" %}selected{% endif %}>
+                        Agosto
+                    </option>
+
+                    <option value="9" {% if filtro_mes == "9" %}selected{% endif %}>
+                        Setembro
+                    </option>
+
+                    <option value="10" {% if filtro_mes == "10" %}selected{% endif %}>
+                        Outubro
+                    </option>
+
+                    <option value="11" {% if filtro_mes == "11" %}selected{% endif %}>
+                        Novembro
+                    </option>
+
+                    <option value="12" {% if filtro_mes == "12" %}selected{% endif %}>
+                        Dezembro
+                    </option>
+
+                </select>
+
+            </div>
+
+
+            <div class="campo">
+
+                <label for="ano">
+                    Ano
+                </label>
+
+                <select id="ano" name="ano">
+
+                    <option value="">
+                        Todos
+                    </option>
+
+                    {% for ano_item in anos %}
+
+                        <option
+                            value="{{ ano_item }}"
+                            {% if filtro_ano == ano_item|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ ano_item }}
+                        </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="btn-filtrar"
+            >
+                Filtrar
+            </button>
+
+
+            <a
+                href="{% url 'agenda_gestao' %}"
+                class="btn-limpar"
+            >
+                Limpar
+            </a>
+
+        </form>
+
+    </div>
+
+
+    <!-- ========================================= -->
+    <!-- EVENTOS -->
+    <!-- ========================================= -->
+
+    {% for evento in eventos %}
+
+        <div class="evento-item">
+
+            <div class="evento-data">
+
+                📅
+                {{ evento.data_evento|date:"d/m/Y" }}
+
+                {% if evento.hora_inicio %}
+                    — {{ evento.hora_inicio|time:"H:i" }}
+                {% endif %}
+
+            </div>
+
+
+            <div class="evento-nome">
+
+                📌
+                {{ evento.nome_evento }}
+
+            </div>
+
+
+            <div class="evento-local">
+
+                📍
+                {{ evento.local }}
+
+            </div>
+
+
+            <div class="evento-info">
+
+                <span class="protocolo">
+
+                    🔖 Protocolo:
+
+                    <strong>
+                        {{ evento.protocolo }}
+                    </strong>
+
+                </span>
+
+
+                {% if evento.status == "APROVADO" %}
+
+                    <span class="status status-aprovado">
+                        ✓ APROVADO
+                    </span>
+
+                {% elif evento.status == "CORRECAO" %}
+
+                    <span class="status status-correcao">
+                        ✏️ EM CORREÇÃO
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+    {% empty %}
+
+        <p>
+            Nenhum evento encontrado para o filtro selecionado.
+        </p>
+
+    {% endfor %}
+
+
+    <a
+        href="{% url 'painel_gestao' %}"
+        class="btn-voltar"
+    >
+        ← Voltar
+    </a>
+
+</div>
+
+{% endblock %}

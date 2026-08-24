@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}
+OPOs Geradas
+{% endblock %}
+
+{% block content %}
+
+<style>
+.card-opos{
+    max-width:1150px;
+    margin:40px auto;
+    background:white;
+    padding:35px;
+    border-radius:16px;
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+}
+
+.card-opos h1{
+    color:#907C64;
+    margin-bottom:25px;
+}
+
+.tabela{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.tabela th,
+.tabela td{
+    padding:14px;
+    border-bottom:1px solid #e5e7eb;
+    text-align:left;
+}
+
+.tabela th{
+    background:#111827;
+    color:white;
+}
+
+.btn{
+    display:inline-block;
+    padding:9px 14px;
+    background:#907C64;
+    color:white;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+}
+
+.btn-voltar{
+    display:inline-block;
+    margin-top:25px;
+    padding:12px 22px;
+    background:#6b7280;
+    color:white;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+}
+/* ===========================
+   RESPONSIVIDADE OPOs GERADAS
+=========================== */
+
+.tabela-opos{
+    width:100%;
+    border-collapse:collapse;
+}
+
+.tabela-opos th,
+.tabela-opos td{
+    padding:12px;
+    vertical-align:top;
+}
+
+.btn-arquivo{
+    display:inline-block;
+    background:#907C64;
+    color:#fff;
+    text-decoration:none;
+    padding:10px 14px;
+    border-radius:8px;
+    margin:4px;
+    font-weight:bold;
+    white-space:nowrap;
+}
+
+@media (max-width:768px){
+
+    .container{
+        padding:15px;
+    }
+
+    h1{
+        font-size:28px;
+        text-align:center;
+    }
+
+    .tabela-opos,
+    .tabela-opos tbody,
+    .tabela-opos tr,
+    .tabela-opos td{
+        display:block;
+        width:100%;
+    }
+
+    .tabela-opos thead{
+        display:none;
+    }
+
+    .tabela-opos tr{
+        background:#fff;
+        margin-bottom:20px;
+        border-radius:14px;
+        padding:15px;
+        box-shadow:0 4px 12px rgba(0,0,0,.08);
+    }
+
+    .tabela-opos td{
+        border:none;
+        padding:8px 0;
+    }
+
+    .tabela-opos td:first-child{
+        font-size:20px;
+        font-weight:bold;
+        color:#907C64;
+        margin-bottom:10px;
+    }
+
+    .btn-arquivo{
+        display:block;
+        width:100%;
+        margin:8px 0;
+        text-align:center;
+    }
+
+    .btn-voltar{
+        width:100%;
+        display:block;
+        text-align:center;
+        margin-top:25px;
+    }
+
+}
+</style>
+
+<div class="container mt-5 mb-5">
+    <div class="card shadow-lg border-0 rounded-4">
+        <div class="card-body p-4">
+
+            <h2 class="mb-4 fw-bold text-secondary">📁 OPOs Geradas</h2>
+
+            {% if protocolos %}
+
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Protocolo</th>
+                        <th>Documentos</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                {% for protocolo in protocolos %}
+                    <tr>
+                        <td>
+                            <strong>{{ protocolo.codigo }}</strong>
+                        </td>
+
+                        <td>
+                            {% for arquivo in protocolo.arquivos %}
+                                <a href="{{ arquivo.url }}"
+                                   target="_blank"
+                                   class="btn btn-sm btn-primary mb-1">
+                                    📄 {{ arquivo.nome }}
+                                </a>
+                            {% empty %}
+                                <span class="text-muted">Nenhum PDF encontrado.</span>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+
+            {% else %}
+                <div class="alert alert-warning">
+                    Nenhum protocolo encontrado.
+                </div>
+            {% endif %}
+
+            <hr>
+
+            <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">
+                ← Voltar ao Painel
+            </a>
+
+        </div>
+    </div>
+</div>
+
+{% endblock %}

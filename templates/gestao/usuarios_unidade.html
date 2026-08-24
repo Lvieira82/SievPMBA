@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}
+Usuários da Unidade
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+            <h2>Usuários da Unidade</h2>
+
+            <p class="text-muted mb-0">
+                {{ unidade }}
+            </p>
+        </div>
+
+        <a
+            href="{% url 'cadastrar_usuario_unidade' %}"
+            class="btn btn-primary"
+        >
+            + Cadastrar Usuário
+        </a>
+
+    </div>
+
+
+    {% if messages %}
+
+        {% for message in messages %}
+
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+
+        {% endfor %}
+
+    {% endif %}
+
+
+    <div class="card shadow-sm">
+
+        <div class="card-body">
+
+            {% if usuarios %}
+
+                <div class="table-responsive">
+
+                    <table class="table table-hover align-middle">
+
+                        <thead>
+
+                            <tr>
+                                <th>Nome</th>
+                                <th>Usuário</th>
+                                <th>Perfil</th>
+                                <th>Status</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                            {% for perfil in usuarios %}
+
+                            <tr>
+
+                                <td>
+                                    {{ perfil.usuario.get_full_name }}
+                                </td>
+
+                                <td>
+                                    {{ perfil.usuario.username }}
+                                </td>
+
+                                <td>
+                                    {{ perfil.get_perfil_display }}
+                                </td>
+
+                                <td>
+
+                                    {% if perfil.ativo %}
+
+                                        <span class="badge bg-success">
+                                            Ativo
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="badge bg-danger">
+                                            Inativo
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                            {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+            {% else %}
+
+                <div class="alert alert-info mb-0">
+                    Ainda não existem usuários cadastrados
+                    nesta Unidade.
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,761 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Nova Informação
+{% endblock %}
+
+{% block content %}
+
+<style>
+.form-card{
+    background:#fff;
+    max-width:1100px;
+    margin:auto;
+    padding:40px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+}
+
+.form-title{
+    color:#907C64;
+    margin-bottom:30px;
+    text-align:center;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+}
+
+.full{
+    grid-column:1 / -1;
+}
+
+label{
+    display:block;
+    margin-bottom:8px;
+    font-weight:bold;
+    color:#374151;
+}
+
+input,
+textarea,
+select{
+    width:100%;
+    padding:12px;
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    font-size:15px;
+}
+
+textarea{
+    min-height:120px;
+}
+
+.upload-box{
+    border:2px dashed #cbd5e1;
+    padding:20px;
+    border-radius:10px;
+    background:#f8fafc;
+}
+
+.btn-area{
+    margin-top:30px;
+    display:flex;
+    gap:15px;
+    justify-content:center;
+    flex-wrap:wrap;
+}
+
+.btn-submit{
+    background:#111827;
+    color:white;
+    border:none;
+    padding:15px 35px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:bold;
+}
+
+.btn-back{
+    background:#6b7280;
+    color:white;
+    text-decoration:none;
+    padding:15px 35px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.erro{
+    background:#fee2e2;
+    color:#991b1b;
+    padding:18px;
+    border-radius:10px;
+    margin-bottom:25px;
+    border:1px solid #dc2626;
+}
+
+.erro ul{
+    margin-left:20px;
+    margin-top:10px;
+}
+
+.erro-campo{
+    color:#b91c1c;
+    margin-top:6px;
+    font-size:14px;
+    font-weight:bold;
+}
+
+.termos-lei{
+    background:#f8fbff;
+    border:1px solid #907C64;
+    border-left:6px solid #907C64;
+    padding:18px 22px;
+    border-radius:10px;
+    margin-bottom:25px;
+    color:#1f2937;
+    line-height:1.6;
+}
+
+.termos-lei h3{
+    color:#907C64;
+    margin-bottom:10px;
+}
+
+.aceite-termos{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    margin-top:15px;
+    font-weight:bold;
+}
+
+.aceite-termos input{
+    width:auto;
+    margin-top:4px;
+}
+
+.opcoes-radio{
+    display:flex;
+    gap:30px;
+    margin-top:12px;
+}
+
+.opcoes-radio label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+}
+
+.opcoes-radio input{
+    width:auto;
+}
+
+#areaFormulario{
+    opacity:.45;
+    pointer-events:none;
+    transition:.3s;
+}
+
+.aviso-amarelo{
+    display:none;
+    margin-top:15px;
+    padding:15px;
+    background:#fff3cd;
+    border:1px solid #ffc107;
+    color:#856404;
+    border-radius:8px;
+    font-weight:bold;
+}
+
+@media(max-width:768px){
+    .grid{
+        grid-template-columns:1fr;
+    }
+
+    .form-card{
+        padding:20px;
+    }
+}
+</style>
+
+<div class="form-card">
+
+    <h1 class="form-title">
+        {% if solicitacao %}
+            Corrigir Solicitação
+        {% else %}
+            Informação de Evento
+        {% endif %}
+    </h1>
+
+    <div class="termos-lei">
+
+        <h3>⚠️ Declaração de Veracidade das Informações</h3>
+
+        <p>
+            A obrigação de fornecer dados corretos ao solicitar serviços públicos e as penalidades por mentir estão previstas principalmente no Código Penal Brasileiro (Decreto-Lei nº 2.848/1940) e na Lei de Processo Administrativo Federal (Lei nº 9.784/1999).
+        </p>
+
+        <p>
+            <strong>Falsidade Ideológica (Art. 299 do Código Penal):</strong>
+            Omitir ou inserir declaração falsa em documento público ou particular para prejudicar direito ou alterar a verdade sobre um fato.
+        </p>
+
+        <label class="aceite-termos">
+            <input
+                type="checkbox"
+                id="aceite_termos"
+            >
+
+            <span>
+                Declaro que li e estou ciente das informações acima e que todos os dados informados são verdadeiros.
+            </span>
+        </label>
+
+    </div>
+
+   
+    {% if form.errors %}
+    <div class="erro">
+
+        <strong>⚠ Corrija os seguintes erros antes de enviar:</strong>
+
+        <ul>
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <li>
+                        <strong>{{ field.label }}:</strong>
+                        {{ error }}
+                    </li>
+                {% endfor %}
+            {% endfor %}
+
+            {% for error in form.non_field_errors %}
+                <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+
+    </div>
+    {% endif %}
+
+    <div id="areaFormulario">
+
+        <form method="post" enctype="multipart/form-data">
+            
+            {% csrf_token %}
+            
+            {% if solicitacao %}
+                <input type="hidden" name="correcao" value="1">
+            {% endif %}
+
+            {% csrf_token %}
+
+            <div class="grid">
+
+                <div>
+                    <label>Nome do Responsável *</label>
+                    {{ form.solicitante }}
+
+                    {% if form.solicitante.errors %}
+                        <div class="erro-campo">
+                            {{ form.solicitante.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>CPF *</label>
+                    {{ form.cpf }}
+
+                    {% if form.cpf.errors %}
+                        <div class="erro-campo">
+                            {{ form.cpf.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>Telefone *</label>
+                    {{ form.telefone }}
+
+                    {% if form.telefone.errors %}
+                        <div class="erro-campo">
+                            {{ form.telefone.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>E-mail *</label>
+                    {{ form.email }}
+
+                    {% if form.email.errors %}
+                        <div class="erro-campo">
+                            {{ form.email.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <label>Nome do Evento *</label>
+                    {{ form.nome_evento }}
+
+                    {% if form.nome_evento.errors %}
+                        <div class="erro-campo">
+                            {{ form.nome_evento.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <label>Local do Evento *</label>
+                    {{ form.local }}
+
+                    {% if form.local.errors %}
+                        <div class="erro-campo">
+                            {{ form.local.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>Data do Evento *</label>
+                    {{ form.data_evento }}
+
+                    {% if form.data_evento.errors %}
+                        <div class="erro-campo">
+                            {{ form.data_evento.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>Hora Início *</label>
+                    {{ form.hora_inicio }}
+
+                    {% if form.hora_inicio.errors %}
+                        <div class="erro-campo">
+                            {{ form.hora_inicio.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label>Hora Fim *</label>
+                    {{ form.hora_fim }}
+
+                    {% if form.hora_fim.errors %}
+                        <div class="erro-campo">
+                            {{ form.hora_fim.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="full">
+                    <label>Observações</label>
+                    {{ form.observacoes }}
+
+                    {% if form.observacoes.errors %}
+                        <div class="erro-campo">
+                            {{ form.observacoes.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="upload-box full">
+
+                    <label>
+                        Ofício ao Comandante da Unidade (PDF) *
+                    </label>
+                    <input
+                        type="file"
+                        name="oficio_comandante"
+                        class="form-control"
+                        accept=".pdf"
+                        required
+                    >
+                    {{ form.oficio_comandante }}
+
+                    {% if form.oficio_comandante.errors %}
+
+                        <div class="erro-campo">
+
+                            {{ form.oficio_comandante.errors.0 }}
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+                <div class="upload-box full">
+
+                    <label>
+                        Documentos Complementares (Opcional)
+                    </label>
+
+                    <div id="lista-documentos">
+
+                        <div class="documento-item">
+
+                            <div class="grid">
+
+                                <div>
+
+                                    <label>Tipo do Documento</label>
+
+                                    <select
+                                        name="tipo_documento"
+                                        class="form-control tipo-documento">
+
+                                        <option value="">
+                                            Selecione...
+                                        </option>
+
+                                        <option value="Bombeiro">
+                                            Bombeiro
+                                        </option>
+
+                                        <option value="Meio Ambiente">
+                                            Meio Ambiente
+                                        </option>
+
+                                        <option value="Sanitário">
+                                            Vigilância Sanitária
+                                        </option>
+
+                                        <option value="MP">
+                                            Ministério Público
+                                        </option>
+
+                                        <option value="TAC">
+                                            TAC
+                                        </option>
+
+                                        <option value="Outro">
+                                            Outro
+                                        </option>
+
+                                    </select>
+
+                                </div>
+
+                                <div class="descricao-outro" style="display:none">
+
+                                    <label>
+                                        Descreva o documento
+                                    </label>
+
+                                    <input
+                                        type="text"
+                                        name="descricao_documento"
+                                        class="form-control">
+
+                                </div>
+
+                            </div>
+
+                            <br>
+
+                            <label>Arquivo (PDF)</label>
+
+                            <input
+                                type="file"
+                                name="documentos"
+                                accept=".pdf"
+                                class="form-control">
+
+                        </div>
+
+                    </div>
+
+                    <br>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        id="btnAdicionarDocumento">
+
+                        + Adicionar outro documento
+
+                    </button>
+
+                </div>
+            <div class="btn-area">
+
+                <a
+                    href="javascript:history.back()"
+                    class="btn-back"
+                >
+                    ← Voltar
+                </a>
+
+                <button
+                    type="submit"
+                    class="btn-submit"
+                >
+                    {% if solicitacao %}
+                        Salvar Correções
+                    {% else %}
+                        Enviar Informação
+                    {% endif %}
+                </button>
+
+            </div>
+
+        </form>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+
+<script>
+
+$(function(){
+
+    $("#id_telefone").mask("(00) 00000-0000");
+    $("#id_cpf").mask("000.000.000-00");
+
+});
+
+const aceite = document.getElementById("aceite_termos");
+const formulario = document.getElementById("areaFormulario");
+
+function atualizarFormulario(){
+
+    if(aceite.checked){
+
+        formulario.style.opacity="1";
+        formulario.style.pointerEvents="auto";
+
+    }else{
+
+        formulario.style.opacity=".45";
+        formulario.style.pointerEvents="none";
+
+    }
+
+}
+
+aceite.addEventListener("change", atualizarFormulario);
+
+atualizarFormulario();
+
+
+
+/* =====================================================
+   DOCUMENTOS COMPLEMENTARES
+===================================================== */
+
+function criarDocumento(){
+
+return `
+
+<div class="documento-item border rounded p-3 mb-3">
+
+    <label class="mb-2">
+        Tipo do Documento
+    </label>
+
+    <select
+        name="tipo_documento"
+        class="form-select tipo-documento">
+
+        <option value="">
+            Selecione...
+        </option>
+
+        <option value="BOMBEIRO">
+            Corpo de Bombeiros
+        </option>
+
+        <option value="SANITARIO">
+            Vigilância Sanitária
+        </option>
+
+        <option value="MEIO_AMBIENTE">
+            Meio Ambiente
+        </option>
+
+        <option value="MP">
+            Ministério Público
+        </option>
+
+        <option value="TAC">
+            TAC
+        </option>
+
+        <option value="CREA">
+            CREA
+        </option>
+
+        <option value="CRM">
+            CRM
+        </option>
+
+        <option value="CRMV">
+            CRMV
+        </option>
+
+        <option value="CRO">
+            CRO
+        </option>
+
+        <option value="IBAMA">
+            IBAMA
+        </option>
+
+        <option value="INEMA">
+            INEMA
+        </option>
+
+        <option value="PREFEITURA">
+            Prefeitura
+        </option>
+
+        <option value="POLICIA_CIVIL">
+            Polícia Civil
+        </option>
+
+        <option value="EXERCITO">
+            Exército Brasileiro
+        </option>
+
+        <option value="MARINHA">
+            Marinha do Brasil
+        </option>
+
+        <option value="ANAC">
+            ANAC
+        </option>
+
+        <option value="DNIT">
+            DNIT
+        </option>
+
+        <option value="DERBA">
+            DERBA / SIT
+        </option>
+
+        <option value="OUTRO">
+            Outro Documento
+        </option>
+
+    </select>
+
+    <div
+        class="descricao-outro mt-3"
+        style="display:none;">
+
+        <label>
+            Descrição
+        </label>
+
+        <input
+            type="text"
+            class="form-control"
+            name="descricao_documento">
+
+    </div>
+
+    <div class="mt-3">
+
+        <label>
+            Arquivo (PDF)
+        </label>
+
+        <input
+            type="file"
+            name="documentos"
+            class="form-control"
+            accept=".pdf">
+
+    </div>
+
+    <button
+        type="button"
+        class="btn btn-danger btn-sm mt-3 remover-documento">
+
+        Remover
+
+    </button>
+
+</div>
+
+`;
+
+}
+
+
+/* Adicionar documento */
+
+document
+.getElementById("btnAdicionarDocumento")
+.addEventListener("click",function(){
+
+    document
+    .getElementById("lista-documentos")
+    .insertAdjacentHTML(
+        "beforeend",
+        criarDocumento()
+    );
+
+});
+
+
+/* Mostrar descrição quando escolher OUTRO */
+
+document.addEventListener(
+"change",
+function(e){
+
+    if(!e.target.classList.contains("tipo-documento"))
+        return;
+
+    const bloco =
+    e.target.closest(".documento-item");
+
+    const descricao =
+    bloco.querySelector(".descricao-outro");
+
+    if(e.target.value=="OUTRO"){
+
+        descricao.style.display="block";
+
+    }else{
+
+        descricao.style.display="none";
+
+    }
+
+});
+
+
+/* Remover documento */
+
+document.addEventListener(
+"click",
+function(e){
+
+    if(
+        e.target.classList.contains(
+        "remover-documento"
+        )
+    ){
+
+        e.target
+        .closest(".documento-item")
+        .remove();
+
+    }
+
+});
+
+</script>
+
+{% endblock %}

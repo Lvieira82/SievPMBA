@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+
+<html lang="pt-br">
+
+<head>
+
+<meta charset="utf-8">
+
+<title>{{ cpr.nome }}</title>
+
+<style>
+
+body{
+
+background:#0B1F3A;
+
+font-family:Arial;
+
+color:white;
+
+text-align:center;
+
+}
+
+.card{
+
+width:400px;
+
+margin:20px auto;
+
+padding:20px;
+
+background:#1B355F;
+
+border-radius:10px;
+
+}
+
+.botao{
+
+display:block;
+
+margin:10px;
+
+padding:15px;
+
+background:#C59D2F;
+
+color:white;
+
+text-decoration:none;
+
+font-size:20px;
+
+border-radius:6px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>{{ cpr.nome }}</h1>
+
+<div class="card">
+
+{% for id,nome in cpr.unidades %}
+
+<a class="botao"
+
+href="/portal/unidade/{{ id }}/">
+
+{{ nome }}
+
+</a>
+
+{% endfor %}
+
+</div>
+
+</body>
+
+</html>

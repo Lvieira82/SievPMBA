@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>OPO - {{ solicitacao.protocolo }}</title>
+
+<style>
+@page{
+    size:A4;
+    margin:16mm 18mm 14mm 18mm;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:12px;
+    color:#000;
+    background:white;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+}
+
+.folha{
+    width:100%;
+    max-width:190mm;
+    min-height:267mm;
+    margin:0 auto;
+    padding:10mm 12mm;
+    background:white;
+}
+
+.logo-central{
+    text-align:center;
+    margin-bottom:6px;
+}
+
+.logo-central img{
+    width:85px;
+    height:auto;
+}
+
+.cabecalho{
+    text-align:center;
+    margin-bottom:18px;
+}
+
+.cabecalho h1{
+    font-size:14px;
+    margin:2px 0;
+}
+
+.cabecalho h2{
+    font-size:12px;
+    margin:2px 0;
+}
+
+.cabecalho h3{
+    font-size:12px;
+    margin:2px 0;
+}
+
+.numero{
+    text-align:center;
+    font-size:12px;
+    font-weight:bold;
+    margin:18px 0;
+}
+
+.intro{
+    text-align:center;
+    font-weight:bold;
+    margin-bottom:18px;
+}
+
+.linha-info{
+    display:flex;
+    margin-bottom:8px;
+    line-height:1.35;
+}
+
+.rotulo{
+    width:140px;
+    font-weight:bold;
+}
+
+.valor{
+    flex:1;
+}
+
+.obs{
+    margin-top:18px;
+}
+
+.obs-titulo{
+    font-weight:bold;
+    margin-bottom:8px;
+}
+
+.obs p{
+    margin:0 0 7px 0;
+    line-height:1.35;
+}
+.campo-observacao {
+    font-weight: bold;
+}
+.rodape{
+    margin-top:20px;
+    text-align:center;
+    font-size:11px;
+}
+
+.qrcode{
+    margin-top:12px;
+    text-align:center;
+}
+
+.qrcode img{
+    width:90px;
+    height:auto;
+}
+
+.autenticidade{
+    margin-top:6px;
+    text-align:center;
+    font-size:10px;
+}
+
+.url{
+    color:#1e3a8a;
+    font-size:9px;
+    word-break:break-all;
+}
+
+.btn-print{
+    position:fixed;
+    top:18px;
+    right:20px;
+    background:#1e3a8a;
+    color:white;
+    padding:12px 18px;
+    border-radius:8px;
+    border:none;
+    font-weight:bold;
+    cursor:pointer;
+    z-index:9999;
+}
+
+@media print{
+    .btn-print{
+        display:none;
+    }
+
+    body{
+        margin:0;
+    }
+
+    .folha{
+        margin:0;
+        padding:0;
+        max-width:100%;
+        min-height:auto;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button onclick="window.print()" class="btn-print">
+    🖨 Imprimir / Salvar PDF
+</button>
+
+<div class="folha">
+
+    <div class="logo-central">
+        {% load static %}
+            <img src="{% static 'logos/logo_pmba.png' %}">
+    </div>
+
+    <div class="cabecalho">
+        <h1>POLÍCIA MILITAR DA BAHIA</h1>
+        <h2>COMANDO DE OPERAÇÕES POLICIAIS MILITARES</h2>
+        <h3>95ª CIPM - CATU</h3>
+    </div>
+
+    <div class="numero">
+        OPO Nº {{ solicitacao.numero_opo|default:solicitacao.protocolo }}
+        -
+        {{ data_geracao|date:"d \d\e F \d\e Y" }}
+    </div>
+
+    <div class="intro">
+        RECOMENDO EXECUTARDES A SEGUINTE OPO:
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">EVENTO:</div>
+        <div class="valor">{{ solicitacao.nome_evento }}</div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">LOCAL:</div>
+        <div class="valor">{{ solicitacao.local }}</div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">DATA:</div>
+        <div class="valor">{{ solicitacao.data_evento|date:"d/m/Y" }}</div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">HORÁRIO:</div>
+        <div class="valor">
+            {{ solicitacao.hora_inicio|time:"H:i" }} - {{ solicitacao.hora_fim|time:"H:i" }}
+        </div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">EFETIVO:</div>
+        <div class="valor">{{ solicitacao.efetivo_opo }}</div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">UNIFORME E ARMAMENTO:</div>
+        <div class="valor">O de Dotação desta UOPM</div>
+    </div>
+
+    <div class="linha-info">
+        <div class="rotulo">SOLICITANTE:</div>
+        <div class="valor">
+            {{ solicitacao.solicitante }} {{ solicitacao.telefone }}
+        </div>
+    </div>
+
+    <div class="obs">
+        <div class="obs-titulo">OBSERVAÇÕES:</div>
+
+        <p>¤ O organizador do evento está ciente que caso haja perturbação do sossego, aglomeração ou outro tipo de infração, a guarnição adotará as medidas cabíveis.</p>
+
+        <p>¤ A viatura deve realizar Alfa 16 e no local, durante o evento.</p>
+
+        <p>¤ Constar o desenvolvimento desta OPO no relatório de serviço.</p>
+
+        {% if solicitacao.observacao %}
+            <div class="campo-observacao">
+                <strong>
+                    OBSERVAÇÃO: {{ solicitacao.observacao|linebreaksbr }}
+                </strong>
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="rodape">
+        Ordem de policiamento gerada por
+        <strong>{{ solicitacao.comandante_opo }}</strong>
+    </div>
+
+   {% if qr_base64 %}
+    <div class="qrcode">
+        <img src="{{ qr_base64|safe }}" alt="QR Code">
+    </div>
+    {% endif %}
+    <div class="autenticidade">
+        Verifique a autenticidade deste documento escaneando o QR Code ou acessando:<br>
+        <span class="url">{{ url_verificacao }}</span>
+    </div>
+
+</div>
+
+</body>
+</html>

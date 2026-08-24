@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Próximos Eventos{% endblock %}
+
+{% block content %}
+
+<style>
+
+.container-eventos {
+    max-width: 1000px;
+    margin: 30px auto;
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 5px 18px rgba(0,0,0,.08);
+}
+
+.titulo {
+    color: #907C64;
+    margin-bottom: 25px;
+}
+
+.evento-item {
+    padding: 18px;
+    border-bottom: 1px solid #e2e2e2;
+}
+
+.evento-item:last-child {
+    border-bottom: none;
+}
+
+.evento-data {
+    font-weight: bold;
+    color: #555;
+    margin-bottom: 5px;
+}
+
+.evento-nome {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.evento-local {
+    color: #555;
+    margin-bottom: 8px;
+}
+
+.protocolo {
+    font-size: 14px;
+    color: #444;
+}
+
+.status {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.status-aprovado {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #86efac;
+}
+
+.status-correcao {
+    background: #fff7d6;
+    color: #a16207;
+    border: 1px solid #facc15;
+}
+
+.btn-voltar {
+    display: inline-block;
+    margin-top: 25px;
+    padding: 12px 26px;
+    background: #6b7280;
+    color: white;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+</style>
+
+
+<div class="container-eventos">
+
+    <h1 class="titulo">
+        📅 Próximos Eventos
+    </h1>
+
+
+    {% for evento in eventos %}
+
+        <div class="evento-item">
+
+            <div class="evento-data">
+
+                📅
+                {{ evento.data_evento|date:"d/m/Y" }}
+
+                {% if evento.hora_inicio %}
+                    — {{ evento.hora_inicio|time:"H:i" }}
+                {% endif %}
+
+            </div>
+
+
+            <div class="evento-nome">
+
+                📌
+                {{ evento.nome_evento }}
+
+            </div>
+
+
+            <div class="evento-local">
+
+                📍
+                {{ evento.local }}
+
+            </div>
+
+
+            <div>
+
+                <span class="protocolo">
+
+                    🔖 Protocolo:
+
+                    <strong>
+                        {{ evento.protocolo }}
+                    </strong>
+
+                </span>
+
+
+                {% if evento.status == "APROVADO" %}
+
+                    <span class="status status-aprovado">
+                        ✓ APROVADO
+                    </span>
+
+                {% elif evento.status == "CORRECAO" %}
+
+                    <span class="status status-correcao">
+                        ✏️ EM CORREÇÃO
+                    </span>
+
+                {% endif %}
+
+            </div>
+
+        </div>
+
+
+    {% empty %}
+
+        <p>
+            Não há próximos eventos cadastrados.
+        </p>
+
+    {% endfor %}
+
+
+    <a
+        href="{% url 'painel_gestao' %}"
+        class="btn-voltar"
+    >
+        ← Voltar
+    </a>
+
+</div>
+
+{% endblock %}

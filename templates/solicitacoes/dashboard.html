@@ -1,0 +1,273 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Dashboard Operacional
+{% endblock %}
+
+{% block content %}
+
+<h2 style="
+margin-bottom:25px;
+color:#907C64;
+">
+Dashboard Operacional
+</h2>
+
+<div class="cards-dashboard">
+
+    <div class="card-info">
+        <h3>{{ total }}</h3>
+        <p>Total de Solicitações</p>
+    </div>
+
+    <div class="card-info">
+        <h3>{{ pendentes }}</h3>
+        <p>Pendentes</p>
+    </div>
+
+    <div class="card-info">
+        <h3>{{ aprovadas }}</h3>
+        <p>Aprovadas</p>
+    </div>
+
+</div>
+
+<div class="tabela-container">
+
+<table>
+
+    <thead>
+        <tr>
+            <th>Evento</th>
+            <th>Solicitante</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+    {% for s in solicitacoes %}
+
+        <tr>
+
+            <td>{{ s.nome_evento }}</td>
+
+            <td>{{ s.solicitante }}</td>
+
+            <td>{{ s.data_evento|date:"d/m/Y" }}</td>
+
+            <td>
+
+                {% if s.status == "APROVADO" %}
+
+                    <span class="status aprovado">
+                        APROVADO
+                    </span>
+
+                {% elif s.status == "REPROVADO" %}
+
+                    <span class="status reprovado">
+                        REPROVADO
+                    </span>
+
+                {% else %}
+
+                    <span class="status pendente">
+                        PENDENTE
+                    </span>
+
+                {% endif %}
+
+            </td>
+
+            <td>
+
+                {% if s.status == "PENDENTE" %}
+
+                    <a
+                        href="{% url 'aprovar_solicitacao' s.id %}"
+                        class="btn-pdf"
+                    >
+                        PDF
+                    </a>
+
+                {% else %}
+
+                    <a
+                        href="{% url 'gerar_opo' s.id %}"
+                        class="btn-pdf"
+                    >
+                        PDF
+                    </a>
+
+                {% endif %}
+
+            </td>
+
+        </tr>
+
+    {% empty %}
+
+        <tr>
+
+            <td colspan="5" style="text-align:center;padding:20px;">
+                Nenhuma solicitação encontrada.
+            </td>
+
+        </tr>
+
+    {% endfor %}
+
+    </tbody>
+
+</table>
+
+</div>
+
+<div class="acoes">
+        <a href="{% url 'painel_gestao' %}" class="btn-voltar">
+            ← Voltar
+        </a>
+</div>
+
+<style>
+
+.cards-dashboard{
+
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+    gap:20px;
+    margin-bottom:30px;
+
+}
+
+.card-info{
+
+    background:white;
+    border-radius:15px;
+    padding:25px;
+    text-align:center;
+    box-shadow:0 3px 15px rgba(0,0,0,.08);
+
+}
+
+.card-info h3{
+
+    font-size:42px;
+    color:#907C64;
+
+}
+
+.card-info p{
+
+    color:#6b7280;
+    margin-top:10px;
+
+}
+
+.tabela-container{
+
+    background:white;
+    border-radius:15px;
+    overflow-x:auto;
+    box-shadow:0 3px 15px rgba(0,0,0,.08);
+
+}
+
+table{
+
+    width:100%;
+    border-collapse:collapse;
+
+}
+
+thead{
+
+    background:#907C64;
+    color:white;
+
+}
+
+th,
+td{
+
+    padding:15px;
+    text-align:left;
+    border-bottom:1px solid #e5e7eb;
+
+}
+
+.status{
+
+    padding:6px 12px;
+    border-radius:20px;
+    color:white;
+    font-size:12px;
+    font-weight:bold;
+
+}
+
+.aprovado{
+
+    background:#198754;
+
+}
+
+.pendente{
+
+    background:#ffc107;
+    color:#000;
+
+}
+
+.reprovado{
+
+    background:#dc3545;
+
+}
+
+.btn-pdf{
+
+    background:#0d6efd;
+    color:white;
+    text-decoration:none;
+    padding:8px 14px;
+    border-radius:8px;
+    font-weight:bold;
+
+}
+
+.btn-pdf:hover{
+
+    background:#0b5ed7;
+
+}
+
+.voltar{
+
+    display:inline-block;
+    margin-top:20px;
+    text-decoration:none;
+    color:#1e3a8a;
+    font-weight:bold;
+
+}
+.btn-voltar{
+    display:inline-block;
+    padding:12px 26px;
+    background:#6b7280;
+    color:#fff;
+    border-radius:10px;
+    text-decoration:none;
+    font-weight:600;
+    transition:.25s;    }
+
+.btn-voltar:hover{
+    background:#4b5563;
+    transform:translateY(-2px);
+}
+</style>
+
+{% endblock %}

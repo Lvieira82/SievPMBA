@@ -1,0 +1,456 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Painel de Gestão
+{% endblock %}
+
+{% block content %}
+
+<style>
+.card-menu{
+    background:#fff;
+    border-radius:20px;
+    padding:32px 28px;
+    text-decoration:none;
+    color:inherit;
+    box-shadow:0 10px 25px rgba(0,0,0,.08);
+    transition:.25s;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    min-height:205px;
+}
+.acoes-eventos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-top: 25px;
+    flex-wrap: wrap;
+}
+
+.btn-ver-todos,
+.btn-mapa-eventos {
+    display: inline-block;
+    padding: 13px 24px;
+    background: #907C64;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: bold;
+    transition: 0.25s;
+}
+
+.btn-ver-todos:hover,
+.btn-mapa-eventos:hover {
+    background: #111827;
+    transform: translateY(-2px);
+}
+
+.card-menu:hover{
+    transform:translateY(-5px);
+    box-shadow:0 15px 30px rgba(0,0,0,.15);
+}
+
+.card-menu .icone{
+    font-size:42px;
+    margin-bottom:18px;
+}
+
+.card-menu h3{
+    font-size:22px;
+    color:#907C64;
+    margin-bottom:10px;
+    font-weight:700;
+}
+
+.card-menu p{
+    color:#111827;
+    font-size:16px;
+    line-height:1.4;
+}
+.painel{
+    max-width:1100px;
+    margin:30px auto;
+    padding:0 16px;
+}
+
+.painel h1{
+    color:#907C64;
+    margin-bottom:20px;
+    font-size:32px;
+}
+
+.cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+}
+
+.card{
+    position:relative;
+    background:white;
+    padding:25px;
+    border-radius:16px;
+    box-shadow:0 5px 18px rgba(0,0,0,.08);
+    text-decoration:none;
+    color:#111827;
+    transition:.2s;
+}
+
+.card:hover{
+    transform:translateY(-3px);
+}
+
+.icone{
+    font-size:34px;
+    margin-bottom:10px;
+}
+
+.card h2{
+    color:#907C64;
+    margin-bottom:8px;
+}
+
+.badge{
+    position:absolute;
+    top:12px;
+    right:12px;
+    background:#dc2626;
+    color:white;
+    padding:6px 10px;
+    border-radius:999px;
+    font-weight:bold;
+}
+
+.badge-novo{
+    background:#bbf7d0;
+    color:#15803d;
+    padding:4px 9px;
+    border-radius:999px;
+    font-size:12px;
+    margin-left:8px;
+}
+
+.proximos{
+    background:white;
+    margin-top:28px;
+    border-radius:18px;
+    padding:28px;
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+}
+
+.proximos h2{
+    color:#907C64;
+    font-size:28px;
+    margin-bottom:22px;
+}
+
+.tabela-card{
+    width:100%;
+    overflow-x:auto;
+    border:1px solid #d1d5db;
+    border-radius:10px;
+}
+
+.tabela-eventos{
+    width:100%;
+    min-width:820px;
+    border-collapse:collapse;
+}
+
+.tabela-eventos th,
+.tabela-eventos td{
+    padding:16px 18px;
+    border-bottom:1px solid #e5e7eb;
+    text-align:left;
+    vertical-align:middle;
+}
+
+.status-aprovado{
+    display:inline-block;
+    background:#dcfce7;
+    color:#15803d;
+    border:1px solid #86efac;
+    padding:7px 14px;
+    border-radius:6px;
+    font-weight:bold;
+    font-size:13px;
+}
+
+.status-pendente{
+    display:inline-block;
+    background:#fef3c7;
+    color:#92400e;
+    border:1px solid #facc15;
+    padding:7px 14px;
+    border-radius:6px;
+    font-weight:bold;
+    font-size:13px;
+}
+
+.btn-detalhes,
+.btn-ver-todos{
+    display:inline-block;
+    background:#907C64;
+    color:white;
+    padding:10px 16px;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:bold;
+    white-space:nowrap;
+}
+
+.area-ver-todos{
+    text-align:center;
+    margin-top:28px;
+}
+
+.btn-ver-todos{
+    padding:14px 26px;
+}
+
+.sem-eventos{
+    text-align:center;
+    color:#6b7280;
+    padding:28px;
+}
+
+/* CELULAR */
+@media(max-width:768px){
+
+    .painel{
+        margin:20px auto;
+        padding:0 14px;
+    }
+
+    .painel h1{
+        font-size:28px;
+        text-align:center;
+    }
+
+    .cards{
+        grid-template-columns:1fr;
+    }
+
+    .card{
+        min-height:auto;
+    }
+
+    .proximos{
+        padding:22px 16px;
+        margin-top:24px;
+    }
+
+    .proximos h2{
+        font-size:28px;
+        text-align:center;
+        line-height:1.2;
+    }
+
+    .tabela-card{
+        border:none;
+        overflow:visible;
+    }
+
+    .tabela-eventos,
+    .tabela-eventos thead,
+    .tabela-eventos tbody,
+    .tabela-eventos th,
+    .tabela-eventos td,
+    .tabela-eventos tr{
+        display:block;
+        width:100%;
+        min-width:0;
+    }
+
+    .tabela-eventos thead{
+        display:none;
+    }
+
+    .tabela-eventos tr{
+        background:#fff;
+        border:1px solid #d1d5db;
+        border-radius:12px;
+        padding:14px;
+        margin-bottom:16px;
+    }
+
+    .tabela-eventos td{
+        border:none;
+        padding:8px 0;
+        display:flex;
+        justify-content:space-between;
+        gap:16px;
+        font-size:15px;
+    }
+
+    .tabela-eventos td::before{
+        font-weight:bold;
+        color:#111827;
+        flex-shrink:0;
+    }
+
+    .tabela-eventos td:nth-child(1)::before{ content:"📅 Data"; }
+    .tabela-eventos td:nth-child(2)::before{ content:"🕘 Hora"; }
+    .tabela-eventos td:nth-child(3)::before{ content:"👥 Evento"; }
+    .tabela-eventos td:nth-child(4)::before{ content:"📍 Local"; }
+    .tabela-eventos td:nth-child(5)::before{ content:"⚑ Status"; }
+    .tabela-eventos td:nth-child(6)::before{ content:"⚙️ Ações"; }
+
+    .btn-detalhes{
+        width:100%;
+        text-align:center;
+        margin-top:8px;
+    }
+
+    .btn-ver-todos{
+        width:100%;
+        text-align:center;
+        font-size:16px;
+    }
+
+    .sem-eventos{
+        display:block !important;
+        text-align:center;
+    }
+
+    .sem-eventos::before{
+        content:"";
+    }
+}
+</style>
+
+<div class="painel">
+
+    <h1>⚙️ Painel de Gestão</h1>
+
+    <div class="cards">
+
+        <a href="{% url 'listar_pendentes_opo' %}" class="card">
+            {% if pendentes_opo > 0 %}
+                <span class="badge">{{ pendentes_opo }}</span>
+            {% endif %}
+            <div class="icone">📁</div>
+            <h2>Informações</h2>
+            <p>Documentos anexos e geração de OPO.</p>
+        </a>
+
+        <a href="/admin/auth/user/" class="card">
+            <div class="icone">👥</div>
+            <h2>Usuários</h2>
+            <p>Criar e gerenciar usuários do sistema.</p>
+        </a>
+
+        <a href="{% url 'agenda_gestao' %}" class="card">
+            <div class="icone">
+                📚
+            </div>
+            <h2>Histórico</h2>
+            <p>
+                Consultar eventos já realizados.
+            </p>
+        </a>
+
+        <a href="{% url 'lancamento_manual' %}" class="card">
+            <div class="icone">✍️</div>
+            <h2>Lançamento Manual</h2>
+            <p>Cadastrar evento presencialmente.</p>
+        </a>
+
+        <a href="{% url 'opos_geradas' %}" class="card">
+            <div class="icone">🗂️</div>
+            <h2>Documentação <span class="badge-novo">Novo</span></h2>
+            <p>Consultar OPOs geradas e arquivadas pelo sistema.</p>
+        </a>
+
+        <a href="{% url 'dashboard_operacional' %}" class="card">
+            <div class="icone">📊</div>
+            <h2>Dashboard</h2>
+            <p>Resumo geral e filtros.</p>
+        </a>
+        <a href="{% url 'importar_matriculas_painel' %}" class="card-menu">
+
+            <div class="icone">
+                📥
+            </div>
+        
+            <h3>Importar Matrículas</h3>
+        
+            <p>
+                Importar planilha Excel com policiais autorizados.
+            </p>
+        
+        </a>
+
+        <a href="{% url 'logout_gestao' %}" class="card">
+            <div class="icone">🚪</div>
+            <h2>Sair</h2>
+            <p>Encerrar sessão administrativa.</p>
+        </a>
+
+    </div>
+
+    <div class="proximos">
+
+        <h2>🗓️ Próximos Eventos</h2>
+
+        <div class="tabela-card">
+
+            <table class="tabela-eventos">
+                <thead>
+                    <tr>
+                        <th>📅 Data</th>
+                        <th>🕘 Hora</th>
+                        <th>👥 Evento</th>
+                        <th>📍 Local</th>
+                        <th>⚑ Status</th>
+                        <th>⚙️ Ações</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {% for evento in proximos_eventos %}
+                    <tr>
+                        <td>{{ evento.data_evento|date:"d/m/Y" }}</td>
+                        <td>{{ evento.hora_inicio|time:"H:i" }}</td>
+                        <td>{{ evento.nome_evento }}</td>
+                        <td>{{ evento.local }}</td>
+                        <td>
+                            {% if evento.status == "APROVADO" %}
+                                <span class="status-aprovado">APROVADO</span>
+                            {% else %}
+                                <span class="status-pendente">{{ evento.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if evento.status == "APROVADO" %}
+                                <a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 Detalhes</a>
+                            {% else %}
+                                <a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Detalhes</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="sem-eventos">
+                            Nenhum evento futuro cadastrado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+        </div>
+
+        <div class="acoes-eventos"> 
+            <a href="{% url 'mapa_eventos' %}" class="btn-mapa-eventos">
+                🗺️ Mapa de Eventos
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

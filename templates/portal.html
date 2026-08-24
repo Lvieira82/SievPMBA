@@ -1,0 +1,366 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<style>
+    /* ==========================================================
+   EVENTOS DO DIA
+========================================================== */
+
+.eventos-dia-acesso {
+
+    width: 100%;
+
+    margin: 35px auto 0;
+
+    padding: 28px 35px;
+
+    background: #f8f9fb;
+
+    border: 1px solid #d9dee5;
+
+    border-radius: 16px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 25px;
+
+    text-align: left;
+
+    transition: .2s;
+
+}
+
+.eventos-dia-acesso:hover {
+
+    box-shadow: 0 8px 22px rgba(0,0,0,.08);
+
+    transform: translateY(-2px);
+
+}
+
+.eventos-dia-icone {
+
+    width: 70px;
+
+    height: 70px;
+
+    min-width: 70px;
+
+    border-radius: 50%;
+
+    background: #907C64;
+
+    color: white;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 32px;
+
+}
+
+.eventos-dia-conteudo {
+
+    flex: 1;
+
+}
+
+.eventos-dia-conteudo h2 {
+
+    margin: 0 0 8px;
+
+    color: #907C64;
+
+    font-size: 25px;
+
+}
+
+.eventos-dia-conteudo p {
+
+    margin: 0 0 16px;
+
+    color: #536174;
+
+    font-size: 15px;
+
+}
+
+.btn-eventos-dia {
+
+    display: inline-block;
+
+    padding: 11px 25px;
+
+    background: #212529;
+
+    color: white;
+
+    text-decoration: none;
+
+    border-radius: 7px;
+
+    font-weight: bold;
+
+    transition: .2s;
+
+}
+
+.btn-eventos-dia:hover {
+
+    background: #907C64;
+
+    color: white;
+
+}
+
+
+/* ==========================================================
+   RESPONSIVO
+========================================================== */
+
+@media (max-width: 768px) {
+
+    .eventos-dia-acesso {
+
+        flex-direction: column;
+
+        text-align: center;
+
+        padding: 25px 20px;
+
+    }
+
+    .eventos-dia-conteudo h2 {
+
+        font-size: 22px;
+
+    }
+
+    .btn-eventos-dia {
+
+        width: 100%;
+
+        text-align: center;
+
+    }
+
+}
+</style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>SiEv - Sistema Integrado de Eventos</title>
+
+    <link rel="icon" href="{% static 'logos/logo_pm_200.png' %}">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{% static 'css/portal.css' %}">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+</head>
+
+<body>
+
+<div class="overlay">
+
+<div class="container">
+
+<div class="portal-card">
+
+<img src="{% static 'logos/logo_pm_200.png' %}" class="logo" alt="PMBA">
+
+<h1>POLÍCIA MILITAR DA BAHIA</h1>
+
+<h2>Sistema Integrado de Eventos</h2>
+
+<p class="descricao">
+
+Portal oficial destinado ao recebimento de informações sobre a realização
+de eventos públicos ou privados no Estado da Bahia.
+
+Após o envio das informações será gerado um protocolo eletrônico e
+um e-mail de confirmação será encaminhado ao responsável.
+
+</p>
+
+<hr>
+
+<div class="row g-4">
+
+<div class="col-md-4">
+
+<div class="servico">
+
+<i class="fa-solid fa-bullhorn"></i>
+
+<h3>
+    Informar<br>
+    Evento
+</h3>
+<p>
+
+Informe à Polícia Militar da Bahia a realização do seu evento.
+
+</p>
+
+<button
+    id="btnNovaInformacao"
+    class="btn btn-dark">
+
+    Nova Informação
+
+</button>
+
+<div id="areaMunicipio" style="display:none">
+
+    <label>Município</label>
+
+    <input
+        id="pesquisaMunicipio"
+        class="form-control"
+        placeholder="Digite o município...">
+
+    <input
+        type="hidden"
+        id="municipioSelecionado">
+
+    <div
+        id="listaMunicipios"
+        class="list-group mt-2">
+    </div>
+
+    <button
+        id="btnContinuar"
+        class="btn btn-siev mt-3">
+
+        Continuar
+
+    </button>
+    
+</div>
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="servico">
+
+<i class="fa-solid fa-magnifying-glass"></i>
+
+<h3>Consultar Protocolo</h3>
+
+<p>
+
+Acompanhe uma informação enviada anteriormente.
+
+</p>
+
+<a href="{% url 'consultar' %}" class="btn btn-dark">
+
+Consultar
+
+</a>
+
+</div>
+
+</div>
+
+<div class="col-md-4">
+
+<div class="servico">
+
+<i class="fa-solid fa-lock"></i>
+
+<h3>Acesso Institucional</h3>
+
+<p>
+
+Área destinada aos usuários da Polícia Militar da Bahia.
+
+</p>
+
+<a href="{% url 'login_gestao' %}" class="btn btn-dark">
+
+Entrar
+
+</a>
+
+</div>
+
+</div>
+<!-- ==========================================================
+     EVENTOS DO DIA
+========================================================== -->
+
+<div class="eventos-dia-acesso">
+
+    <div class="eventos-dia-icone">
+        📅
+    </div>
+
+    <div class="eventos-dia-conteudo">
+
+        <h2>
+            Eventos do Dia
+        </h2>
+
+        <p>
+            Consulte os eventos programados para hoje
+            utilizando sua matrícula funcional.
+        </p>
+
+        <a
+            href="{% url 'eventos_dia' %}"
+            class="btn-eventos-dia"
+        >
+            Consultar Eventos
+        </a>
+
+    </div>
+
+</div>
+</div>
+
+
+<div class="informacoes">
+
+
+
+</div>
+
+<footer>
+
+<strong>SiEv</strong><br>
+
+Sistema Integrado de Eventos
+
+<br>
+
+Polícia Militar da Bahia
+
+</footer>
+
+</div>
+
+</div>
+
+</div>
+<script>
+    const urlNovaSolicitacao = "{% url 'nova_solicitacao' %}";
+</script>
+<script src="{% static 'js/portal.js' %}"></script>
+</body>
+
+</html>

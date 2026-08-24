@@ -1,0 +1,656 @@
+/* ==========================================================
+   SiEv - Sistema Inteligente de Eventos
+   Polícia Militar da Bahia
+   Tema Oficial
+========================================================== */
+
+:root{
+
+    --preto:#121212;
+    --preto2:#1E1E1E;
+
+    --marrom:#4E342E;
+    --marrom-hover:#5D4037;
+
+    --dourado:#C8A646;
+    --dourado-hover:#B38F2F;
+
+    --prata:#ECECEC;
+    --cinza:#BDBDBD;
+
+    --branco:#FFFFFF;
+
+    --sucesso:#2E7D32;
+    --alerta:#F57C00;
+    --erro:#C62828;
+
+}
+
+
+/* ==========================================================
+   GERAL
+========================================================== */
+
+*{
+
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+
+}
+
+body{
+
+    background:var(--prata);
+
+    font-family:"Segoe UI",Tahoma,Geneva,Verdana,sans-serif;
+
+    overflow-x:hidden;
+
+}
+
+
+/* ==========================================================
+   LAYOUT
+========================================================== */
+
+.wrapper{
+
+    display:flex;
+
+    min-height:100vh;
+
+}
+
+.main{
+
+    flex:1;
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+
+/* ==========================================================
+   SIDEBAR
+========================================================== */
+
+.sidebar{
+
+    width:280px;
+
+    background:var(--marrom);
+
+    color:white;
+
+    transition:.3s;
+
+    box-shadow:3px 0 10px rgba(0,0,0,.25);
+
+    z-index:1000;
+
+}
+
+.sidebar.collapsed{
+
+    width:90px;
+
+}
+
+
+/* ==========================================================
+   LOGO
+========================================================== */
+
+.logo-area{
+
+    text-align:center;
+
+    padding:30px 20px;
+
+}
+
+.logo{
+
+    width:90px;
+
+    margin-bottom:15px;
+
+}
+
+.logo-area h3{
+
+    color:var(--dourado);
+
+    font-weight:bold;
+
+}
+
+.logo-area span{
+
+    color:#d8d8d8;
+
+    font-size:13px;
+
+}
+
+
+/* ==========================================================
+   MENU
+========================================================== */
+
+.menu{
+
+    list-style:none;
+
+    padding:10px;
+
+}
+
+.menu li{
+
+    margin-bottom:8px;
+
+}
+
+.menu a{
+
+    color:white;
+
+    text-decoration:none;
+
+    display:flex;
+
+    align-items:center;
+
+    gap:14px;
+
+    padding:14px;
+
+    border-radius:10px;
+
+    transition:.25s;
+
+}
+
+.menu a:hover{
+
+    background:var(--dourado);
+
+    color:black;
+
+    transform:translateX(4px);
+
+}
+
+.menu i{
+
+    font-size:20px;
+
+    min-width:28px;
+
+}
+
+
+/* ==========================================================
+   SIDEBAR FECHADA
+========================================================== */
+
+.sidebar.collapsed .logo-area h3,
+.sidebar.collapsed .logo-area span,
+.sidebar.collapsed .menu span{
+
+    display:none;
+
+}
+
+.sidebar.collapsed .menu a{
+
+    justify-content:center;
+
+}
+
+
+/* ==========================================================
+   TOPO
+========================================================== */
+
+.topbar{
+
+    background:var(--preto);
+
+    color:white;
+
+    height:70px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:0 30px;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.25);
+
+}
+
+.topbar h2{
+
+    font-size:24px;
+
+    font-weight:600;
+
+    margin:0;
+
+}
+
+.usuario{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    font-size:18px;
+
+}
+
+.usuario i{
+
+    color:var(--dourado);
+
+    font-size:28px;
+
+}
+
+
+/* ==========================================================
+   CONTEÚDO
+========================================================== */
+
+.conteudo{
+
+    flex:1;
+
+    padding:35px;
+
+}
+
+
+/* ==========================================================
+   CARDS
+========================================================== */
+
+.card{
+
+    border:none;
+
+    border-radius:16px;
+
+    box-shadow:0 5px 15px rgba(0,0,0,.10);
+
+    transition:.25s;
+
+}
+
+.card:hover{
+
+    transform:translateY(-4px);
+
+}
+
+.card-header{
+
+    background:var(--dourado);
+
+    color:black;
+
+    font-weight:bold;
+
+    border:none;
+
+}
+
+.card-title{
+
+    font-weight:600;
+
+}
+
+
+/* ==========================================================
+   BOTÕES
+========================================================== */
+
+.btn-primary{
+
+    background:var(--dourado);
+
+    border:none;
+
+    color:black;
+
+    font-weight:bold;
+
+}
+
+.btn-primary:hover{
+
+    background:var(--dourado-hover);
+
+}
+
+.btn-success{
+
+    background:var(--sucesso);
+
+}
+
+.btn-danger{
+
+    background:var(--erro);
+
+}
+
+.btn-warning{
+
+    background:var(--alerta);
+
+}
+
+
+/* ==========================================================
+   FORMULÁRIOS
+========================================================== */
+
+.form-control,
+.form-select{
+
+    border-radius:10px;
+
+    border:1px solid #d2d2d2;
+
+    padding:10px;
+
+}
+
+.form-control:focus,
+.form-select:focus{
+
+    border-color:var(--dourado);
+
+    box-shadow:0 0 0 .15rem rgba(200,166,70,.25);
+
+}
+
+
+/* ==========================================================
+   TABELAS
+========================================================== */
+
+.table{
+
+    background:white;
+
+    border-radius:12px;
+
+    overflow:hidden;
+
+}
+
+.table thead{
+
+    background:var(--marrom);
+
+    color:white;
+
+}
+
+.table-hover tbody tr:hover{
+
+    background:#FFF9E6;
+
+}
+
+
+/* ==========================================================
+   ALERTAS
+========================================================== */
+
+.alert{
+
+    border:none;
+
+    border-radius:10px;
+
+}
+
+
+/* ==========================================================
+   RODAPÉ
+========================================================== */
+
+.rodape{
+
+    background:var(--preto2);
+
+    color:#d8d8d8;
+
+    text-align:center;
+
+    padding:18px;
+
+    font-size:14px;
+
+}
+
+
+/* ==========================================================
+   SCROLLBAR
+========================================================== */
+
+::-webkit-scrollbar{
+
+    width:10px;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:var(--dourado);
+
+    border-radius:20px;
+
+}
+
+.usuario {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #C9A227;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.usuario i {
+    font-size: 30px;
+}
+
+.nome-usuario {
+    color: #ffffff;
+    white-space: nowrap;
+}
+/* ==========================================================
+   USUÁRIO AUTENTICADO - TOPBAR
+   ========================================================== */
+
+.usuario {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+}
+
+.usuario > i {
+    font-size: 30px;
+    color: #C9A227;
+}
+
+.dados-usuario {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.2;
+}
+
+.nome-usuario {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.perfil-usuario {
+    color: #C9A227;
+    font-size: 12px;
+    margin-top: 3px;
+}
+/* ==========================================================
+   RESPONSIVO
+========================================================== */
+
+@media(max-width:991px){
+
+    .sidebar{
+
+        position:fixed;
+
+        left:-280px;
+
+        height:100%;
+
+    }
+
+    .sidebar.show{
+
+        left:0;
+
+    }
+
+    .conteudo{
+
+        padding:20px;
+
+    }
+
+    .topbar{
+
+        padding:15px;
+
+    }
+
+}
+
+/*==========================================================
+BOTÃO MENU
+==========================================================*/
+
+.btn-menu{
+
+    background:transparent;
+
+    color:var(--dourado);
+
+    border:none;
+
+    font-size:28px;
+
+}
+
+.btn-menu:hover{
+
+    color:white;
+
+}
+
+
+/*==========================================================
+MENU FECHADO
+==========================================================*/
+
+.sidebar.collapsed .logo{
+
+    width:55px;
+
+}
+
+.sidebar.collapsed .menu span{
+
+    display:none;
+
+}
+
+.sidebar.collapsed .menu a{
+
+    justify-content:center;
+
+}
+
+.sidebar.collapsed .menu i{
+
+    font-size:24px;
+
+}
+
+
+/*==========================================================
+ANIMAÇÕES
+==========================================================*/
+
+.sidebar{
+
+    transition:.35s;
+
+}
+
+.main{
+
+    transition:.35s;
+
+}
+
+
+/*==========================================================
+TOOLTIP
+==========================================================*/
+
+.sidebar.collapsed .menu a{
+
+    position:relative;
+
+}
+
+.sidebar.collapsed .menu a:hover::after{
+
+    content:attr(title);
+
+    position:absolute;
+
+    left:75px;
+
+    background:#222;
+
+    color:white;
+
+    padding:6px 12px;
+
+    border-radius:6px;
+
+    white-space:nowrap;
+
+    z-index:9999;
+
+}

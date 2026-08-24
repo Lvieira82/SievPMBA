@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+Eventos do Dia - SiEv
+{% endblock %}
+
+
+{% block css %}
+
+<style>
+
+    /* =====================================================
+       PÁGINA
+       ===================================================== */
+
+    .pagina-eventos {
+
+        width: 100%;
+
+        max-width: 1100px;
+
+        margin: 0 auto;
+
+    }
+
+
+    /* =====================================================
+       CARD PRINCIPAL
+       ===================================================== */
+
+    .card-eventos {
+
+        background: #ffffff;
+
+        border-radius: 16px;
+
+        padding: 35px;
+
+        box-shadow:
+            0 6px 20px rgba(0, 0, 0, .08);
+
+        border: 1px solid #e5e7eb;
+
+    }
+
+
+    /* =====================================================
+       CABEÇALHO
+       ===================================================== */
+
+    .cabecalho-eventos {
+
+        margin-bottom: 20px;
+
+    }
+
+
+    .cabecalho-eventos h1 {
+
+        color: #111827;
+
+        font-size: 36px;
+
+        font-weight: 700;
+
+        margin-bottom: 12px;
+
+    }
+
+
+    .data-eventos {
+
+        color: #4b5563;
+
+        font-size: 17px;
+
+        font-weight: 600;
+
+        margin-bottom: 20px;
+
+    }
+
+
+    /* =====================================================
+       INFORMAÇÕES DA CONSULTA
+       ===================================================== */
+
+    .informacoes-consulta {
+
+        background: #f8f9fa;
+
+        border-left: 4px solid #907C64;
+
+        border-radius: 8px;
+
+        padding: 18px;
+
+        margin-bottom: 25px;
+
+    }
+
+
+    .informacoes-consulta p {
+
+        margin: 5px 0;
+
+        color: #374151;
+
+    }
+
+
+    .informacoes-consulta strong {
+
+        color: #111827;
+
+    }
+
+
+    /* =====================================================
+       LINHA
+       ===================================================== */
+
+    .linha-eventos {
+
+        border: none;
+
+        border-top: 1px solid #d1d5db;
+
+        margin: 25px 0;
+
+    }
+
+
+    /* =====================================================
+       EVENTO
+       ===================================================== */
+
+    .evento-card {
+
+        background: #ffffff;
+
+        border: 1px solid #d1d5db;
+
+        border-left: 5px solid #907C64;
+
+        border-radius: 10px;
+
+        padding: 20px;
+
+        margin-bottom: 18px;
+
+        box-shadow:
+            0 3px 10px rgba(0, 0, 0, .05);
+
+    }
+
+
+    .evento-card h2 {
+
+        color: #907C64;
+
+        font-size: 22px;
+
+        margin-bottom: 15px;
+
+    }
+
+
+    .evento-card p {
+
+        margin: 7px 0;
+
+        color: #374151;
+
+    }
+
+
+    .evento-card strong {
+
+        color: #111827;
+
+    }
+
+
+    /* =====================================================
+       STATUS
+       ===================================================== */
+
+    .status-evento {
+
+        display: inline-block;
+
+        padding: 5px 10px;
+
+        border-radius: 6px;
+
+        font-weight: 700;
+
+        font-size: 13px;
+
+        background: #dcfce7;
+
+        color: #166534;
+
+    }
+
+
+    /* =====================================================
+       NENHUM EVENTO
+       ===================================================== */
+
+    .nenhum-evento {
+
+        background: #f3f4f6;
+
+        border-left: 5px solid #907C64;
+
+        border-radius: 8px;
+
+        padding: 20px;
+
+        margin-top: 20px;
+
+        color: #374151;
+
+        font-weight: 600;
+
+    }
+
+
+    /* =====================================================
+       BOTÃO VOLTAR
+       ===================================================== */
+
+    .area-voltar {
+
+        margin-top: 30px;
+
+    }
+
+
+    .btn-voltar-eventos {
+
+        display: inline-block;
+
+        background: #907C64;
+
+        color: #ffffff;
+
+        text-decoration: none;
+
+        font-weight: 600;
+
+        padding: 12px 22px;
+
+        border-radius: 8px;
+
+        transition: .2s;
+
+    }
+
+
+    .btn-voltar-eventos:hover {
+
+        background: #6f5e4b;
+
+        color: #ffffff;
+
+        transform: translateY(-1px);
+
+    }
+
+
+    /* =====================================================
+       RESPONSIVIDADE
+       ===================================================== */
+
+    @media (max-width: 768px) {
+
+        .card-eventos {
+
+            padding: 25px 20px;
+
+        }
+
+
+        .cabecalho-eventos h1 {
+
+            font-size: 28px;
+
+        }
+
+
+        .evento-card {
+
+            padding: 16px;
+
+        }
+
+
+        .evento-card h2 {
+
+            font-size: 19px;
+
+        }
+
+
+        .btn-voltar-eventos {
+
+            width: 100%;
+
+            text-align: center;
+
+        }
+
+    }
+
+</style>
+
+{% endblock %}
+
+
+{% block content %}
+
+<div class="pagina-eventos">
+
+    <div class="card-eventos">
+
+
+        <!-- =================================================
+             CABEÇALHO
+             ================================================= -->
+
+        <div class="cabecalho-eventos">
+
+            <h1>
+                📅 Eventos do Dia
+            </h1>
+
+
+            {% if data_eventos %}
+
+                <div class="data-eventos">
+
+                    {{ data_eventos|date:"d/m/Y" }}
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+
+        <!-- =================================================
+             INFORMAÇÕES DA MATRÍCULA
+             ================================================= -->
+
+        <div class="informacoes-consulta">
+
+            {% if matricula %}
+
+                <p>
+
+                    <strong>Matrícula:</strong>
+
+                    {{ matricula }}
+
+                </p>
+
+            {% endif %}
+
+
+            {% if policial %}
+
+                <p>
+
+                    <strong>Policial:</strong>
+
+                    {{ policial.nome }}
+
+                </p>
+
+            {% endif %}
+
+
+            {% if unidade %}
+
+                <p>
+
+                    <strong>Unidade:</strong>
+
+                    {{ unidade }}
+
+                </p>
+
+            {% endif %}
+
+
+            {% if perfil %}
+
+                <p>
+
+                    <strong>Perfil:</strong>
+
+                    {{ perfil.get_perfil_display }}
+
+                </p>
+
+            {% endif %}
+
+        </div>
+
+
+        <hr class="linha-eventos">
+
+
+        <!-- =================================================
+             EVENTOS
+             ================================================= -->
+
+        {% if eventos %}
+
+
+            {% for evento in eventos %}
+
+                <div class="evento-card">
+
+
+                    <h2>
+
+                        {{ evento.nome_evento }}
+
+                    </h2>
+
+
+                    {% if evento.hora_inicio %}
+
+                        <p>
+
+                            <strong>Horário:</strong>
+
+                            {{ evento.hora_inicio }}
+
+                            {% if evento.hora_fim %}
+
+                                às {{ evento.hora_fim }}
+
+                            {% endif %}
+
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if evento.municipio %}
+
+                        <p>
+
+                            <strong>Município:</strong>
+
+                            {{ evento.municipio }}
+
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if evento.bairro %}
+
+                        <p>
+
+                            <strong>Bairro:</strong>
+
+                            {{ evento.bairro }}
+
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if evento.local %}
+
+                        <p>
+
+                            <strong>Local:</strong>
+
+                            {{ evento.local }}
+
+                        </p>
+
+                    {% endif %}
+
+
+                    {% if evento.unidade %}
+
+                        <p>
+
+                            <strong>Unidade responsável:</strong>
+
+                            {{ evento.unidade }}
+
+                        </p>
+
+                    {% endif %}
+
+
+                    <p>
+
+                        <strong>Status:</strong>
+
+                        <span class="status-evento">
+
+                            {{ evento.get_status_display }}
+
+                        </span>
+
+                    </p>
+
+
+                </div>
+
+            {% endfor %}
+
+
+        {% else %}
+
+
+            <div class="nenhum-evento">
+
+                Não há eventos informados para hoje nesta unidade.
+
+            </div>
+
+
+        {% endif %}
+
+
+        <!-- =================================================
+             VOLTAR
+             ================================================= -->
+
+        <div class="area-voltar">
+
+            <a
+                href="{% url 'eventos_dia' %}"
+                class="btn-voltar-eventos"
+            >
+
+                ← Nova consulta
+
+            </a>
+
+        </div>
+
+
+    </div>
+
+</div>
+
+{% endblock %}

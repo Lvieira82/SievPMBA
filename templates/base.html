@@ -1,0 +1,248 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>
+        {% block title %}
+            SiEv
+        {% endblock %}
+    </title>
+
+    <!-- Bootstrap -->
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons -->
+
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+
+    <!-- CSS -->
+
+    <link rel="stylesheet" href="{% static 'css/siev.css' %}">
+
+    {% block css %}
+    
+    {% endblock %}
+
+</head>
+
+<body>
+
+<div class="wrapper">
+
+    <!-- MENU LATERAL -->
+
+    <aside class="sidebar">
+
+        <div class="logo-area">
+
+            <img src="{% static 'logos/logo_pm_200.png' %}" class="logo">
+
+            <h3>SiEv</h3>
+
+            <span>Sistema Inteligente de Eventos</span>
+
+        </div>
+
+        <hr>
+
+        <ul class="menu">
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-speedometer2"></i>
+
+                    <span>Dashboard</span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-file-earmark-plus"></i>
+
+                    <span>Nova Solicitação</span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-search"></i>
+
+                    <span>Consultar Protocolo</span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-check2-square"></i>
+
+                    <span>Análise</span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-calendar-event"></i>
+
+                    <span>Planejamento</span>
+
+                </a>
+
+            </li>
+
+            <li>
+
+                <a href="#">
+
+                    <i class="bi bi-gear"></i>
+
+                    <span>Administração</span>
+
+                </a>
+
+            </li>
+
+        </ul>
+
+    </aside>
+
+    <!-- ÁREA PRINCIPAL -->
+
+    <div class="main">
+
+        <!-- TOPO -->
+
+        <header class="topbar">
+
+            <div class="d-flex align-items-center">
+
+                <button id="toggleSidebar"
+                        class="btn btn-menu me-3">
+
+                    <i class="bi bi-list"></i>
+
+                </button>
+
+                <h2>
+
+                    {% block titulo %}
+
+                    Sistema Inteligente de Eventos
+
+                    {% endblock %}
+
+                </h2>
+
+            </div>
+
+            <div class="usuario">
+
+                {% if user.is_authenticated %}
+
+                    <i class="bi bi-person-circle"></i>
+
+                    <div class="dados-usuario">
+
+                        <span class="nome-usuario">
+                            {% if user.get_full_name %}
+                                {{ user.get_full_name }}
+                            {% else %}
+                                {{ user.username }}
+                            {% endif %}
+                        </span>
+
+                        {% if user.is_superuser %}
+                            <span class="perfil-usuario">
+                                Desenvolvedor / Administrador
+                            </span>
+
+                        {% elif user.perfil_siev %}
+
+                            <span class="perfil-usuario">
+                                {{ user.perfil_siev.get_perfil_display }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                {% endif %}
+
+            </div>
+
+        </header>
+
+        <!-- CONTEÚDO -->
+
+        <section class="conteudo">
+
+            {% if messages %}
+
+                {% for message in messages %}
+
+                    <div class="alert alert-{{ message.tags }}">
+
+                        {{ message }}
+
+                    </div>
+
+                {% endfor %}
+
+            {% endif %}
+
+            {% block content %}
+
+            {% endblock %}
+
+        </section>
+
+        <!-- RODAPÉ -->
+
+        <footer class="rodape">
+
+            Sistema Inteligente de Eventos - Polícia Militar da Bahia
+
+            <br>
+
+            © {% now "Y" %}
+
+        </footer>
+
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+{% block scripts %}
+
+{% endblock %}
+<script src="{% static 'js/menu.js' %}"></script>
+</body>
+
+</html>
