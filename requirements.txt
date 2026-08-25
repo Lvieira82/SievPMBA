@@ -20,6 +20,7 @@ idna==3.16
 kiwisolver==1.5.0
 matplotlib==3.10.9
 numpy==2.4.6
+openpyxl==3.1.5
 packaging==26.2
 pillow==12.2.0
 psycopg2-binary==2.9.12
@@ -43,14 +44,6 @@ weasyprint==68.1
 webencodings==0.5.1
 whitenoise==6.12.0
 zopfli==0.4.2
-Django
-dj-database-url
-psycopg2-binary
-python-decouple
-gunicorn
-whitenoise
-openpyxl
-PyMuPDF
-dateparser
-pytesseract
-Pillow
+PyMuPDF==1.26.4
+dateparser==1.2.2
+pytesseract==0.3.13
