@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Áreas de Responsabilidade{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h2 class="mb-4">Áreas de Responsabilidade</h2>
+
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+
+      <form method="post" class="row g-3 mb-4">
+        {% csrf_token %}
+        <div class="col-md-4">
+          <label class="form-label">Município</label>
+          <select id="municipio" name="municipio" class="form-select" required>
+            <option value="">Selecione...</option>
+            {% for municipio in municipios %}
+              <option value="{{ municipio.id }}">{{ municipio.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bairro / Distrito</label>
+          <input name="bairro" class="form-control" maxlength="150" required placeholder="Ex.: Humildes">
+          <div class="form-text">Use o nome oficial do bairro ou distrito.</div>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Unidade responsável</label>
+          <select name="unidade" class="form-select" required>
+            <option value="">Selecione...</option>
+            {% for unidade in unidades %}
+              <option value="{{ unidade.id }}">{{ unidade.nome }}{% if unidade.sigla %} ({{ unidade.sigla }}){% endif %}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-12">
+          <button class="btn btn-primary">Salvar área</button>
+        </div>
+      </form>
+
+      <hr>
+
+      <h4>Importar em massa</h4>
+      <p class="text-muted">CSV com as colunas: <code>municipio,bairro,unidade</code>.</p>
+      <form method="post" action="{% url 'importar_areas_responsabilidade' %}" enctype="multipart/form-data" class="mb-4">
+        {% csrf_token %}
+        <div class="input-group">
+          <input type="file" name="arquivo" accept=".csv,text/csv" class="form-control" required>
+          <button class="btn btn-outline-primary">Importar CSV</button>
+        </div>
+      </form>
+
+      <div class="table-responsive">
+        <table class="table table-striped align-middle">
+          <thead><tr><th>Município</th><th>Bairro / Distrito</th><th>Unidade</th></tr></thead>
+          <tbody>
+            {% for area in areas %}
+              <tr>
+                <td>{{ area.bairro.municipio.nome }}</td>
+                <td>{{ area.bairro.nome }}</td>
+                <td>{{ area.unidade.nome }}{% if area.unidade.sigla %} ({{ area.unidade.sigla }}){% endif %}</td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="3">Nenhuma área cadastrada.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
