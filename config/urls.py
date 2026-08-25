@@ -47,14 +47,7 @@ from apps.solicitacoes.views.compat import (
     verificar_autenticidade,
     abrir_documento_solicitacao,
 )
-from apps.solicitacoes.views.dashboard import (
-    dashboard,
-    eventos_hoje,
-    mapa,
-    por_municipio,
-    por_tipo,
-    por_unidade,
-)
+from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo,
@@ -108,6 +101,7 @@ urlpatterns = [
 
     # Dashboard
     path("dashboard/", dashboard, name="dashboard"),
+    path("dashboard/operacional/", dashboard, name="dashboard_operacional"),
 
     # Compatibilidade / módulos ainda em migração
     path("minhas/", minhas_solicitacoes, name="minhas_solicitacoes"),
@@ -138,8 +132,6 @@ urlpatterns = [
 ]
 
 
-# Arquivos de mídia são servidos diretamente pelo servidor de arquivos em produção.
-# O fallback do Django fica restrito ao desenvolvimento.
 if settings.DEBUG:
     urlpatterns += [
         path(
