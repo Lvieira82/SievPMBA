@@ -1,2 +1,17 @@
 .env
 *.pyc
+__pycache__/
+*.pyo
+*.pyd
+.python_history
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+/db.sqlite3
+/media/
+/staticfiles/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
