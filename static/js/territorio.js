@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
     const path = window.location.pathname;
 
-    // O formulário de correção não deve alterar o direcionamento territorial.
     if (!path.startsWith("/nova/")) {
         return;
     }
@@ -27,9 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
             return response.json();
         })
-        .then(dados => {
-            montarDirecionamentoTerritorial(form, dados);
-        })
+        .then(dados => montarDirecionamentoTerritorial(form, dados))
         .catch(() => {
             console.warn("SiEv: falha ao carregar o direcionamento territorial.");
         });
@@ -37,6 +34,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function montarDirecionamentoTerritorial(form, dados) {
     const existente = document.getElementById("id_bairro");
+
+    // Remove o campo original, se o template já o renderizar.
+    if (existente) {
+        existente.closest(".mb-3, .form-group, .field-wrapper")?.remove();
+    }
+
     const bloco = document.createElement("div");
     bloco.className = "mb-3 siev-territorio";
 
@@ -54,9 +57,6 @@ function montarDirecionamentoTerritorial(form, dados) {
     bloco.appendChild(municipio);
 
     if (!dados.multiplas_unidades) {
-        if (existente) {
-            existente.closest(".mb-3, .form-group, .field-wrapper")?.remove();
-        }
         form.prepend(bloco);
         return;
     }
@@ -66,14 +66,11 @@ function montarDirecionamentoTerritorial(form, dados) {
     label.setAttribute("for", "id_bairro");
     label.textContent = "Bairro";
 
-    const select = existente || document.createElement("select");
+    const select = document.createElement("select");
     select.id = "id_bairro";
     select.name = "bairro";
     select.className = "form-select";
     select.required = true;
-
-    const valorAnterior = select.value;
-    select.innerHTML = "";
 
     const vazio = document.createElement("option");
     vazio.value = "";
@@ -92,19 +89,10 @@ function montarDirecionamentoTerritorial(form, dados) {
             ? `${bairro.nome} — ${unidades}`
             : bairro.nome;
 
-        if (String(bairro.id) === String(valorAnterior)) {
-            option.selected = true;
-        }
-
         select.appendChild(option);
     });
 
     bloco.appendChild(label);
     bloco.appendChild(select);
-
-    if (existente) {
-        existente.closest(".mb-3, .form-group, .field-wrapper")?.remove();
-    }
-
     form.prepend(bloco);
 }
