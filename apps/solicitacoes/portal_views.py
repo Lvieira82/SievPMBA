@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
@@ -8,9 +10,7 @@ from django.utils import timezone
 
 from .forms import CorrecaoSolicitacaoForm, SolicitacaoForm
 from .models import (
-    Bairro,
     DocumentoSolicitacao,
-    MatriculaAutorizada,
     Municipio,
     Solicitacao,
     TipoDocumento,
@@ -18,8 +18,8 @@ from .models import (
 )
 from .territorio import (
     bairros_do_municipio,
+    lista_bairros as lista_bairros_api,
     municipio_tem_multiplas_unidades,
-    unidade_para_bairro,
     unidades_do_municipio,
     validar_direcionamento,
 )
@@ -90,8 +90,7 @@ def lista_municipios(request):
 
 
 def lista_bairros(request, municipio_id):
-    from .territorio import lista_bairros as _lista_bairros
-    return _lista_bairros(request, municipio_id)
+    return lista_bairros_api(request, municipio_id)
 
 
 # =====================================================
@@ -258,7 +257,6 @@ PMBA - Uma força a serviço do cidadão.
             fail_silently=True,
         )
     except Exception:
-        # O envio de e-mail não deve apagar uma solicitação já gravada.
         pass
 
 
