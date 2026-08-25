@@ -16,6 +16,7 @@ from .models import (
     TipoDocumento,
     Unidade,
 )
+from .pdf_security import validar_pdf_upload
 from .territorio import (
     bairros_do_municipio,
     lista_bairros as lista_bairros_api,
@@ -25,17 +26,9 @@ from .territorio import (
 )
 
 
-# =====================================================
-# PORTAL PÚBLICO
-# =====================================================
-
 def portal(request):
     return render(request, "portal.html")
 
-
-# =====================================================
-# ENTRADA / MUNICÍPIO
-# =====================================================
 
 def selecionar_unidade(request):
     if request.method != "POST":
@@ -70,7 +63,6 @@ def listar_unidades(request, cpr_id):
 
 def lista_municipios(request):
     termo = request.GET.get("q", "").strip()
-
     municipios = (
         Municipio.objects
         .filter(nome__icontains=termo, ativo=True)
@@ -92,10 +84,6 @@ def lista_municipios(request):
 def lista_bairros(request, municipio_id):
     return lista_bairros_api(request, municipio_id)
 
-
-# =====================================================
-# NOVA SOLICITAÇÃO
-# =====================================================
 
 def _configurar_bairro_form(form, municipio):
     if "bairro" not in form.fields:
@@ -131,11 +119,7 @@ def _render_nova(request, form, municipio):
 
 def nova_solicitacao(request):
     municipio_id = request.GET.get("municipio") or request.session.get("municipio_id")
-
-    municipio = Municipio.objects.filter(
-        id=municipio_id,
-        ativo=True,
-    ).first()
+    municipio = Municipio.objects.filter(id=municipio_id, ativo=True).first()
 
     if not municipio:
         messages.error(request, "Selecione um município antes de continuar.")
@@ -171,19 +155,7 @@ def nova_solicitacao(request):
                     return render(
                         request,
                         "solicitacoes/sucesso.html",
-                        {
-                            "protocolo": solicitacao.protocolo,
-                            "aviso_multiplas_datas": getattr(
-                                form,
-                                "aviso_multiplas_datas",
-                                False,
-                            ),
-                            "datas_encontradas": getattr(
-                                form,
-                                "datas_encontradas_oficio",
-                                [],
-                            ),
-                        },
+                        {"protocolo": solicitacao.protocolo},
                     )
     else:
         form = SolicitacaoForm()
@@ -198,6 +170,12 @@ def _salvar_documentos(request, solicitacao):
 
     for indice, arquivo in enumerate(arquivos):
         if not arquivo:
+            continue
+
+        try:
+            validar_pdf_upload(arquivo)
+        except Exception as erro:
+            messages.error(request, f"Documento rejeitado: {erro}")
             continue
 
         tipo_nome = tipos[indice] if indice < len(tipos) else ""
@@ -260,10 +238,6 @@ PMBA - Uma força a serviço do cidadão.
         pass
 
 
-# =====================================================
-# CONSULTA
-# =====================================================
-
 def consultar_protocolo(request):
     protocolo = request.GET.get("protocolo", "").strip().upper()
     solicitacao = None
@@ -276,7 +250,6 @@ def consultar_protocolo(request):
             .filter(protocolo=protocolo)
             .first()
         )
-
         if not solicitacao:
             erro = "Protocolo não encontrado."
 
@@ -298,21 +271,11 @@ def consultar_protocolo(request):
     )
 
 
-# =====================================================
-# CORREÇÃO DE SOLICITAÇÃO
-# =====================================================
-
 def corrigir_solicitacao(request, protocolo):
-    solicitacao = get_object_or_404(
-        Solicitacao,
-        protocolo=protocolo,
-    )
+    solicitacao = get_object_or_404(Solicitacao, protocolo=protocolo)
 
     if solicitacao.status != "CORRECAO":
-        messages.error(
-            request,
-            "Esta solicitação não está disponível para correção.",
-        )
+        messages.error(request, "Esta solicitação não está disponível para correção.")
         return redirect("consultar")
 
     if request.method == "POST":
@@ -340,27 +303,16 @@ def corrigir_solicitacao(request, protocolo):
     return render(
         request,
         "solicitacoes/corrigir.html",
-        {
-            "form": form,
-            "solicitacao": solicitacao,
-        },
+        {"form": form, "solicitacao": solicitacao},
     )
 
-
-# =====================================================
-# GESTÃO
-# =====================================================
 
 @login_required
 def agenda_gestao(request):
     hoje = timezone.localdate()
-
     eventos = (
         Solicitacao.objects
-        .filter(
-            status__in=["APROVADA", "CORRECAO"],
-            data_evento__lt=hoje,
-        )
+        .filter(status__in=["APROVADA", "CORRECAO"], data_evento__lt=hoje)
         .select_related("municipio", "unidade", "bairro")
         .order_by("-data_evento", "-hora_inicio")
     )
@@ -390,10 +342,7 @@ def agenda_gestao(request):
         item.year
         for item in (
             Solicitacao.objects
-            .filter(
-                status__in=["APROVADA", "CORRECAO"],
-                data_evento__lt=hoje,
-            )
+            .filter(status__in=["APROVADA", "CORRECAO"], data_evento__lt=hoje)
             .dates("data_evento", "year", order="DESC")
         )
     ]
@@ -415,19 +364,12 @@ def agenda_gestao(request):
 def proximos_eventos_gestao(request):
     eventos = (
         Solicitacao.objects
-        .filter(
-            status__in=["APROVADA", "CORRECAO"],
-            data_evento__gte=timezone.localdate(),
-        )
+        .filter(status__in=["APROVADA", "CORRECAO"], data_evento__gte=timezone.localdate())
         .select_related("municipio", "unidade", "bairro")
         .order_by("data_evento", "hora_inicio")
     )
 
-    return render(
-        request,
-        "gestao/proximos_eventos.html",
-        {"eventos": eventos},
-    )
+    return render(request, "gestao/proximos_eventos.html", {"eventos": eventos})
 
 
 @login_required
@@ -439,8 +381,4 @@ def listar_pendentes_opo(request):
         .order_by("data_evento", "hora_inicio")
     )
 
-    return render(
-        request,
-        "gestao/aprovacoes.html",
-        {"solicitacoes": solicitacoes},
-    )
+    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes})
