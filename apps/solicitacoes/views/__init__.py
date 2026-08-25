@@ -1,135 +1,91 @@
+"""Exports públicos das views do SiEv.
+
+Cada função é importada explicitamente do módulo que realmente a implementa.
+Isso evita que funções placeholder sobrescrevam views reais durante imports.
 """
-Camada de compatibilidade entre o SiEv antigo
-e a arquitetura modular PMBA.
 
-Não apagar este arquivo.
-"""
-
-# ==========================================
-# IMPORTA TODAS AS VIEWS NOVAS
-# ==========================================
-from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout
-from django.contrib import messages
-from django.http import HttpResponse
-from django.contrib.auth.models import User
-from apps.solicitacoes.models import PerfilUsuario
-from django.shortcuts import redirect
-from .portal import *
-from .dashboard import *
-from .analise import *
-from .protocolo import *
-from .administracao import *
-# ==========================================
-# COMPATIBILIDADE
-# ==========================================
-
-def minhas_solicitacoes(request):
-    return redirect("consultar")
-
-
-# ==========================================
-# PLACEHOLDERS
-# Implementar posteriormente
-# ==========================================
-
-def verificar_autenticidade(request, *args, **kwargs):
-    return HttpResponse(
-        "Função verificar_autenticidade ainda não implementada."
-    )
-
-
-def alterar_status(request, *args, **kwargs):
-    return HttpResponse(
-        "Função alterar_status ainda não implementada."
-    )
-
-
-def listar_pendentes_opo(request, *args, **kwargs):
-    return HttpResponse(
-        "Função listar_pendentes_opo ainda não implementada."
-    )
-
-
-def documentos_solicitacao(request, *args, **kwargs):
-    return HttpResponse(
-        "Função documentos_solicitacao ainda não implementada."
-    )
-
-
-def abrir_documento_solicitacao(request, *args, **kwargs):
-    return HttpResponse(
-        "Função abrir_documento_solicitacao ainda não implementada."
-    )
-
-
-def agenda_gestao(request, *args, **kwargs):
-    return HttpResponse(
-        "Função agenda_gestao ainda não implementada."
-    )
-
-
-def lancamento_manual(request, *args, **kwargs):
-    return HttpResponse(
-        "Função lancamento_manual ainda não implementada."
-    )
-
-
-def opos_geradas(request, *args, **kwargs):
-    return HttpResponse(
-        "Função opos_geradas ainda não implementada."
-    )
-
-
-def detalhe_opo(request, *args, **kwargs):
-    return HttpResponse(
-        "Função detalhe_opo ainda não implementada."
-    )
-
-
-def gerar_opo(request, *args, **kwargs):
-    return HttpResponse(
-        "Função gerar_opo ainda não implementada."
-    )
-
-
-def validar_matricula_opo_publica(request, *args, **kwargs):
-    return HttpResponse(
-        "Função validar_matricula_opo_publica ainda não implementada."
-    )
-
-
-def detalhe_opo_publica(request, *args, **kwargs):
-    return HttpResponse(
-        "Função detalhe_opo_publica ainda não implementada."
-    )
-
-
-def importar_matriculas_painel(request, *args, **kwargs):
-    return HttpResponse(
-        "Função importar_matriculas_painel ainda não implementada."
-    )
-
-
-def corrigir_solicitacao(request, *args, **kwargs):
-    return HttpResponse(
-        "Função corrigir_solicitacao ainda não implementada."
-    )
-
-
-def mapa_eventos(request, *args, **kwargs):
-    return HttpResponse(
-        "Função mapa_eventos ainda não implementada."
-    )
-
-
-def gerar_mapa_eventos_pdf(request, *args, **kwargs):
-    return HttpResponse(
-        "Função gerar_mapa_eventos_pdf ainda não implementada."
-    )
-
-
-def importar_municipios(request, *args, **kwargs):
-    return HttpResponse(
-        "Função importar_municipios ainda não implementada."
-    )
+from ..portal_views import (
+    agenda_gestao,
+    consultar_protocolo,
+    corrigir_solicitacao,
+    lista_bairros,
+    lista_municipios,
+    listar_unidades,
+    listar_pendentes_opo,
+    nova_solicitacao,
+    portal,
+    proximos_eventos_gestao,
+    selecionar_unidade,
+)
+from .administracao import (
+    aprovacoes,
+    aprovar_solicitacao,
+    backup,
+    bairros,
+    cadastrar_usuario_unidade,
+    configuracoes,
+    cprs,
+    desativar_usuario_unidade,
+    editar_usuario_unidade,
+    login_gestao,
+    logout_gestao,
+    municipios,
+    obter_perfil_gestor,
+    painel_administracao,
+    painel_gestao,
+    solicitar_correcao_gestao,
+    tipos_documento,
+    tipos_evento,
+    transferir_solicitacao,
+    trocar_senha_usuario,
+    unidades,
+    usuarios,
+    usuarios_unidade,
+)
+from .analise import (
+    aprovar,
+    detalhes,
+    estatisticas,
+    fila_analise,
+    historico,
+    indeferir,
+    painel_analise,
+    solicitar_correcao,
+)
+from .compat import (
+    alterar_status,
+    detalhe_opo,
+    detalhe_opo_publica,
+    documentos_solicitacao,
+    gerar_mapa_eventos_pdf,
+    gerar_opo,
+    importar_matriculas_painel,
+    importar_municipios,
+    lancamento_manual,
+    mapa_eventos,
+    minhas_solicitacoes,
+    opos_geradas,
+    validar_matricula_opo_publica,
+    verificar_autenticidade,
+    abrir_documento_solicitacao,
+)
+from .dashboard import (
+    calendario,
+    dashboard,
+    eventos_hoje,
+    mapa,
+    por_municipio,
+    por_tipo,
+    por_unidade,
+)
+from .eventos import eventos_dia, eventos_dia_resultado
+from .protocolo import (
+    cancelar_protocolo,
+    detalhes_protocolo,
+    encaminhar_unidade,
+    estatisticas_protocolo,
+    fila_protocolo,
+    historico_protocolo,
+    painel_protocolo,
+    reenviar_email,
+)
