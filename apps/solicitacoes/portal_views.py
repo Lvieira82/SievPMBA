@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from .forms import CorrecaoSolicitacaoForm, SolicitacaoForm
 from .models import (
+    Bairro,
     DocumentoSolicitacao,
     Municipio,
     Solicitacao,
@@ -158,7 +159,20 @@ def nova_solicitacao(request):
                         {"protocolo": solicitacao.protocolo},
                     )
     else:
-        form = SolicitacaoForm()
+        initial = {}
+        bairro_id = request.GET.get("bairro")
+
+        if bairro_id:
+            bairro_valido = Bairro.objects.filter(
+                id=bairro_id,
+                municipio=municipio,
+                ativo=True,
+            ).exists()
+
+            if bairro_valido:
+                initial["bairro"] = bairro_id
+
+        form = SolicitacaoForm(initial=initial)
 
     return _render_nova(request, form, municipio)
 
