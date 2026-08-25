@@ -4,83 +4,50 @@ from django.urls import path
 from django.views.static import serve
 
 from apps.solicitacoes.portal_views import (
-    agenda_gestao,
-    consultar_protocolo,
-    corrigir_solicitacao,
-    lista_bairros,
-    lista_municipios,
-    listar_unidades,
-    listar_pendentes_opo,
-    nova_solicitacao,
-    portal,
-    proximos_eventos_gestao,
-    selecionar_unidade,
+    agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
+    lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
+    portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import (
-    aprovacoes,
-    aprovar_solicitacao,
-    cadastrar_usuario_unidade,
-    desativar_usuario_unidade,
-    editar_usuario_unidade,
-    login_gestao,
-    logout_gestao,
-    painel_gestao,
-    solicitar_correcao_gestao,
-    transferir_solicitacao,
-    trocar_senha_usuario,
-    usuarios_unidade,
+    aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
+    desativar_usuario_unidade, editar_usuario_unidade, login_gestao,
+    logout_gestao, painel_gestao, solicitar_correcao_gestao,
+    transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.compat import (
-    alterar_status,
-    detalhe_opo,
-    detalhe_opo_publica,
-    documentos_solicitacao,
-    gerar_mapa_eventos_pdf,
-    gerar_opo,
-    importar_matriculas_painel,
-    importar_municipios,
-    lancamento_manual,
-    mapa_eventos,
-    minhas_solicitacoes,
-    opos_geradas,
-    validar_matricula_opo_publica,
-    verificar_autenticidade,
+    alterar_status, detalhe_opo, detalhe_opo_publica, documentos_solicitacao,
+    gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
+    importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
+    opos_geradas, validar_matricula_opo_publica, verificar_autenticidade,
     abrir_documento_solicitacao,
 )
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.protocolo import (
-    cancelar_protocolo,
-    detalhes_protocolo,
-    encaminhar_unidade,
-    estatisticas_protocolo,
-    fila_protocolo,
-    historico_protocolo,
-    painel_protocolo,
-    reenviar_email,
+    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade,
+    estatisticas_protocolo, fila_protocolo, historico_protocolo,
+    painel_protocolo, reenviar_email,
 )
-
+from apps.solicitacoes.views.territorio_admin import (
+    areas_responsabilidade, bairros_por_municipio,
+    importar_areas_responsabilidade,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-
-    # Portal público
     path("", portal, name="portal"),
     path("portal/entrar/", selecionar_unidade, name="selecionar_unidade"),
     path("nova/", nova_solicitacao, name="nova_solicitacao"),
     path("consultar/", consultar_protocolo, name="consultar"),
     path("corrigir/<str:protocolo>/", corrigir_solicitacao, name="corrigir_solicitacao"),
-
-    # APIs territoriais
     path("api/municipios/", lista_municipios, name="lista_municipios"),
     path("api/municipios/<int:municipio_id>/bairros/", lista_bairros, name="lista_bairros"),
     path("api/unidades/<int:cpr_id>/", listar_unidades, name="listar_unidades"),
+    path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
 
-    # Eventos do dia
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
 
-    # Autenticação / gestão
     path("gestao/", login_gestao, name="login_gestao"),
     path("logout/", logout_gestao, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
@@ -90,7 +57,9 @@ urlpatterns = [
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
 
-    # Gestão operacional
+    path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
+    path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
+
     path("gestao/pendentes-opo/", listar_pendentes_opo, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
@@ -99,11 +68,9 @@ urlpatterns = [
     path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
     path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
 
-    # Dashboard
     path("dashboard/", dashboard, name="dashboard"),
     path("dashboard/operacional/", dashboard, name="dashboard_operacional"),
 
-    # Compatibilidade / módulos ainda em migração
     path("minhas/", minhas_solicitacoes, name="minhas_solicitacoes"),
     path("verificar/<str:protocolo>/", verificar_autenticidade, name="verificar_autenticidade"),
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
@@ -120,7 +87,6 @@ urlpatterns = [
     path("painel_gestao/importar-matriculas/", importar_matriculas_painel, name="importar_matriculas_painel"),
     path("gestao/importar-municipios/", importar_municipios, name="importar_municipios"),
 
-    # Protocolo
     path("protocolo/", painel_protocolo, name="painel_protocolo"),
     path("protocolo/fila/", fila_protocolo, name="fila_protocolo"),
     path("protocolo/<int:pk>/", detalhes_protocolo, name="detalhes_protocolo"),
@@ -131,12 +97,5 @@ urlpatterns = [
     path("protocolo/estatisticas/", estatisticas_protocolo, name="estatisticas_protocolo"),
 ]
 
-
 if settings.DEBUG:
-    urlpatterns += [
-        path(
-            "media/<path:path>",
-            serve,
-            {"document_root": settings.MEDIA_ROOT},
-        ),
-    ]
+    urlpatterns += [path("media/<path:path>", serve, {"document_root": settings.MEDIA_ROOT})]
