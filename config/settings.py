@@ -9,7 +9,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # =====================
 # SECURITY
 # =====================
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config(
+    "DEBUG",
+    default=os.environ.get("RENDER") != "true",
+    cast=bool,
+)
 
 SECRET_KEY = config(
     "SECRET_KEY",
@@ -19,18 +23,11 @@ SECRET_KEY = config(
 if not DEBUG and SECRET_KEY == "django-insecure-local-development-only-change-me":
     raise RuntimeError("SECRET_KEY precisa ser configurada no ambiente de produção.")
 
-_hosts = config(
-    "ALLOWED_HOSTS",
-    default="127.0.0.1,localhost",
-)
+_hosts = config("ALLOWED_HOSTS", default="127.0.0.1,localhost")
 ALLOWED_HOSTS = [host.strip() for host in _hosts.split(",") if host.strip()]
 
 _csrf_origins = config("CSRF_TRUSTED_ORIGINS", default="")
-CSRF_TRUSTED_ORIGINS = [
-    origin.strip()
-    for origin in _csrf_origins.split(",")
-    if origin.strip()
-]
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _csrf_origins.split(",") if origin.strip()]
 
 # =====================
 # APPS
@@ -128,15 +125,11 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 # MEDIA
 # =====================
 MEDIA_URL = "/media/"
-if os.environ.get("RENDER") == "true":
-    MEDIA_ROOT = "/var/data/media"
-else:
-    MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = "/var/data/media" if os.environ.get("RENDER") == "true" else BASE_DIR / "media"
 
 # =====================
 # UPLOADS
 # =====================
-# Limites de aplicação para reduzir abuso de upload.
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 DATA_UPLOAD_MAX_NUMBER_FILES = 20
