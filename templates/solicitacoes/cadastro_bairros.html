@@ -1,1 +1,128 @@
-{% extends 'base.html' %}{% block title %}Cadastro de Bairros{% endblock %}{% block content %}<div class="container py-4"><div class="card p-4"><h2>📍 Cadastro de Bairros e Distritos</h2>{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}<form method="post" class="row g-3">{% csrf_token %}<div class="col-md-6"><label>Município</label><select name="municipio" class="form-select" required><option value="">Selecione</option>{% for m in municipios %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}</select></div><div class="col-md-6"><label>Bairro / Distrito</label><input name="nome" class="form-control" required maxlength="120"></div><div class="col-12"><button class="btn btn-primary">Cadastrar Bairro</button> <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">Voltar</a></div></form><hr><div class="table-responsive"><table class="table"><thead><tr><th>Município</th><th>Bairro/Distrito</th></tr></thead><tbody>{% for b in bairros %}<tr><td>{{ b.municipio.nome }}</td><td>{{ b.nome }}</td></tr>{% endfor %}</tbody></table></div></div></div>{% endblock %}
+{% extends 'base.html' %}
+
+{% block title %}Cadastro de Bairros{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-body p-4 p-lg-5">
+            <div class="d-flex align-items-center gap-2 mb-4">
+                <span class="fs-3">📍</span>
+                <div>
+                    <h2 class="mb-1">Cadastro de Bairros e Distritos</h2>
+                    <p class="text-muted mb-0">
+                        Todo bairro ou distrito deve possuir uma unidade responsável.
+                    </p>
+                </div>
+            </div>
+
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+
+            <form method="post" class="row g-3 align-items-end">
+                {% csrf_token %}
+
+                <div class="col-12 col-lg-4">
+                    <label for="municipio" class="form-label fw-semibold">Município</label>
+                    <select id="municipio" name="municipio" class="form-select" required>
+                        <option value="">Selecione o município...</option>
+                        {% for m in municipios %}
+                            <option value="{{ m.id }}">{{ m.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-12 col-lg-4">
+                    <label for="unidade" class="form-label fw-semibold">Unidade responsável</label>
+                    <select id="unidade" name="unidade" class="form-select" required>
+                        <option value="">Selecione a unidade...</option>
+                        {% for unidade in unidades %}
+                            <option value="{{ unidade.id }}">
+                                {{ unidade.sigla }} — {{ unidade.nome }} ({{ unidade.cpr.sigla }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        Unidade que ficará responsável pela área territorial.
+                    </div>
+                </div>
+
+                <div class="col-12 col-lg-4">
+                    <label for="nome" class="form-label fw-semibold">Bairro / Distrito</label>
+                    <input
+                        id="nome"
+                        name="nome"
+                        class="form-control"
+                        required
+                        maxlength="120"
+                        autocomplete="off"
+                        placeholder="Ex.: Centro, Humildes, Tomba..."
+                    >
+                </div>
+
+                <div class="col-12 d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i>Cadastrar Bairro
+                    </button>
+                    <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Voltar
+                    </a>
+                </div>
+            </form>
+
+            <hr class="my-4">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="mb-1">Bairros cadastrados</h4>
+                    <p class="text-muted mb-0">Confira a unidade responsável por cada área.</p>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Município</th>
+                            <th>Bairro / Distrito</th>
+                            <th>Unidade responsável</th>
+                            <th>CPR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in bairros %}
+                            {% with area=b.areas_responsabilidade.0 %}
+                                <tr>
+                                    <td>{{ b.municipio.nome }}</td>
+                                    <td class="fw-semibold">{{ b.nome }}</td>
+                                    <td>
+                                        {% if area %}
+                                            {{ area.unidade.sigla }} — {{ area.unidade.nome }}
+                                        {% else %}
+                                            <span class="text-danger fw-semibold">Não vinculada</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if area %}
+                                            {{ area.unidade.cpr.sigla }}
+                                        {% else %}
+                                            —
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endwith %}
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">
+                                    Nenhum bairro ou distrito cadastrado.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
