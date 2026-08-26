@@ -1,56 +1,11 @@
-{% extends "base.html" %}
-
+{% extends 'base.html' %}
+{% block title %}Importar Matrículas{% endblock %}
 {% block content %}
-
-<div class="container mt-5 mb-5">
-    <div class="card shadow border-0 rounded-4 mx-auto" style="max-width:600px;">
-        <div class="card-body p-4">
-
-            <h2 class="mb-3">📥 Importar Matrículas</h2>
-
-            <p>
-                Envie uma planilha Excel no formato:
-            </p>
-
-            <table class="table table-bordered">
-                <tr>
-                    <th>Matrícula</th>
-                    <th>Nome</th>
-                    <th>Posto</th>
-                    <th>Unidade</th>
-                </tr>
-            </table>
-
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-info">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-
-                <input type="file"
-                       name="arquivo"
-                       accept=".xlsx"
-                       class="form-control mb-3"
-                       required>
-
-                <button type="submit" class="btn btn-primary w-100">
-                    Importar Matrículas
-                </button>
-            </form>
-
-            <hr>
-
-            <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">
-                ← Voltar ao Painel
-            </a>
-
-        </div>
-    </div>
-</div>
-
+<div style="max-width:700px;margin:40px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
+<h1 style="color:#907C64">📥 Importar Matrículas</h1><p>Envie uma planilha Excel para autorizar policiais a consultar OPOs protegidas.</p><p><strong>{{ total_matriculas }}</strong> matrículas ativas atualmente.</p>
+<div style="background:#f8fafc;border:1px solid #e5e7eb;padding:15px;border-radius:10px"><strong>Colunas aceitas:</strong> Matrícula, Nome, Posto e Unidade.</div>
+{% for message in messages %}<div style="margin-top:12px;padding:12px;border-radius:8px;background:#eef2ff">{{ message }}</div>{% endfor %}
+<form method="post" enctype="multipart/form-data" style="margin-top:20px">{% csrf_token %}<input type="file" name="arquivo" accept=".xlsx" required style="width:100%;padding:10px"><button type="submit" style="width:100%;margin-top:15px;background:#907C64;color:#fff;border:0;border-radius:8px;padding:13px;font-weight:bold">Importar Matrículas</button></form>
+<p style="margin-top:25px"><a href="{% url 'painel_gestao' %}">← Voltar ao Painel</a></p>
+</div></div>
 {% endblock %}
