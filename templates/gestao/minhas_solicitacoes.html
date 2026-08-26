@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}Minhas Solicitações{% endblock %}
+{% block content %}
+<style>
+.pagina{max-width:1200px;margin:30px auto;padding:0 16px}
+h1{color:#907C64;margin-bottom:22px}
+.tabela-wrap{background:#fff;border-radius:16px;box-shadow:0 6px 20px rgba(0,0,0,.08);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:900px}
+th,td{padding:13px 15px;border-bottom:1px solid #e5e7eb;text-align:left}
+th{background:#111827;color:#fff}
+.status{font-weight:700}
+.vazia{text-align:center;padding:35px;color:#6b7280}
+.btn{display:inline-block;background:#907C64;color:#fff;text-decoration:none;padding:8px 12px;border-radius:7px;font-weight:700}
+</style>
+<div class="pagina">
+    <h1>📋 Minhas Solicitações</h1>
+    <div class="tabela-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Protocolo</th>
+                    <th>Evento</th>
+                    <th>Município</th>
+                    <th>Bairro</th>
+                    <th>Unidade</th>
+                    <th>Data</th>
+                    <th>Status</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in solicitacoes %}
+                <tr>
+                    <td>{{ s.protocolo }}</td>
+                    <td>{{ s.nome_evento }}</td>
+                    <td>{{ s.municipio.nome }}</td>
+                    <td>{{ s.bairro.nome|default:'-' }}</td>
+                    <td>{{ s.unidade.sigla|default:'-' }}</td>
+                    <td>{{ s.data_evento|date:'d/m/Y' }}</td>
+                    <td class="status">{{ s.get_status_display }}</td>
+                    <td><a class="btn" href="{% url 'consultar' %}?protocolo={{ s.protocolo }}">Consultar</a></td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="8" class="vazia">Nenhuma solicitação registrada por este usuário.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
