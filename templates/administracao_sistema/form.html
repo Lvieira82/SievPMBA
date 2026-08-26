@@ -1,6 +1,26 @@
 {% extends 'base.html' %}
 {% block title %}{% if novo %}Novo usuário{% else %}Editar usuário{% endif %}{% endblock %}
 {% block content %}
-<div style="max-width:700px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)"><h1 style="color:#907C64">👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}</h1>
-<form method="post">{% csrf_token %}{{ form.as_p }}{% if novo %}<p><label>Senha</label><input type="password" name="senha" minlength="8" required style="width:100%;padding:11px"><label>Confirmar senha</label><input type="password" name="confirmar" minlength="8" required style="width:100%;padding:11px"></p>{% endif %}<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Salvar</button> <a href="{% url 'administracao_sistema' %}">Cancelar</a></form></div></div>
+<div class="container-fluid" style="max-width:900px">
+  <div class="card mb-4">
+    <div class="card-body p-4">
+      <h1 style="color:#907C64">👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}</h1>
+      {% if novo %}<p class="text-muted">A senha inicial será gerada automaticamente e enviada para o e-mail informado. O usuário deverá trocá-la no primeiro acesso.</p>{% endif %}
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Salvar cadastro</button>
+        <a href="{% url 'administracao_sistema' %}" class="btn btn-outline-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
