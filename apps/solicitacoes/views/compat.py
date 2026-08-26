@@ -1,5 +1,6 @@
 """Compatibilidade das rotas antigas com as views operacionais reais."""
 
+from .manual import lancamento_manual
 from .operacional import (
     alterar_status,
     detalhe_opo,
@@ -9,7 +10,6 @@ from .operacional import (
     gerar_opo,
     importar_matriculas_painel,
     importar_municipios,
-    lancamento_manual,
     mapa_eventos,
     minhas_solicitacoes,
     opos_geradas,
