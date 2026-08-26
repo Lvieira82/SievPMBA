@@ -5,37 +5,68 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SiEv{% endblock %}</title>
+    <link rel="icon" href="{% static 'logos/logo_pm_200.png' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{% static 'css/siev.css' %}">
+    <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=6">
     {% block css %}{% endblock %}
 </head>
 <body>
 <div class="wrapper">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="logo-area">
-            <img src="{% static 'logos/logo_pm_200.png' %}" class="logo">
+            <img src="{% static 'logos/logo_pm_200.png' %}" class="logo" alt="PMBA 200 anos">
             <h3>SiEv</h3>
             <span>Sistema Inteligente de Eventos</span>
         </div>
         <hr>
         <ul class="menu">
-            <li><a href="#"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
-            <li><a href="#"><i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span></a></li>
-            <li><a href="#"><i class="bi bi-search"></i><span>Consultar Protocolo</span></a></li>
-            <li><a href="#"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
-            <li><a href="#"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
-            <li><a href="#"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+            <li>
+                <a href="{% url 'painel_gestao' %}" title="Dashboard">
+                    <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação">
+                    <i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'consultar' %}" title="Consultar Protocolo">
+                    <i class="bi bi-search"></i><span>Consultar Protocolo</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'analise_unidades' %}" title="Análise">
+                    <i class="bi bi-check2-square"></i><span>Análise</span>
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'agenda_gestao' %}" title="Planejamento">
+                    <i class="bi bi-calendar-event"></i><span>Planejamento</span>
+                </a>
+            </li>
+            <li>
+                {% if user.is_superuser or user.is_staff %}
+                    <a href="{% url 'administracao_sistema' %}" title="Administração">
+                {% else %}
+                    <a href="{% url 'usuarios_unidade' %}" title="Administração">
+                {% endif %}
+                    <i class="bi bi-gear"></i><span>Administração</span>
+                </a>
+            </li>
         </ul>
     </aside>
+
     <div class="main">
         <header class="topbar">
             <div class="d-flex align-items-center">
-                <button id="toggleSidebar" class="btn btn-menu me-3">
+                <button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu">
                     <i class="bi bi-list"></i>
                 </button>
                 <h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2>
             </div>
+
             <div class="usuario">
                 {% if user.is_authenticated %}
                     <i class="bi bi-person-circle"></i>
@@ -52,6 +83,7 @@
                 {% endif %}
             </div>
         </header>
+
         <section class="conteudo">
             {% if messages %}
                 {% for message in messages %}
@@ -60,16 +92,17 @@
             {% endif %}
             {% block content %}{% endblock %}
         </section>
+
         <footer class="rodape">
-            Sistema Inteligente de Eventos - Polícia Militar da Bahia
-            <br>
+            Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>
             © {% now "Y" %}
         </footer>
     </div>
 </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
-<script src="{% static 'js/menu.js' %}"></script>
-<script src="{% static 'js/territorio.js' %}"></script>
+<script src="{% static 'js/menu.js' %}?v=1"></script>
+<script src="{% static 'js/territorio.js' %}?v=1"></script>
 </body>
 </html>
