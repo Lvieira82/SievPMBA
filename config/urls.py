@@ -19,13 +19,14 @@ from apps.solicitacoes.views.administracao_sistema import (
     usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo, detalhe_opo_publica, documentos_solicitacao,
+    alterar_status, detalhe_opo, documentos_solicitacao,
     gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
     importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
-    opos_geradas, validar_matricula_opo_publica, verificar_autenticidade,
-    abrir_documento_solicitacao,
+    opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
 )
-from apps.solicitacoes.views.arquivos_publicos import abrir_opo_publica
+from apps.solicitacoes.views.public_opo import (
+    abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica,
+)
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
