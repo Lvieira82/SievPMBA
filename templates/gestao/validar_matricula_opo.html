@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Consulta de OPO{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:70px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:35px;box-shadow:0 8px 24px rgba(0,0,0,.08);text-align:center">
+<h1 style="color:#907C64">🔐 Consulta da OPO</h1>
+<p>Informe sua matrícula funcional para acessar os detalhes operacionais.</p>
+{% for message in messages %}<div style="background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px;margin:12px 0">{{ message }}</div>{% endfor %}
+<form method="post">{% csrf_token %}<input name="matricula" required autocomplete="off" placeholder="Matrícula funcional" style="width:100%;padding:13px;border:1px solid #d1d5db;border-radius:8px;margin:15px 0"><button type="submit" style="width:100%;padding:13px;background:#907C64;color:#fff;border:0;border-radius:8px;font-weight:bold">Continuar</button></form>
+</div></div>
+{% endblock %}
