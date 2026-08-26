@@ -1,8 +1,16 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.db.models import Prefetch
 
-from apps.solicitacoes.models import Bairro, CPR, Municipio, Unidade
+from apps.solicitacoes.models import (
+    AreaResponsabilidade,
+    Bairro,
+    CPR,
+    Municipio,
+    Unidade,
+)
 
 
 def _dev(request):
@@ -46,18 +54,82 @@ def cadastro_unidades(request):
 def cadastro_bairros(request):
     if not _dev(request):
         return _deny(request)
+
     if request.method == "POST":
-        municipio = get_object_or_404(Municipio, pk=request.POST.get("municipio"), ativo=True)
+        municipio = get_object_or_404(
+            Municipio,
+            pk=request.POST.get("municipio"),
+            ativo=True,
+        )
+        unidade = get_object_or_404(
+            Unidade.objects.select_related("cpr"),
+            pk=request.POST.get("unidade"),
+            ativo=True,
+            cpr__ativo=True,
+        )
         nome = (request.POST.get("nome") or "").strip()
+
         if not nome:
             messages.error(request, "Informe o nome do bairro ou distrito.")
-        elif Bairro.objects.filter(municipio=municipio, nome__iexact=nome).exists():
-            messages.error(request, "Este bairro já está cadastrado neste município.")
         else:
-            Bairro.objects.create(municipio=municipio, nome=nome, ativo=True)
-            messages.success(request, f"Bairro/distrito {nome} cadastrado em {municipio.nome}.")
-            return redirect("cadastro_bairros")
+            with transaction.atomic():
+                bairro = Bairro.objects.filter(
+                    municipio=municipio,
+                    nome__iexact=nome,
+                ).first()
+
+                if bairro:
+                    area = AreaResponsabilidade.objects.filter(
+                        bairro=bairro,
+                        ativo=True,
+                    ).first()
+
+                    if area:
+                        messages.error(
+                            request,
+                            f"O bairro/distrito {bairro.nome} já está vinculado à unidade {area.unidade.sigla}.",
+                        )
+                    else:
+                        AreaResponsabilidade.objects.update_or_create(
+                            bairro=bairro,
+                            unidade=unidade,
+                            defaults={"ativo": True},
+                        )
+                        messages.success(
+                            request,
+                            f"Bairro/distrito {bairro.nome} vinculado à unidade {unidade.sigla}.",
+                        )
+                        return redirect("cadastro_bairros")
+                else:
+                    bairro = Bairro.objects.create(
+                        municipio=municipio,
+                        nome=nome,
+                        ativo=True,
+                    )
+                    AreaResponsabilidade.objects.create(
+                        bairro=bairro,
+                        unidade=unidade,
+                        ativo=True,
+                    )
+                    messages.success(
+                        request,
+                        f"Bairro/distrito {nome} cadastrado em {municipio.nome} e vinculado à unidade {unidade.sigla}.",
+                    )
+                    return redirect("cadastro_bairros")
+
+    areas_prefetch = Prefetch(
+        "arearesponsabilidade_set",
+        queryset=AreaResponsabilidade.objects.select_related("unidade", "unidade__cpr").filter(ativo=True),
+        to_attr="areas_responsabilidade",
+    )
+
     return render(request, "solicitacoes/cadastro_bairros.html", {
         "municipios": Municipio.objects.filter(ativo=True).order_by("nome"),
-        "bairros": Bairro.objects.select_related("municipio").order_by("municipio__nome", "nome"),
+        "unidades": Unidade.objects.select_related("cpr").filter(
+            ativo=True,
+            cpr__ativo=True,
+        ).order_by("cpr__sigla", "sigla", "nome"),
+        "bairros": Bairro.objects.select_related("municipio").prefetch_related(
+            areas_prefetch
+        ).order_by("municipio__nome", "nome"),
     })
