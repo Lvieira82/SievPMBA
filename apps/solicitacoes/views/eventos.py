@@ -2,103 +2,24 @@ from django.contrib import messages
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from ..models import MatriculaAutorizada, PerfilUsuario, Solicitacao, Unidade
+from ..models import Solicitacao
+from ..models_acesso import AcessoInstitucional
 
 
-def eventos_dia(request):
-    if request.method == "GET":
-        return render(request, "solicitacoes/eventos_dia.html")
-
-    matricula = request.POST.get("matricula", "").strip()
-
-    if not matricula:
-        return render(
-            request,
-            "solicitacoes/eventos_dia.html",
-            {"erro": "Informe sua matrícula."},
-        )
-
-    matricula_autorizada = (
-        MatriculaAutorizada.objects
-        .filter(matricula=matricula, ativo=True)
-        .first()
-    )
-
-    if not matricula_autorizada:
-        return render(
-            request,
-            "solicitacoes/eventos_dia.html",
-            {"erro": "Matrícula não autorizada."},
-        )
-
-    unidade = (
-        Unidade.objects
+def _acesso_por_matricula(matricula):
+    return (
+        AcessoInstitucional.objects
+        .select_related("usuario", "cpr", "unidade")
         .filter(
-            sigla=matricula_autorizada.unidade,
+            matricula__iexact=matricula,
             ativo=True,
+            usuario__is_active=True,
         )
-        .select_related("cpr")
         .first()
     )
 
-    if not unidade:
-        return render(
-            request,
-            "solicitacoes/eventos_dia.html",
-            {
-                "erro": (
-                    "A matrícula está cadastrada, mas a unidade vinculada "
-                    "não foi localizada."
-                )
-            },
-        )
 
-    hoje = timezone.localdate()
-    eventos = (
-        Solicitacao.objects
-        .filter(
-            data_evento=hoje,
-            status="APROVADA",
-            unidade=unidade,
-        )
-        .select_related("municipio", "bairro", "unidade")
-        .order_by("hora_inicio", "nome_evento")
-    )
-
-    request.session["eventos_matricula"] = matricula
-
-    return render(
-        request,
-        "solicitacoes/eventos_dia_resultado.html",
-        {
-            "eventos": eventos,
-            "matricula": matricula,
-            "matricula_autorizada": matricula_autorizada,
-            "unidade": unidade,
-            "data": hoje,
-        },
-    )
-
-
-def eventos_dia_resultado(request):
-    matricula = request.session.get("eventos_matricula")
-
-    if not matricula:
-        return redirect("eventos_dia")
-
-    perfil = (
-        PerfilUsuario.objects
-        .select_related("usuario", "unidade", "cpr")
-        .filter(matricula=matricula, ativo=True)
-        .first()
-    )
-
-    if not perfil:
-        request.session.pop("eventos_matricula", None)
-        messages.error(request, "Matrícula não autorizada.")
-        return redirect("eventos_dia")
-
-    hoje = timezone.localdate()
+def _eventos_do_acesso(acesso, hoje):
     eventos = (
         Solicitacao.objects
         .filter(data_evento=hoje, status="APROVADA")
@@ -106,21 +27,121 @@ def eventos_dia_resultado(request):
         .order_by("hora_inicio", "nome_evento")
     )
 
-    if perfil.perfil == "UNIDADE":
-        eventos = eventos.filter(unidade=perfil.unidade)
-    elif perfil.perfil == "CPR":
-        eventos = eventos.filter(unidade__cpr=perfil.cpr)
-    elif perfil.perfil == "COPPM":
-        pass
-    else:
-        eventos = eventos.none()
+    if acesso.perfil == "OPERADOR":
+        # Operador: somente os eventos/OPOs da sua própria unidade.
+        if not acesso.unidade_id:
+            return eventos.none()
+        return eventos.filter(unidade_id=acesso.unidade_id)
+
+    if acesso.perfil == "UNIDADE":
+        return eventos.filter(unidade_id=acesso.unidade_id)
+
+    if acesso.perfil == "CPR":
+        return eventos.filter(unidade__cpr_id=acesso.cpr_id)
+
+    if acesso.perfil == "COPPM":
+        return eventos
+
+    return eventos.none()
+
+
+def eventos_dia(request):
+    acesso_logado = None
+    if request.user.is_authenticated:
+        acesso_logado = getattr(request.user, "acesso_institucional", None)
+        if acesso_logado and (not acesso_logado.ativo or not request.user.is_active):
+            acesso_logado = None
+
+    if request.method == "GET":
+        return render(
+            request,
+            "solicitacoes/eventos_dia.html",
+            {"acesso_logado": acesso_logado},
+        )
+
+    matricula = request.POST.get("matricula", "").strip()
+    if not matricula and acesso_logado:
+        matricula = acesso_logado.matricula
+
+    if not matricula:
+        return render(
+            request,
+            "solicitacoes/eventos_dia.html",
+            {"erro": "Informe sua matrícula.", "acesso_logado": acesso_logado},
+        )
+
+    acesso = _acesso_por_matricula(matricula)
+    if not acesso:
+        return render(
+            request,
+            "solicitacoes/eventos_dia.html",
+            {"erro": "Matrícula sem acesso institucional ativo.", "acesso_logado": acesso_logado},
+        )
+
+    # Se o usuário está logado, não permite consultar a matrícula de outra pessoa.
+    if request.user.is_authenticated and acesso.usuario_id != request.user.id:
+        return render(
+            request,
+            "solicitacoes/eventos_dia.html",
+            {"erro": "A matrícula informada não corresponde ao usuário autenticado.", "acesso_logado": acesso_logado},
+        )
+
+    hoje = timezone.localdate()
+    eventos = _eventos_do_acesso(acesso, hoje)
+
+    request.session["eventos_acesso_id"] = acesso.id
+    request.session["eventos_matricula"] = acesso.matricula
 
     return render(
         request,
         "solicitacoes/eventos_dia_resultado.html",
         {
             "eventos": eventos,
-            "perfil": perfil,
+            "matricula": acesso.matricula,
+            "acesso": acesso,
+            "unidade": acesso.unidade,
+            "data": hoje,
+            "data_eventos": hoje,
+        },
+    )
+
+
+def eventos_dia_resultado(request):
+    acesso_id = request.session.get("eventos_acesso_id")
+    if not acesso_id:
+        return redirect("eventos_dia")
+
+    acesso = (
+        AcessoInstitucional.objects
+        .select_related("usuario", "cpr", "unidade")
+        .filter(id=acesso_id, ativo=True, usuario__is_active=True)
+        .first()
+    )
+    if not acesso:
+        request.session.pop("eventos_acesso_id", None)
+        request.session.pop("eventos_matricula", None)
+        messages.error(request, "Acesso não autorizado.")
+        return redirect("eventos_dia")
+
+    if request.user.is_authenticated and acesso.usuario_id != request.user.id:
+        request.session.pop("eventos_acesso_id", None)
+        request.session.pop("eventos_matricula", None)
+        messages.error(request, "Acesso não autorizado.")
+        return redirect("eventos_dia")
+
+    hoje = timezone.localdate()
+    eventos = _eventos_do_acesso(acesso, hoje)
+
+    return render(
+        request,
+        "solicitacoes/eventos_dia_resultado.html",
+        {
+            "eventos": eventos,
+            "perfil": acesso,
+            "acesso": acesso,
+            "matricula": acesso.matricula,
+            "unidade": acesso.unidade,
+            "data": hoje,
             "data_eventos": hoje,
         },
     )
