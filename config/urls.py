@@ -14,9 +14,11 @@ from apps.solicitacoes.views.administracao import (
     solicitar_correcao_gestao, transferir_solicitacao,
     trocar_senha_usuario, usuarios_unidade,
 )
+from apps.solicitacoes.views.login_acesso import login_gestao
 from apps.solicitacoes.views.acesso import (
-    esqueci_senha, login_gestao, logout_gestao as logout_gestao_seguro,
-    redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador,
+    logout_gestao as logout_gestao_seguro,
+    esqueci_senha, redefinir_senha, trocar_senha_primeiro_acesso,
+    verificar_novo_navegador,
 )
 from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar,
