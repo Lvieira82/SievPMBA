@@ -1,334 +1,60 @@
 {% extends "base.html" %}
 
-{% block title %}
-Eventos do Dia - SiEv
-{% endblock %}
-
+{% block title %}Eventos do Dia - SiEv{% endblock %}
 
 {% block css %}
-
 <style>
-
-    /* =====================================================
-       PÁGINA EVENTOS DO DIA
-       ===================================================== */
-
-    .pagina-eventos {
-        width: 100%;
-        max-width: 1000px;
-        margin: 0 auto;
-    }
-
-
-    /* =====================================================
-       CARD PRINCIPAL
-       ===================================================== */
-
-    .card-eventos {
-
-        background: #ffffff;
-
-        border-radius: 16px;
-
-        padding: 35px;
-
-        box-shadow:
-            0 6px 20px rgba(0, 0, 0, 0.08);
-
-        border: 1px solid #e5e7eb;
-
-    }
-
-
-    /* =====================================================
-       TÍTULO
-       ===================================================== */
-
-    .card-eventos h1 {
-
-        color: #111827;
-
-        font-size: 36px;
-
-        font-weight: 700;
-
-        margin-bottom: 10px;
-
-    }
-
-
-    .card-eventos .subtitulo {
-
-        color: #4b5563;
-
-        font-size: 16px;
-
-        margin-bottom: 30px;
-
-    }
-
-
-    /* =====================================================
-       FORMULÁRIO
-       ===================================================== */
-
-    .form-eventos {
-
-        max-width: 500px;
-
-    }
-
-
-    .form-eventos label {
-
-        display: block;
-
-        margin-bottom: 8px;
-
-        color: #374151;
-
-        font-weight: 600;
-
-    }
-
-
-    .form-eventos input {
-
-        width: 100%;
-
-        padding: 13px 15px;
-
-        border: 1px solid #d1d5db;
-
-        border-radius: 8px;
-
-        font-size: 16px;
-
-        background: #ffffff;
-
-        color: #111827;
-
-        margin-bottom: 15px;
-
-        transition: .2s;
-
-    }
-
-
-    .form-eventos input:focus {
-
-        outline: none;
-
-        border-color: #907C64;
-
-        box-shadow:
-            0 0 0 3px rgba(144, 124, 100, .15);
-
-    }
-
-
-    /* =====================================================
-       BOTÃO CONSULTAR
-       ===================================================== */
-
-    .btn-consultar-eventos {
-
-        display: inline-block;
-
-        padding: 13px 24px;
-
-        background: #907C64;
-
-        color: #ffffff;
-
-        border: none;
-
-        border-radius: 8px;
-
-        font-size: 16px;
-
-        font-weight: 600;
-
-        cursor: pointer;
-
-        transition: .2s;
-
-    }
-
-
-    .btn-consultar-eventos:hover {
-
-        background: #6f5e4b;
-
-        transform: translateY(-1px);
-
-    }
-
-
-    /* =====================================================
-       MENSAGENS
-       ===================================================== */
-
-    .mensagem-eventos {
-
-        padding: 13px 16px;
-
-        border-radius: 8px;
-
-        margin-bottom: 20px;
-
-        font-weight: 600;
-
-    }
-
-
-    .mensagem-eventos.erro {
-
-        background: #fee2e2;
-
-        color: #991b1b;
-
-        border-left: 4px solid #dc2626;
-
-    }
-
-
-    .mensagem-eventos.sucesso {
-
-        background: #dcfce7;
-
-        color: #166534;
-
-        border-left: 4px solid #16a34a;
-
-    }
-
-
-    /* =====================================================
-       RESPONSIVIDADE
-       ===================================================== */
-
-    @media (max-width: 768px) {
-
-        .pagina-eventos {
-
-            width: 100%;
-
-        }
-
-
-        .card-eventos {
-
-            padding: 25px 20px;
-
-        }
-
-
-        .card-eventos h1 {
-
-            font-size: 28px;
-
-        }
-
-
-        .form-eventos {
-
-            max-width: 100%;
-
-        }
-
-
-        .btn-consultar-eventos {
-
-            width: 100%;
-
-        }
-
-    }
-
+    .pagina-eventos{width:100%;max-width:1000px;margin:0 auto}
+    .card-eventos{background:#fff;border-radius:18px;padding:35px;box-shadow:0 8px 28px rgba(0,0,0,.08);border:1px solid #e5e7eb}
+    .card-eventos h1{color:#111827;font-size:34px;font-weight:700;margin:0 0 10px}
+    .subtitulo{color:#4b5563;font-size:16px;margin-bottom:28px}
+    .form-eventos{max-width:520px}
+    .form-eventos label{display:block;margin-bottom:8px;color:#374151;font-weight:700}
+    .form-eventos input{width:100%;padding:13px 15px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff;color:#111827;margin-bottom:15px;box-sizing:border-box}
+    .form-eventos input[readonly]{background:#f3f4f6}
+    .btn-consultar-eventos{display:inline-block;padding:13px 24px;background:#907c64;color:#fff;border:0;border-radius:8px;font-size:16px;font-weight:700;cursor:pointer}
+    .btn-consultar-eventos:hover{background:#6f5e4b}
+    .mensagem-eventos{padding:13px 16px;border-radius:8px;margin-bottom:20px;font-weight:600;background:#fee2e2;color:#991b1b;border-left:4px solid #dc2626}
+    .mensagem-eventos.sucesso{background:#dcfce7;color:#166534;border-left-color:#16a34a}
+    .operador-info{background:#f8f9fa;border-left:4px solid #907c64;border-radius:8px;padding:14px 16px;margin-bottom:22px;color:#374151}
+    @media(max-width:768px){.card-eventos{padding:24px 18px}.card-eventos h1{font-size:28px}.btn-consultar-eventos{width:100%}}
 </style>
-
 {% endblock %}
 
-
 {% block content %}
-
 <div class="pagina-eventos">
-
     <div class="card-eventos">
-
-        <h1>
-            📅 Eventos do Dia
-        </h1>
-
-
-        <p class="subtitulo">
-
-            Informe sua matrícula para consultar
-            os eventos autorizados para sua área.
-
-        </p>
-
+        <h1>📅 Eventos do Dia</h1>
+        <p class="subtitulo">Consulte as OPOs autorizadas para a sua unidade e abra os detalhes da OPO.</p>
 
         {% if messages %}
-
             {% for message in messages %}
-
-                <div class="mensagem-eventos
-                    {% if message.tags == 'success' %}
-                        sucesso
-                    {% else %}
-                        erro
-                    {% endif %}
-                ">
-
-                    {{ message }}
-
-                </div>
-
+                <div class="mensagem-eventos {% if message.tags == 'success' %}sucesso{% endif %}">{{ message }}</div>
             {% endfor %}
-
         {% endif %}
 
+        {% if acesso_logado %}
+            <div class="operador-info">
+                <strong>Usuário:</strong> {{ acesso_logado.usuario.get_full_name|default:acesso_logado.matricula }}<br>
+                <strong>Perfil:</strong> {{ acesso_logado.get_perfil_display }}{% if acesso_logado.unidade %}<br><strong>Unidade:</strong> {{ acesso_logado.unidade }}{% endif %}
+            </div>
+        {% endif %}
 
-        <form
-            method="POST"
-            class="form-eventos"
-        >
-
+        <form method="POST" class="form-eventos">
             {% csrf_token %}
-
-
-            <label for="matricula">
-
-                Matrícula
-
-            </label>
-
-
+            <label for="matricula">Matrícula</label>
             <input
                 type="text"
                 id="matricula"
                 name="matricula"
+                value="{% if acesso_logado %}{{ acesso_logado.matricula }}{% endif %}"
                 placeholder="Digite sua matrícula"
                 autocomplete="off"
+                {% if acesso_logado %}readonly{% endif %}
                 required
             >
-
-
-            <button
-                type="submit"
-                class="btn-consultar-eventos"
-            >
-
-                Consultar Eventos
-
-            </button>
-
+            <button type="submit" class="btn-consultar-eventos">Consultar Eventos</button>
         </form>
-
     </div>
-
 </div>
-
 {% endblock %}
