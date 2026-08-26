@@ -1,7 +1,378 @@
-:root{--dourado:#9A8665;--cinza:#f5f7fa;--texto:#2d3748;--sombra:0 10px 30px rgba(0,0,0,.12)}
+:root{
+    --dourado:#9A8665;
+    --marrom:#4E342E;
+    --marrom-hover:#5D4037;
+    --cinza:#f5f7fa;
+    --texto:#2d3748;
+    --sombra:0 10px 30px rgba(0,0,0,.12);
+}
+
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Segoe UI,Arial,sans-serif;background:#eef2f7;min-height:100vh}
-.portal-sidebar{position:fixed;z-index:1100;left:0;top:0;bottom:0;width:235px;background:#50362e;color:#fff;box-shadow:4px 0 18px rgba(0,0,0,.16);display:flex;flex-direction:column}.sidebar-logo{padding:28px 18px 24px;text-align:center;border-bottom:1px solid rgba(255,255,255,.18)}.sidebar-logo img{width:88px;display:block;margin:0 auto 12px}.sidebar-logo strong{display:block;color:#d6b04b;font-size:25px}.sidebar-logo small{display:block;margin-top:4px;color:#eee;font-size:12px}.portal-sidebar nav{padding:18px 10px}.portal-sidebar nav a{display:flex;align-items:center;gap:13px;color:#fff;text-decoration:none;padding:14px 15px;border-radius:9px;margin-bottom:7px;font-weight:600;transition:.2s}.portal-sidebar nav a:hover{background:#6a4b40;transform:translateX(2px)}.portal-sidebar nav i{width:22px;text-align:center;color:#d6b04b}
-.portal-page{margin-left:235px;min-height:100vh}.overlay{width:100%;padding:40px 20px}.container{max-width:1100px;margin:auto}.portal-card{background:white;border-radius:20px;box-shadow:var(--sombra);padding:50px;text-align:center;border-top:6px solid #9A8665}.logo{width:160px;max-width:100%;height:auto;display:block;margin:0 auto 25px}h1{color:#9A8665;font-size:38px;margin-bottom:8px}h2{color:var(--dourado);font-size:24px;margin-bottom:30px;font-weight:600}.descricao{max-width:850px;margin:0 auto 35px;font-size:18px;line-height:1.8;color:#555}.servico{background:white;border:1px solid #e3e7ec;border-radius:15px;padding:30px;height:100%;display:flex;flex-direction:column;align-items:center;transition:.25s}.servico:hover{transform:translateY(-5px);box-shadow:0 10px 25px rgba(0,0,0,.12)}.servico i{font-size:50px;color:#9A8665;margin-bottom:20px}.servico h3{color:#9A8665;margin-bottom:15px;height:72px;display:flex;align-items:center;justify-content:center;text-align:center;width:100%}.servico p{color:#666;height:70px;display:flex;align-items:center;justify-content:center;text-align:center;width:100%}.servico .btn{width:100%;margin-top:auto;font-weight:600}.informacoes{margin-top:45px;text-align:left;background:#f8fafc;border-radius:15px;padding:30px}.informacoes h5{color:#9A8665;margin-bottom:20px}.informacoes ul{margin-left:20px}.informacoes li{margin-bottom:10px}footer{margin-top:35px;color:#777;font-size:15px}hr{margin:40px 0}.btn-siev{background-color:var(--dourado);border-color:var(--dourado);color:#fff;font-weight:600}.btn-siev:hover{background-color:#866f4d;border-color:#866f4d;color:#fff}.btn-siev:disabled{background-color:var(--dourado);border-color:var(--dourado);color:#fff;opacity:.55;cursor:not-allowed}.btn-siev:focus,.btn-siev:active{background-color:#866f4d!important;border-color:#866f4d!important;color:#fff!important;box-shadow:none}.eventos-dia-acesso{width:100%;margin:35px auto 0;padding:28px 35px;background:#f8f9fb;border:1px solid #d9dee5;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:25px;text-align:left;transition:.2s}.eventos-dia-acesso:hover{box-shadow:0 8px 22px rgba(0,0,0,.08);transform:translateY(-2px)}.eventos-dia-icone{width:70px;height:70px;min-width:70px;border-radius:50%;background:#907C64;color:white;display:flex;align-items:center;justify-content:center;font-size:32px}.eventos-dia-conteudo{flex:1}.eventos-dia-conteudo h2{margin:0 0 8px;color:#907C64;font-size:25px}.eventos-dia-conteudo p{margin:0 0 16px;color:#536174;font-size:15px}.btn-eventos-dia{display:inline-block;padding:11px 25px;background:#212529;color:white;text-decoration:none;border-radius:7px;font-weight:bold;transition:.2s}.btn-eventos-dia:hover{background:#907C64;color:white}
-#areaBairro{display:none;margin-top:12px;text-align:left}#areaBairro label{display:block;margin-bottom:6px;color:#374151;font-weight:600}.bairro-autocomplete{position:relative}#pesquisaMunicipio,#pesquisaBairro{width:100%}#listaMunicipios,#listaBairros{position:relative;z-index:1050;max-height:190px;overflow-y:auto;background:#fff;border:1px solid #ced4da;border-radius:0 0 8px 8px;box-shadow:0 6px 14px rgba(0,0,0,.12)}#listaBairros{position:absolute;left:0;right:0;border-top:0}#listaBairros .list-group-item{cursor:pointer}#listaBairros .list-group-item:hover{background:#f1ede7}.bairro-status{display:none;margin-top:6px;font-size:13px;color:#6b7280}
-@media(max-width:768px){.portal-sidebar{position:relative;width:100%;height:auto;bottom:auto}.sidebar-logo{padding:15px}.sidebar-logo img{width:65px}.portal-sidebar nav{display:flex;overflow-x:auto;padding:8px}.portal-sidebar nav a{white-space:nowrap;margin:0 4px;padding:10px 12px}.portal-page{margin-left:0}.overlay{padding:20px 10px}.portal-card{padding:25px}.logo{width:110px}h1{font-size:28px}h2{font-size:18px}.descricao{font-size:15px}.servico{margin-bottom:20px}.eventos-dia-acesso{flex-direction:column;text-align:center;padding:25px 20px}.eventos-dia-conteudo h2{font-size:22px}.btn-eventos-dia{width:100%;text-align:center}}
+
+html,body{min-height:100%;}
+
+body{
+    font-family:"Segoe UI",Arial,sans-serif;
+    background:#eef2f7;
+    min-height:100vh;
+    overflow-x:hidden;
+}
+
+/* ==========================================================
+   MENU LATERAL - MESMO PADRÃO DO LAYOUT INSTITUCIONAL
+========================================================== */
+
+.portal-sidebar{
+    position:fixed;
+    z-index:1100;
+    left:0;
+    top:0;
+    bottom:0;
+    width:280px;
+    background:var(--marrom);
+    color:#fff;
+    box-shadow:4px 0 18px rgba(0,0,0,.16);
+    display:flex;
+    flex-direction:column;
+    overflow-y:auto;
+}
+
+.sidebar-logo{
+    padding:30px 20px;
+    text-align:center;
+    border-bottom:1px solid rgba(255,255,255,.18);
+}
+
+.sidebar-logo img{
+    width:90px;
+    height:90px;
+    object-fit:contain;
+    display:block;
+    margin:0 auto 14px;
+}
+
+.sidebar-logo strong{
+    display:block;
+    color:#C8A646;
+    font-size:26px;
+    font-weight:700;
+}
+
+.sidebar-logo small{
+    display:block;
+    margin-top:4px;
+    color:#eee;
+    font-size:13px;
+}
+
+.portal-sidebar nav{padding:18px 10px}
+
+.portal-sidebar nav a{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    color:#fff;
+    text-decoration:none;
+    padding:14px;
+    border-radius:10px;
+    margin-bottom:8px;
+    font-weight:600;
+    transition:.25s;
+}
+
+.portal-sidebar nav a:hover{
+    background:var(--dourado);
+    color:#000;
+    transform:translateX(4px);
+}
+
+.portal-sidebar nav i{
+    width:28px;
+    min-width:28px;
+    text-align:center;
+    color:#C8A646;
+    font-size:20px;
+}
+
+.portal-sidebar nav a:hover i{color:#000}
+
+/* ==========================================================
+   AREA PRINCIPAL
+========================================================== */
+
+.portal-page{
+    margin-left:280px;
+    min-height:100vh;
+}
+
+.overlay{
+    width:100%;
+    padding:40px 20px;
+}
+
+.container{
+    max-width:1100px;
+    margin:auto;
+}
+
+.portal-card{
+    background:#fff;
+    border-radius:20px;
+    box-shadow:var(--sombra);
+    padding:50px;
+    text-align:center;
+    border-top:6px solid var(--dourado);
+}
+
+.logo{
+    width:160px;
+    max-width:100%;
+    height:auto;
+    display:block;
+    margin:0 auto 25px;
+}
+
+h1{
+    color:var(--dourado);
+    font-size:38px;
+    margin-bottom:8px;
+}
+
+h2{
+    color:var(--dourado);
+    font-size:24px;
+    margin-bottom:30px;
+    font-weight:600;
+}
+
+.descricao{
+    max-width:850px;
+    margin:0 auto 35px;
+    font-size:18px;
+    line-height:1.8;
+    color:#555;
+}
+
+.servico{
+    background:#fff;
+    border:1px solid #e3e7ec;
+    border-radius:15px;
+    padding:30px;
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    transition:.25s;
+}
+
+.servico:hover{
+    transform:translateY(-5px);
+    box-shadow:0 10px 25px rgba(0,0,0,.12);
+}
+
+.servico i{
+    font-size:50px;
+    color:var(--dourado);
+    margin-bottom:20px;
+}
+
+.servico h3{
+    color:var(--dourado);
+    margin-bottom:15px;
+    min-height:72px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    width:100%;
+}
+
+.servico p{
+    color:#666;
+    min-height:70px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    width:100%;
+}
+
+.servico .btn{
+    width:100%;
+    margin-top:auto;
+    font-weight:600;
+}
+
+hr{margin:40px 0}
+
+.btn-siev{
+    background-color:var(--dourado);
+    border-color:var(--dourado);
+    color:#fff;
+    font-weight:600;
+}
+
+.btn-siev:hover{
+    background-color:#866f4d;
+    border-color:#866f4d;
+    color:#fff;
+}
+
+.btn-siev:disabled{
+    background-color:var(--dourado);
+    border-color:var(--dourado);
+    color:#fff;
+    opacity:.55;
+    cursor:not-allowed;
+}
+
+/* ==========================================================
+   MUNICIPIO / BAIRRO
+========================================================== */
+
+#areaBairro{display:none;margin-top:12px;text-align:left}
+
+#areaBairro label{
+    display:block;
+    margin-bottom:6px;
+    color:#374151;
+    font-weight:600;
+}
+
+.bairro-autocomplete{position:relative}
+
+#pesquisaMunicipio,#pesquisaBairro{width:100%}
+
+#listaMunicipios,#listaBairros{
+    position:relative;
+    z-index:1050;
+    max-height:190px;
+    overflow-y:auto;
+    background:#fff;
+    border:1px solid #ced4da;
+    border-radius:0 0 8px 8px;
+    box-shadow:0 6px 14px rgba(0,0,0,.12);
+}
+
+#listaBairros{
+    position:absolute;
+    left:0;
+    right:0;
+    border-top:0;
+}
+
+#listaBairros .list-group-item{cursor:pointer}
+#listaBairros .list-group-item:hover{background:#f1ede7}
+
+.bairro-status{
+    display:none;
+    margin-top:6px;
+    font-size:13px;
+    color:#6b7280;
+}
+
+/* ==========================================================
+   EVENTOS DO DIA / RODAPE
+========================================================== */
+
+.eventos-dia-acesso{
+    width:100%;
+    margin:35px auto 0;
+    padding:28px 35px;
+    background:#f8f9fb;
+    border:1px solid #d9dee5;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:25px;
+    text-align:left;
+    transition:.2s;
+}
+
+.eventos-dia-acesso:hover{
+    box-shadow:0 8px 22px rgba(0,0,0,.08);
+    transform:translateY(-2px);
+}
+
+.eventos-dia-icone{
+    width:70px;
+    height:70px;
+    min-width:70px;
+    border-radius:50%;
+    background:#907C64;
+    color:white;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:32px;
+}
+
+.eventos-dia-conteudo{flex:1}
+
+.eventos-dia-conteudo h2{
+    margin:0 0 8px;
+    color:#907C64;
+    font-size:25px;
+}
+
+.eventos-dia-conteudo p{
+    margin:0 0 16px;
+    color:#536174;
+    font-size:15px;
+}
+
+.btn-eventos-dia{
+    display:inline-block;
+    padding:11px 25px;
+    background:#212529;
+    color:white;
+    text-decoration:none;
+    border-radius:7px;
+    font-weight:bold;
+    transition:.2s;
+}
+
+.btn-eventos-dia:hover{background:#907C64;color:white}
+
+footer{
+    margin-top:35px;
+    color:#777;
+    font-size:15px;
+}
+
+@media(max-width:991px){
+    .portal-sidebar{
+        position:relative;
+        width:100%;
+        height:auto;
+        bottom:auto;
+    }
+
+    .sidebar-logo{padding:18px}
+    .sidebar-logo img{width:70px;height:70px}
+
+    .portal-sidebar nav{
+        display:flex;
+        overflow-x:auto;
+        padding:8px;
+    }
+
+    .portal-sidebar nav a{
+        white-space:nowrap;
+        margin:0 4px;
+        padding:10px 12px;
+    }
+
+    .portal-page{margin-left:0}
+    .overlay{padding:20px 10px}
+    .portal-card{padding:25px}
+    .logo{width:110px}
+    h1{font-size:28px}
+    h2{font-size:18px}
+    .descricao{font-size:15px}
+    .servico{margin-bottom:20px}
+    .eventos-dia-acesso{flex-direction:column;text-align:center;padding:25px 20px}
+    .eventos-dia-conteudo h2{font-size:22px}
+    .btn-eventos-dia{width:100%;text-align:center}
+}
