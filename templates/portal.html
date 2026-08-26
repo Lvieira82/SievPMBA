@@ -2,9 +2,6 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <style>
-    /* ==========================================================
-   EVENTOS DO DIA
-========================================================== */
 .eventos-dia-acesso {
     width: 100%;
     margin: 35px auto 0;
@@ -36,16 +33,8 @@
     font-size: 32px;
 }
 .eventos-dia-conteudo { flex: 1; }
-.eventos-dia-conteudo h2 {
-    margin: 0 0 8px;
-    color: #907C64;
-    font-size: 25px;
-}
-.eventos-dia-conteudo p {
-    margin: 0 0 16px;
-    color: #536174;
-    font-size: 15px;
-}
+.eventos-dia-conteudo h2 { margin: 0 0 8px; color: #907C64; font-size: 25px; }
+.eventos-dia-conteudo p { margin: 0 0 16px; color: #536174; font-size: 15px; }
 .btn-eventos-dia {
     display: inline-block;
     padding: 11px 25px;
@@ -56,131 +45,99 @@
     font-weight: bold;
     transition: .2s;
 }
-.btn-eventos-dia:hover {
-    background: #907C64;
-    color: white;
-}
+.btn-eventos-dia:hover { background: #907C64; color: white; }
 
-/* ==========================================================
-   SELEÇÃO DE BAIRRO
-========================================================== */
 #areaBairro {
     display: none;
     margin-top: 12px;
     text-align: left;
 }
-
 #areaBairro label {
     display: block;
     margin-bottom: 6px;
     color: #374151;
     font-weight: 600;
 }
-
-#bairroSelecionado {
-    width: 100%;
+.bairro-autocomplete { position: relative; }
+#pesquisaBairro { width: 100%; }
+#listaBairros {
+    position: absolute;
+    z-index: 1050;
+    left: 0;
+    right: 0;
+    max-height: 190px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-top: 0;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 6px 14px rgba(0,0,0,.12);
+}
+#listaBairros .list-group-item { cursor: pointer; }
+#listaBairros .list-group-item:hover { background: #f1ede7; }
+.bairro-status {
+    display: none;
+    margin-top: 6px;
+    font-size: 13px;
+    color: #6b7280;
 }
 
-/* ==========================================================
-   RESPONSIVO
-========================================================== */
 @media (max-width: 768px) {
-    .eventos-dia-acesso {
-        flex-direction: column;
-        text-align: center;
-        padding: 25px 20px;
-    }
+    .eventos-dia-acesso { flex-direction: column; text-align: center; padding: 25px 20px; }
     .eventos-dia-conteudo h2 { font-size: 22px; }
-    .btn-eventos-dia {
-        width: 100%;
-        text-align: center;
-    }
+    .btn-eventos-dia { width: 100%; text-align: center; }
 }
 </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
     <title>SiEv - Sistema Integrado de Eventos</title>
-
     <link rel="icon" href="{% static 'logos/logo_pm_200.png' %}">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link rel="stylesheet" href="{% static 'css/portal.css' %}">
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
 </head>
-
 <body>
 <div class="overlay">
 <div class="container">
 <div class="portal-card">
-
 <img src="{% static 'logos/logo_pm_200.png' %}" class="logo" alt="PMBA">
-
 <h1>POLÍCIA MILITAR DA BAHIA</h1>
 <h2>Sistema Integrado de Eventos</h2>
-
 <p class="descricao">
 Portal oficial destinado ao recebimento de informações sobre a realização
 de eventos públicos ou privados no Estado da Bahia.
 Após o envio das informações será gerado um protocolo eletrônico e
 um e-mail de confirmação será encaminhado ao responsável.
 </p>
-
 <hr>
-
 <div class="row g-4">
-
 <div class="col-md-4">
 <div class="servico">
 <i class="fa-solid fa-bullhorn"></i>
-
-<h3>
-    Informar<br>
-    Evento
-</h3>
-
-<p>
-Informe à Polícia Militar da Bahia a realização do seu evento.
-</p>
-
-<button id="btnNovaInformacao" class="btn btn-dark">
-    Nova Informação
-</button>
-
+<h3>Informar<br>Evento</h3>
+<p>Informe à Polícia Militar da Bahia a realização do seu evento.</p>
+<button id="btnNovaInformacao" class="btn btn-dark">Nova Informação</button>
 <div id="areaMunicipio" style="display:none">
-
     <label>Município</label>
-
-    <input
-        id="pesquisaMunicipio"
-        class="form-control"
-        placeholder="Digite o município...">
-
-    <input
-        type="hidden"
-        id="municipioSelecionado">
-
+    <input id="pesquisaMunicipio" class="form-control" placeholder="Digite o município..." autocomplete="off">
+    <input type="hidden" id="municipioSelecionado">
     <div id="listaMunicipios" class="list-group mt-2"></div>
 
     <div id="areaBairro">
-        <label for="bairroSelecionado">Bairro / Distrito</label>
-        <select id="bairroSelecionado" class="form-select" disabled>
-            <option value="">Selecione o bairro/distrito...</option>
-        </select>
+        <label for="pesquisaBairro">Bairro / Distrito</label>
+        <div class="bairro-autocomplete">
+            <input id="pesquisaBairro" class="form-control" placeholder="Digite para pesquisar ou role a lista..." autocomplete="off">
+            <input type="hidden" id="bairroSelecionado">
+            <div id="listaBairros" class="list-group"></div>
+        </div>
+        <div id="bairroStatus" class="bairro-status"></div>
     </div>
 
-    <button id="btnContinuar" class="btn btn-siev mt-3">
-        Continuar
-    </button>
-
+    <button id="btnContinuar" class="btn btn-siev mt-3">Continuar</button>
 </div>
 </div>
 </div>
-
 <div class="col-md-4">
 <div class="servico">
 <i class="fa-solid fa-magnifying-glass"></i>
@@ -189,7 +146,6 @@ Informe à Polícia Militar da Bahia a realização do seu evento.
 <a href="{% url 'consultar' %}" class="btn btn-dark">Consultar</a>
 </div>
 </div>
-
 <div class="col-md-4">
 <div class="servico">
 <i class="fa-solid fa-lock"></i>
@@ -198,41 +154,26 @@ Informe à Polícia Militar da Bahia a realização do seu evento.
 <a href="{% url 'login_gestao' %}" class="btn btn-dark">Entrar</a>
 </div>
 </div>
-
-<!-- ==========================================================
-     EVENTOS DO DIA
-========================================================== -->
 <div class="eventos-dia-acesso">
     <div class="eventos-dia-icone">📅</div>
     <div class="eventos-dia-conteudo">
         <h2>Eventos do Dia</h2>
-        <p>
-            Consulte os eventos programados para hoje
-            utilizando sua matrícula funcional.
-        </p>
-        <a href="{% url 'eventos_dia' %}" class="btn-eventos-dia">
-            Consultar Eventos
-        </a>
+        <p>Consulte os eventos programados para hoje utilizando sua matrícula funcional.</p>
+        <a href="{% url 'eventos_dia' %}" class="btn-eventos-dia">Consultar Eventos</a>
     </div>
 </div>
-
 </div>
-
 <div class="informacoes"></div>
-
 <footer>
 <strong>SiEv</strong><br>
-Sistema Integrado de Eventos
-<br>
+Sistema Integrado de Eventos<br>
 Polícia Militar da Bahia
 </footer>
-
 </div>
 </div>
-
 <script>
     const urlNovaSolicitacao = "{% url 'nova_solicitacao' %}";
 </script>
-<script src="{% static 'js/portal.js' %}"></script>
+<script src="{% static 'js/portal.js' %}?v=3"></script>
 </body>
 </html>
