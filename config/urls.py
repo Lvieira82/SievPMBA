@@ -5,48 +5,57 @@ from django.views.static import serve
 
 from apps.solicitacoes.portal_views import (
     agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
-    lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
-    portal, proximos_eventos_gestao, selecionar_unidade,
+    lista_municipios, listar_unidades, nova_solicitacao, portal,
+    proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import (
-    aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
-    desativar_usuario_unidade, editar_usuario_unidade, logout_gestao,
-    solicitar_correcao_gestao, transferir_solicitacao,
-    trocar_senha_usuario, usuarios_unidade,
+    cadastrar_usuario_unidade, desativar_usuario_unidade, editar_usuario_unidade,
+    logout_gestao, solicitar_correcao_gestao as solicitar_correcao_antiga,
+    transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.login_acesso import login_gestao
 from apps.solicitacoes.views.acesso import (
-    logout_gestao as logout_gestao_seguro,
-    esqueci_senha, redefinir_senha, trocar_senha_primeiro_acesso,
-    verificar_novo_navegador,
+    logout_gestao as logout_gestao_seguro, esqueci_senha, redefinir_senha,
+    trocar_senha_primeiro_acesso, verificar_novo_navegador,
 )
 from apps.solicitacoes.views.administracao_sistema import (
-    administracao_sistema, usuario_desativar, usuario_editar,
-    usuario_novo, usuario_senha,
+    administracao_sistema, usuario_desativar, usuario_editar, usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo, documentos_solicitacao,
-    gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
-    importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
-    opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
+    alterar_status, detalhe_opo, documentos_solicitacao, gerar_mapa_eventos_pdf,
+    importar_matriculas_painel, importar_municipios, lancamento_manual, mapa_eventos,
+    minhas_solicitacoes, opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
 )
-from apps.solicitacoes.views.public_opo import (
-    abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica,
-)
+from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
 from apps.solicitacoes.views.protocolo import (
-    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade,
-    estatisticas_protocolo, fila_protocolo, historico_protocolo,
-    painel_protocolo, reenviar_email,
+    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
+    fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
 )
-from apps.solicitacoes.views.territorio_admin import (
-    areas_responsabilidade, bairros_por_municipio,
-    importar_areas_responsabilidade,
+from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bairros_por_municipio, importar_areas_responsabilidade
+from apps.solicitacoes.views.aprovacoes_seguras import (
+    aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao, gerar_opo_seguro,
 )
+from apps.solicitacoes.views.operacional import documentos_solicitacao as documentos_solicitacao_view
+from apps.solicitacoes.models import Solicitacao
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.utils import timezone
+
+
+@login_required
+def listar_pendentes_opo_seguro(request):
+    acesso = getattr(request.user, "acesso_institucional", None)
+    if not (request.user.is_superuser or request.user.is_staff or (acesso and acesso.ativo and acesso.funcao == "GESTOR")):
+        from django.contrib import messages
+        messages.error(request, "Somente gestores podem acessar as solicitações pendentes de OPO.")
+        return __import__("django.shortcuts", fromlist=["redirect"]).redirect("painel_gestao")
+    return aprovacoes(request)
+
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -83,7 +92,7 @@ urlpatterns = [
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
-    path("gestao/pendentes-opo/", listar_pendentes_opo, name="listar_pendentes_opo"),
+    path("gestao/pendentes-opo/", listar_pendentes_opo_seguro, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
     path("aprovacoes/transferir/<int:id>/", transferir_solicitacao, name="transferir_solicitacao"),
@@ -102,7 +111,7 @@ urlpatterns = [
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf, name="gerar_mapa_eventos_pdf"),
     path("gestao/opos-geradas/", opos_geradas, name="opos_geradas"),
     path("gestao/opo/<int:id>/detalhes/", detalhe_opo, name="detalhe_opo"),
-    path("opo/<int:id>/", gerar_opo, name="gerar_opo"),
+    path("opo/<int:id>/", gerar_opo_seguro, name="gerar_opo"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
     path("consulta/opo/<int:id>/arquivo/", abrir_opo_publica, name="abrir_opo_publica"),
