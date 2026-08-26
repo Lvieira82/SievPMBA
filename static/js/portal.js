@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const btnContinuar = document.getElementById("btnContinuar");
 
+    // Somente estes municípios possuem, atualmente, mais de uma unidade
+    // responsável e, por isso, exigem a escolha do bairro/distrito no portal.
     const municipiosComBairro = new Set([
         "feira de santana",
         "vitoria da conquista",
@@ -34,14 +36,23 @@ document.addEventListener("DOMContentLoaded", function () {
             .toLowerCase();
     }
 
-    function limparBairro() {
+    function exigeBairro(municipio) {
+        return municipio && municipiosComBairro.has(
+            normalizarTexto(municipio.nome)
+        );
+    }
+
+    function limparBairro(ocultar = true) {
         bairrosAtuais = [];
         pesquisaBairro.value = "";
         bairroSelecionado.value = "";
         listaBairros.innerHTML = "";
         bairroStatus.textContent = "";
         bairroStatus.style.display = "none";
-        areaBairro.style.display = "none";
+
+        if (ocultar) {
+            areaBairro.style.display = "none";
+        }
     }
 
     function mostrarStatus(texto) {
@@ -68,6 +79,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 pesquisaBairro.value = bairro.nome;
                 bairroSelecionado.value = bairro.id;
                 listaBairros.innerHTML = "";
+                mostrarStatus("Bairro selecionado: " + bairro.nome);
             });
 
             listaBairros.appendChild(opcao);
@@ -82,18 +94,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function mostrarBairro() {
+        // A área é mostrada imediatamente, antes da chamada à API.
+        // Assim o campo aparece no portal assim que o município é escolhido,
+        // sem depender da velocidade de resposta do servidor.
         areaBairro.style.display = "block";
         renderizarBairros();
 
         if (bairrosAtuais.length === 0) {
-            mostrarStatus("Nenhum bairro/distrito está cadastrado para este município.");
+            mostrarStatus("Carregando bairros...");
         } else {
             mostrarStatus("Digite para filtrar ou role a lista para escolher.");
         }
     }
 
     function carregarBairros(municipio) {
-        limparBairro();
+        const requerBairro = exigeBairro(municipio);
+
+        limparBairro(!requerBairro);
+
+        // Para os seis municípios definidos, o bairro aparece no portal
+        // imediatamente, mesmo enquanto os dados são carregados.
+        if (requerBairro) {
+            mostrarBairro();
+        }
 
         fetch("/api/municipios/" + municipio.id + "/bairros/", {
             headers: { "Accept": "application/json" }
@@ -107,36 +130,34 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(dados => {
                 bairrosAtuais = Array.isArray(dados.bairros) ? dados.bairros : [];
 
-                const exigeBairro = municipiosComBairro.has(
-                    normalizarTexto(municipio.nome)
-                );
-
-                if (exigeBairro) {
+                if (requerBairro) {
                     mostrarBairro();
                     pesquisaBairro.focus();
-                } else {
-                    const centro = bairrosAtuais.find(
-                        bairro => normalizarTexto(bairro.nome) === "centro"
-                    );
-
-                    if (centro) {
-                        bairroSelecionado.value = centro.id;
-                        pesquisaBairro.value = centro.nome;
-                    }
-
-                    areaBairro.style.display = "none";
+                    return;
                 }
+
+                // Para as demais cidades, o bairro permanece oculto e
+                // Centro é utilizado automaticamente.
+                const centro = bairrosAtuais.find(
+                    bairro => normalizarTexto(bairro.nome) === "centro"
+                );
+
+                if (centro) {
+                    bairroSelecionado.value = centro.id;
+                    pesquisaBairro.value = centro.nome;
+                }
+
+                areaBairro.style.display = "none";
             })
             .catch(error => {
                 console.error("Erro ao carregar bairros:", error);
 
-                const exigeBairro = municipiosComBairro.has(
-                    normalizarTexto(municipio.nome)
-                );
-
-                if (exigeBairro) {
+                if (requerBairro) {
                     areaBairro.style.display = "block";
-                    mostrarStatus("Não foi possível carregar os bairros. Verifique a API / banco de dados.");
+                    listaBairros.innerHTML = "";
+                    mostrarStatus(
+                        "Não foi possível carregar os bairros. Verifique a API / banco de dados."
+                    );
                 } else {
                     limparBairro();
                 }
@@ -212,10 +233,10 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const nomeMunicipio = municipioAtual ? municipioAtual.nome : pesquisa.value;
-        const exigeBairro = municipiosComBairro.has(normalizarTexto(nomeMunicipio));
+        const requerBairro = municipiosComBairro.has(normalizarTexto(nomeMunicipio));
         const bairro = bairroSelecionado.value;
 
-        if (exigeBairro && !bairro) {
+        if (requerBairro && !bairro) {
             alert("Selecione um bairro ou distrito da lista.");
             pesquisaBairro.focus();
             renderizarBairros(pesquisaBairro.value);
