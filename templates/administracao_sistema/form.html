@@ -1,26 +1,346 @@
 {% extends 'base.html' %}
+
 {% block title %}{% if novo %}Novo usuário{% else %}Editar usuário{% endif %}{% endblock %}
+
 {% block content %}
-<div class="container-fluid" style="max-width:900px">
-  <div class="card mb-4">
-    <div class="card-body p-4">
-      <h1 style="color:#907C64">👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}</h1>
-      {% if novo %}<p class="text-muted">A senha inicial será gerada automaticamente e enviada para o e-mail informado. O usuário deverá trocá-la no primeiro acesso.</p>{% endif %}
-      <form method="post">
-        {% csrf_token %}
-        {{ form.non_field_errors }}
-        {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label fw-bold" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-          </div>
-        {% endfor %}
-        <button type="submit" class="btn btn-primary">Salvar cadastro</button>
-        <a href="{% url 'administracao_sistema' %}" class="btn btn-outline-secondary">Cancelar</a>
-      </form>
-    </div>
-  </div>
+<style>
+    .usuario-cadastro-wrap {
+        width: min(100% - 32px, 920px);
+        margin: 34px auto 50px;
+    }
+
+    .usuario-cadastro-card {
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, .10);
+        padding: 30px 34px 34px;
+    }
+
+    .usuario-cadastro-title {
+        margin: 0;
+        color: #907c64;
+        font-size: clamp(28px, 4vw, 40px);
+        font-weight: 700;
+        line-height: 1.15;
+    }
+
+    .usuario-cadastro-subtitle {
+        margin: 10px 0 26px;
+        color: #666;
+        line-height: 1.55;
+    }
+
+    .usuario-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 18px 22px;
+        align-items: start;
+    }
+
+    .usuario-field {
+        min-width: 0;
+    }
+
+    .usuario-field.full {
+        grid-column: 1 / -1;
+    }
+
+    .usuario-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: #202020;
+        font-weight: 700;
+    }
+
+    .usuario-field input,
+    .usuario-field select {
+        display: block;
+        width: 100%;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding: 10px 13px;
+        border: 1px solid #c9c9c9;
+        border-radius: 8px;
+        background: #fff;
+        color: #202020;
+        font: inherit;
+        outline: none;
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .usuario-field input:focus,
+    .usuario-field select:focus {
+        border-color: #907c64;
+        box-shadow: 0 0 0 3px rgba(144, 124, 100, .14);
+    }
+
+    .usuario-field input:disabled,
+    .usuario-field select:disabled {
+        background: #f2f2f2;
+        color: #666;
+        cursor: not-allowed;
+    }
+
+    .usuario-help {
+        margin-top: 6px;
+        color: #777;
+        font-size: .88rem;
+    }
+
+    .usuario-error {
+        margin-top: 5px;
+        color: #b42318;
+        font-size: .88rem;
+        font-weight: 600;
+    }
+
+    .usuario-nonfield-error {
+        margin-bottom: 18px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        background: #fff0f0;
+        border: 1px solid #efb0b0;
+        color: #a21d1d;
+    }
+
+    .usuario-check {
+        grid-column: 1 / -1;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        margin-top: 2px;
+    }
+
+    .usuario-check input {
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: #907c64;
+    }
+
+    .usuario-check label {
+        margin: 0;
+        color: #202020;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .usuario-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 26px;
+        padding-top: 20px;
+        border-top: 1px solid #e6e6e6;
+    }
+
+    .usuario-btn {
+        min-height: 44px;
+        padding: 10px 20px;
+        border: 0;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .usuario-btn-primary {
+        background: #c6a545;
+        color: #111;
+    }
+
+    .usuario-btn-primary:hover {
+        background: #b79635;
+    }
+
+    .usuario-btn-secondary {
+        background: #fff;
+        color: #333;
+        border: 1px solid #bbb;
+    }
+
+    .usuario-btn-secondary:hover {
+        background: #f5f5f5;
+    }
+
+    @media (max-width: 700px) {
+        .usuario-cadastro-wrap {
+            width: min(100% - 20px, 920px);
+            margin-top: 18px;
+        }
+
+        .usuario-cadastro-card {
+            padding: 22px 18px 24px;
+        }
+
+        .usuario-form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .usuario-field.full,
+        .usuario-check {
+            grid-column: auto;
+        }
+    }
+</style>
+
+<div class="usuario-cadastro-wrap">
+    <section class="usuario-cadastro-card">
+        <h1 class="usuario-cadastro-title">
+            👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}
+        </h1>
+
+        {% if novo %}
+            <p class="usuario-cadastro-subtitle">
+                A senha inicial será gerada automaticamente e enviada para o e-mail informado.
+                O usuário deverá trocá-la no primeiro acesso.
+            </p>
+        {% endif %}
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="usuario-nonfield-error">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="usuario-form-grid">
+
+                <div class="usuario-field">
+                    <label for="{{ form.matricula.id_for_label }}">{{ form.matricula.label }}</label>
+                    {{ form.matricula }}
+                    {% for error in form.matricula.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.nome.id_for_label }}">{{ form.nome.label }}</label>
+                    {{ form.nome }}
+                    {% for error in form.nome.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.cpf.id_for_label }}">{{ form.cpf.label }}</label>
+                    {{ form.cpf }}
+                    {% for error in form.cpf.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.telefone.id_for_label }}">{{ form.telefone.label }}</label>
+                    {{ form.telefone }}
+                    {% for error in form.telefone.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field full">
+                    <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                    {{ form.email }}
+                    {% for error in form.email.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.perfil.id_for_label }}">{{ form.perfil.label }}</label>
+                    {{ form.perfil }}
+                    {% for error in form.perfil.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.funcao.id_for_label }}">{{ form.funcao.label }}</label>
+                    {{ form.funcao }}
+                    {% for error in form.funcao.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.cpr.id_for_label }}">{{ form.cpr.label }}</label>
+                    {{ form.cpr }}
+                    <div class="usuario-help">Selecione o CPR para filtrar as unidades vinculadas.</div>
+                    {% for error in form.cpr.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-field">
+                    <label for="{{ form.unidade.id_for_label }}">{{ form.unidade.label }}</label>
+                    {{ form.unidade }}
+                    <div class="usuario-help" id="unidade-ajuda">As unidades serão exibidas de acordo com o CPR selecionado.</div>
+                    {% for error in form.unidade.errors %}<div class="usuario-error">{{ error }}</div>{% endfor %}
+                </div>
+
+                <div class="usuario-check">
+                    {{ form.ativo }}
+                    <label for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label>
+                </div>
+            </div>
+
+            <div class="usuario-actions">
+                <button type="submit" class="usuario-btn usuario-btn-primary">Salvar cadastro</button>
+                <a href="{% url 'administracao_sistema' %}" class="usuario-btn usuario-btn-secondary">Cancelar</a>
+            </div>
+        </form>
+    </section>
 </div>
+
+<script>
+(function () {
+    const cprSelect = document.getElementById("{{ form.cpr.id_for_label }}");
+    const unidadeSelect = document.getElementById("{{ form.unidade.id_for_label }}");
+    const ajuda = document.getElementById("unidade-ajuda");
+
+    if (!cprSelect || !unidadeSelect) return;
+
+    // Mapa gerado pelo Django: unidade -> CPR ao qual pertence.
+    const unidadeCpr = {
+        {% for unidade in form.fields.unidade.queryset %}
+            "{{ unidade.pk }}": "{{ unidade.cpr_id }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    };
+
+    function filtrarUnidades() {
+        const cprId = String(cprSelect.value || "");
+        const valorAtual = String(unidadeSelect.value || "");
+        let encontrou = false;
+
+        Array.from(unidadeSelect.options).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                option.disabled = !cprId;
+                return;
+            }
+
+            const pertenceAoCpr = unidadeCpr[option.value] === cprId;
+            option.hidden = !pertenceAoCpr;
+            option.disabled = !pertenceAoCpr;
+
+            if (pertenceAoCpr) {
+                encontrou = true;
+            }
+        });
+
+        if (!cprId) {
+            unidadeSelect.value = "";
+            unidadeSelect.disabled = true;
+            ajuda.textContent = "Selecione primeiro o CPR para visualizar as unidades.";
+            return;
+        }
+
+        unidadeSelect.disabled = false;
+
+        if (valorAtual && unidadeCpr[valorAtual] === cprId) {
+            unidadeSelect.value = valorAtual;
+        } else {
+            unidadeSelect.value = "";
+        }
+
+        if (encontrou) {
+            ajuda.textContent = "Somente unidades pertencentes ao CPR selecionado são exibidas.";
+        } else {
+            ajuda.textContent = "Não há unidades ativas cadastradas neste CPR.";
+        }
+    }
+
+    cprSelect.addEventListener("change", filtrarUnidades);
+    filtrarUnidades();
+})();
+</script>
 {% endblock %}
