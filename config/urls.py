@@ -25,6 +25,7 @@ from apps.solicitacoes.views.compat import (
     opos_geradas, validar_matricula_opo_publica, verificar_autenticidade,
     abrir_documento_solicitacao,
 )
+from apps.solicitacoes.views.arquivos_publicos import abrir_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
@@ -89,6 +90,7 @@ urlpatterns = [
     path("opo/<int:id>/", gerar_opo, name="gerar_opo"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
+    path("consulta/opo/<int:id>/arquivo/", abrir_opo_publica, name="abrir_opo_publica"),
     path("painel_gestao/importar-matriculas/", importar_matriculas_painel, name="importar_matriculas_painel"),
     path("gestao/importar-municipios/", importar_municipios, name="importar_municipios"),
     path("protocolo/", painel_protocolo, name="painel_protocolo"),
