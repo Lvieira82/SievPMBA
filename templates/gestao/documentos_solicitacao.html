@@ -1,183 +1,202 @@
 {% extends 'base.html' %}
 
-{% block title %}
-Documentos da Solicitação
-{% endblock %}
+{% block title %}Documentos da Solicitação{% endblock %}
 
 {% block content %}
-
 <style>
-.btn-gerar{
-    display:inline-block;
-    padding:14px 26px;
-    background:#28a745;
-    color:white;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:bold;
-    margin-right:10px;
-    transition:.3s;
-}
+    .doc-card {
+        max-width: 1050px;
+        margin: 35px auto;
+        padding: 35px;
+        background: #fff;
+        border-radius: 18px;
+        box-shadow: 0 8px 28px rgba(0,0,0,.08);
+    }
 
-.btn-gerar:hover{
-    background:#218838;
-}
-.btn-gerar{
-    display:inline-block;
-    background:#28a745;
-    color:#fff;
-    padding:14px 28px;
-    border-radius:10px;
-    text-decoration:none;
-    font-weight:bold;
-    margin-right:12px;
-    transition:.3s;
-}
+    .doc-card h1 {
+        margin: 0 0 20px;
+        color: #907c64;
+        font-size: 32px;
+    }
 
-.btn-gerar:hover{
-    background:#1f8a37;
-}
-.btn-voltar{
-    display:inline-block;
-    padding:14px 26px;
-    background:#6b7280;
-    color:white;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:bold;
-}
+    .doc-info {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px 25px;
+        padding: 18px;
+        margin-bottom: 25px;
+        background: #f5f5f5;
+        border-radius: 12px;
+    }
 
-.btn-voltar:hover{
-    background:#4b5563;
-}
-.doc-card{
-    background:white;
-    max-width:1000px;
-    margin:40px auto;
-    padding:35px;
-    border-radius:15px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-}
-.acoes{
-    margin-top:35px;
-}
+    .doc-info strong {
+        color: #111827;
+    }
 
-.btn-voltar{
-    display:inline-block;
-    padding:12px 26px;
-    background:#6b7280;
-    color:#fff;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:600;
-    transition:.25s;
-}
+    .doc-status {
+        display: inline-block;
+        margin-top: 5px;
+        padding: 5px 10px;
+        border-radius: 20px;
+        background: #e5e7eb;
+        font-weight: 700;
+    }
 
-.btn-voltar:hover{
-    background:#4b5563;
-    transform:translateY(-2px);
-}
+    .doc-titulo {
+        margin: 25px 0 12px;
+        color: #111827;
+        font-size: 22px;
+    }
 
-.doc-card h1{
-    color:#907C64;
-    margin-bottom:15px;
-}
+    .doc-lista {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
 
-.doc-info{
-    margin-bottom:25px;
-    font-weight:bold;
-}
+    .doc-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 16px 18px;
+        background: #f7f4ef;
+        border: 1px solid #ddd5ca;
+        border-radius: 12px;
+    }
 
-.doc-lista{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-}
+    .doc-nome {
+        font-weight: 700;
+        color: #172033;
+    }
 
-.doc-link{
-    display:block;
-    background:#CEC4B8;
-    color:#111827;
-    padding:15px;
-    border-radius:10px;
-    font-weight:bold;
-    text-decoration:none;
-}
+    .doc-descricao {
+        margin-top: 4px;
+        color: #6b7280;
+        font-size: 14px;
+    }
 
-.doc-link:hover{
-    background:#B7AA99;
-}
+    .btn-abrir,
+    .btn-voltar {
+        display: inline-block;
+        padding: 11px 18px;
+        border-radius: 9px;
+        text-decoration: none;
+        font-weight: 700;
+        white-space: nowrap;
+    }
 
-.aviso{
-    background:#fee2e2;
-    color:#991b1b;
-    padding:15px;
-    border-radius:10px;
-    font-weight:bold;
-}
+    .btn-abrir {
+        background: #907c64;
+        color: #fff;
+    }
 
-.voltar{
-    display:inline-block;
-    margin-top:25px;
-    color:#907C64;
-    font-weight:bold;
-    text-decoration:none;
-}
+    .btn-abrir:hover {
+        background: #76654f;
+        color: #fff;
+    }
+
+    .aviso {
+        padding: 18px;
+        background: #fff4d6;
+        border: 1px solid #e6c76a;
+        color: #705500;
+        border-radius: 12px;
+        font-weight: 700;
+    }
+
+    .acoes {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+    }
+
+    .btn-voltar {
+        background: #6b7280;
+        color: #fff;
+    }
+
+    .btn-voltar:hover {
+        background: #4b5563;
+        color: #fff;
+    }
+
+    @media (max-width: 760px) {
+        .doc-card {
+            margin: 20px 12px;
+            padding: 22px;
+        }
+
+        .doc-info {
+            grid-template-columns: 1fr;
+        }
+
+        .doc-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
 </style>
 
 <div class="doc-card">
-
-    <h1>📁 Documentos Anexos</h1>
+    <h1>📁 Documentos da Solicitação</h1>
 
     <div class="doc-info">
-        Protocolo: {{ solicitacao.protocolo }}<br>
-        Evento: {{ solicitacao.nome_evento }}
+        <div>
+            <strong>Protocolo</strong><br>
+            {{ solicitacao.protocolo }}
+        </div>
+        <div>
+            <strong>Evento</strong><br>
+            {{ solicitacao.nome_evento }}
+        </div>
+        <div>
+            <strong>Status</strong><br>
+            <span class="doc-status">{{ solicitacao.get_status_display }}</span>
+        </div>
     </div>
 
-    <div class="doc-lista">
+    <h2 class="doc-titulo">Documentos anexados</h2>
 
-        {% for documento in documentos %}
+    {% if tem_documentos %}
+        <div class="doc-lista">
+            {% for documento in documentos %}
+                <div class="doc-item">
+                    <div>
+                        <div class="doc-nome">
+                            📄 {{ documento.tipo_documento.nome }}
+                        </div>
+                        {% if documento.descricao %}
+                            <div class="doc-descricao">
+                                {{ documento.descricao }}
+                            </div>
+                        {% endif %}
+                        <div class="doc-descricao">
+                            Anexado em {{ documento.enviado_em|date:"d/m/Y H:i" }}
+                        </div>
+                    </div>
 
-    {% if documento.arquivo %}
-        <a
-            href="{% url 'abrir_documento_solicitacao' solicitacao.id documento.tipo %}"
-            target="_blank"
-            class="item"
-        >
-            📄 Abrir {{ documento.nome }}
-        </a>
+                    <a
+                        href="{% url 'abrir_documento_solicitacao' solicitacao.id documento.tipo_documento.nome %}"
+                        target="_blank"
+                        class="btn-abrir"
+                    >
+                        📂 Abrir PDF
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
     {% else %}
         <div class="aviso">
-            ⚠ {{ documento.nome }} não foi anexado.
+            ⚠ Nenhum documento foi anexado a esta solicitação.
+            A gestão não deve aprovar nem solicitar correção enquanto os documentos obrigatórios não estiverem disponíveis.
         </div>
     {% endif %}
 
-{% endfor %}
-
-    </div>
-    <div style="margin-top:30px;">
-
-    {% if solicitacao.status == "CORREÇÃO" %}
-
-        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
-           class="btn-gerar">
-            ✔ Gerar OPO
-        </a>
-
-    {% endif %}
-
-    <a href="{% url 'listar_pendentes_opo' %}"
-       class="btn-voltar">
-        ← Voltar para Aprovações
-    </a>
-
-</div>
     <div class="acoes">
-        {% if solicitacao.status == "CORREÇÃO" %}
-        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
-           class="btn-gerar">
-            ✔ Gerar OPO
+        <a href="{% url 'listar_pendentes_opo' %}" class="btn-voltar">
+            ← Voltar para Aprovações
         </a>
-        {% endif %}
-        
+    </div>
+</div>
 {% endblock %}
