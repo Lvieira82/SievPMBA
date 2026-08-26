@@ -1,183 +1,36 @@
 {% extends 'base.html' %}
-
-{% block title %}
-Documentos da Solicitação
-{% endblock %}
-
+{% block title %}Documentos da Solicitação{% endblock %}
 {% block content %}
-
-<style>
-.btn-gerar{
-    display:inline-block;
-    padding:14px 26px;
-    background:#28a745;
-    color:white;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:bold;
-    margin-right:10px;
-    transition:.3s;
-}
-
-.btn-gerar:hover{
-    background:#218838;
-}
-.btn-gerar{
-    display:inline-block;
-    background:#28a745;
-    color:#fff;
-    padding:14px 28px;
-    border-radius:10px;
-    text-decoration:none;
-    font-weight:bold;
-    margin-right:12px;
-    transition:.3s;
-}
-
-.btn-gerar:hover{
-    background:#1f8a37;
-}
-.btn-voltar{
-    display:inline-block;
-    padding:14px 26px;
-    background:#6b7280;
-    color:white;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:bold;
-}
-
-.btn-voltar:hover{
-    background:#4b5563;
-}
-.doc-card{
-    background:white;
-    max-width:1000px;
-    margin:40px auto;
-    padding:35px;
-    border-radius:15px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-}
-.acoes{
-    margin-top:35px;
-}
-
-.btn-voltar{
-    display:inline-block;
-    padding:12px 26px;
-    background:#6b7280;
-    color:#fff;
-    text-decoration:none;
-    border-radius:10px;
-    font-weight:600;
-    transition:.25s;
-}
-
-.btn-voltar:hover{
-    background:#4b5563;
-    transform:translateY(-2px);
-}
-
-.doc-card h1{
-    color:#907C64;
-    margin-bottom:15px;
-}
-
-.doc-info{
-    margin-bottom:25px;
-    font-weight:bold;
-}
-
-.doc-lista{
-    display:flex;
-    flex-direction:column;
-    gap:15px;
-}
-
-.doc-link{
-    display:block;
-    background:#CEC4B8;
-    color:#111827;
-    padding:15px;
-    border-radius:10px;
-    font-weight:bold;
-    text-decoration:none;
-}
-
-.doc-link:hover{
-    background:#B7AA99;
-}
-
-.aviso{
-    background:#fee2e2;
-    color:#991b1b;
-    padding:15px;
-    border-radius:10px;
-    font-weight:bold;
-}
-
-.voltar{
-    display:inline-block;
-    margin-top:25px;
-    color:#907C64;
-    font-weight:bold;
-    text-decoration:none;
-}
-</style>
-
-<div class="doc-card">
-
-    <h1>📁 Documentos Anexos</h1>
-
-    <div class="doc-info">
-        Protocolo: {{ solicitacao.protocolo }}<br>
-        Evento: {{ solicitacao.nome_evento }}
-    </div>
-
-    <div class="doc-lista">
-
-        {% for documento in documentos %}
-
-    {% if documento.arquivo %}
-        <a
-            href="{% url 'abrir_documento_solicitacao' solicitacao.id documento.tipo %}"
-            target="_blank"
-            class="item"
-        >
-            📄 Abrir {{ documento.nome }}
-        </a>
-    {% else %}
-        <div class="aviso">
-            ⚠ {{ documento.nome }} não foi anexado.
-        </div>
-    {% endif %}
-
-{% endfor %}
-
-    </div>
-    <div style="margin-top:30px;">
-
-    {% if solicitacao.status == "CORREÇÃO" %}
-
-        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
-           class="btn-gerar">
-            ✔ Gerar OPO
-        </a>
-
-    {% endif %}
-
-    <a href="{% url 'listar_pendentes_opo' %}"
-       class="btn-voltar">
-        ← Voltar para Aprovações
-    </a>
-
+<div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
+<h1 style="color:#907C64">📁 Documentos</h1>
+<p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p>
+<p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
+<p><strong>Status:</strong> {{ solicitacao.get_status_display }}</p>
+<hr>
+<h3>Anexar documento PDF</h3>
+<form method="post" enctype="multipart/form-data" style="margin:20px 0">
+{% csrf_token %}
+<label>Tipo do documento</label>
+<select name="tipo_documento" required style="display:block;width:100%;padding:11px;margin:6px 0 14px">
+<option value="">Selecione...</option>
+{% for tipo in tipos_documento %}<option value="{{ tipo.id }}">{{ tipo.nome }}</option>{% endfor %}
+</select>
+<label>Descrição</label>
+<input name="descricao" style="display:block;width:100%;padding:11px;margin:6px 0 14px">
+<label>PDF</label>
+<input type="file" name="arquivo" accept="application/pdf,.pdf" required style="display:block;margin:6px 0 16px">
+<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Anexar PDF</button>
+</form>
+<h3>Documentos já anexados</h3>
+{% for documento in documentos %}
+<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0">
+<strong>{{ documento.tipo_documento.nome }}</strong> — {{ documento.descricao|default:'Sem descrição' }}
+<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" style="float:right;color:#907C64;font-weight:bold">Abrir PDF</a>
 </div>
-    <div class="acoes">
-        {% if solicitacao.status == "CORREÇÃO" %}
-        <a href="{% url 'aprovar_solicitacao' solicitacao.id %}"
-           class="btn-gerar">
-            ✔ Gerar OPO
-        </a>
-        {% endif %}
-        
+{% empty %}<p style="color:#6b7280">Nenhum documento anexado.</p>{% endfor %}
+{% if solicitacao.status == 'APROVADA' or solicitacao.status == 'CONCLUIDA' %}
+<p style="margin-top:25px"><a href="{% url 'gerar_opo' solicitacao.id %}" style="background:#28a745;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">✔ Gerar OPO</a></p>
+{% endif %}
+<p style="margin-top:25px"><a href="{% url 'painel_gestao' %}">← Voltar ao painel</a></p>
+</div></div>
 {% endblock %}
