@@ -40,8 +40,27 @@ class UsuarioSistemaForm(forms.Form):
         super().__init__(*args, **kwargs)
         self.instance = instance
         self.scope = scope
+
+        # Classes Bootstrap + classes próprias para manter todos os campos
+        # visualmente padronizados no formulário.
+        for name, field in self.fields.items():
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs.update({"class": "form-check-input"})
+            else:
+                field.widget.attrs.update({"class": "form-control"})
+
+        self.fields["perfil"].widget.attrs["class"] = "form-select"
+        self.fields["funcao"].widget.attrs["class"] = "form-select"
+        self.fields["cpr"].widget.attrs["class"] = "form-select"
+        self.fields["unidade"].widget.attrs["class"] = "form-select"
+
         self.fields["cpr"].queryset = CPR.objects.filter(ativo=True).order_by("sigla")
-        self.fields["unidade"].queryset = Unidade.objects.filter(ativo=True).select_related("cpr").order_by("nome")
+        self.fields["unidade"].queryset = (
+            Unidade.objects
+            .filter(ativo=True)
+            .select_related("cpr")
+            .order_by("nome")
+        )
 
         if scope and not scope["desenvolvedor"]:
             if scope["perfil"] == "CPR":
@@ -52,7 +71,12 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["cpr"].pk)
                 self.fields["cpr"].initial = scope["cpr"].pk
                 self.fields["cpr"].disabled = True
-                self.fields["unidade"].queryset = Unidade.objects.filter(cpr=scope["cpr"], ativo=True).order_by("nome")
+                self.fields["unidade"].queryset = (
+                    Unidade.objects
+                    .filter(cpr=scope["cpr"], ativo=True)
+                    .select_related("cpr")
+                    .order_by("nome")
+                )
             elif scope["perfil"] == "UNIDADE":
                 self.fields["perfil"].initial = "UNIDADE"
                 self.fields["perfil"].disabled = True
@@ -103,16 +127,38 @@ class UsuarioSistemaForm(forms.Form):
         cleaned = super().clean()
         perfil = cleaned.get("perfil")
         funcao = cleaned.get("funcao")
-        if perfil == "CPR" and not cleaned.get("cpr"):
+        cpr = cleaned.get("cpr")
+        unidade = cleaned.get("unidade")
+
+        if perfil == "CPR" and not cpr:
             self.add_error("cpr", "Selecione o CPR.")
-        if perfil == "UNIDADE" and not cleaned.get("unidade"):
+
+        if perfil == "UNIDADE" and not unidade:
             self.add_error("unidade", "Selecione a unidade.")
+
+        # Segurança: a unidade escolhida precisa realmente pertencer ao CPR
+        # informado. O filtro da tela é apenas a interface; a validação aqui
+        # impede também um POST manual com uma unidade de outro CPR.
+        if cpr and unidade and unidade.cpr_id != cpr.id:
+            self.add_error(
+                "unidade",
+                "A unidade selecionada não pertence ao CPR informado.",
+            )
+
         if perfil == "COPPM":
             cleaned["cpr"] = None
             cleaned["unidade"] = None
+
         if self.scope and not self.scope["desenvolvedor"]:
             if funcao != "MEMBRO":
                 self.add_error("funcao", "Somente membros podem ser cadastrados por gestores.")
+
+            if self.scope["perfil"] == "CPR" and unidade and unidade.cpr_id != self.scope["cpr"].id:
+                self.add_error("unidade", "A unidade não pertence ao seu CPR.")
+
+            if self.scope["perfil"] == "UNIDADE" and unidade and unidade.id != self.scope["unidade"].id:
+                self.add_error("unidade", "Você só pode cadastrar membros da sua unidade.")
+
         return cleaned
 
 
