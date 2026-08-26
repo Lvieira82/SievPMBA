@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Alterar senha{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:50px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)"><h1 style="color:#907C64">🔑 Alterar senha</h1><p>Usuário: <strong>{{ usuario.username }}</strong></p><form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Salvar nova senha</button> <a href="{% url 'administracao_sistema' %}">Cancelar</a></form></div></div>
+{% endblock %}
