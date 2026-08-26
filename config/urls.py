@@ -58,7 +58,6 @@ urlpatterns = [
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
-    path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("gestao/pendentes-opo/", listar_pendentes_opo, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
