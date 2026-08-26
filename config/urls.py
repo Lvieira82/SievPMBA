@@ -22,6 +22,7 @@ from apps.solicitacoes.views.compat import (
     abrir_documento_solicitacao,
 )
 from apps.solicitacoes.views.dashboard import dashboard
+from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade,
@@ -44,22 +45,20 @@ urlpatterns = [
     path("api/municipios/<int:municipio_id>/bairros/", lista_bairros, name="lista_bairros"),
     path("api/unidades/<int:cpr_id>/", listar_unidades, name="listar_unidades"),
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
-
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
-
     path("gestao/", login_gestao, name="login_gestao"),
     path("logout/", logout_gestao, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
+    path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
-
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
-
+    path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("gestao/pendentes-opo/", listar_pendentes_opo, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
@@ -67,10 +66,8 @@ urlpatterns = [
     path("solicitacao/<int:id>/corrigir/", solicitar_correcao_gestao, name="solicitar_correcao"),
     path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
     path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
-
     path("dashboard/", dashboard, name="dashboard"),
     path("dashboard/operacional/", dashboard, name="dashboard_operacional"),
-
     path("minhas/", minhas_solicitacoes, name="minhas_solicitacoes"),
     path("verificar/<str:protocolo>/", verificar_autenticidade, name="verificar_autenticidade"),
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
@@ -86,7 +83,6 @@ urlpatterns = [
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
     path("painel_gestao/importar-matriculas/", importar_matriculas_painel, name="importar_matriculas_painel"),
     path("gestao/importar-municipios/", importar_municipios, name="importar_municipios"),
-
     path("protocolo/", painel_protocolo, name="painel_protocolo"),
     path("protocolo/fila/", fila_protocolo, name="fila_protocolo"),
     path("protocolo/<int:pk>/", detalhes_protocolo, name="detalhes_protocolo"),
