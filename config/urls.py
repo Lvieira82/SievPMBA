@@ -14,6 +14,10 @@ from apps.solicitacoes.views.administracao import (
     logout_gestao, painel_gestao, solicitar_correcao_gestao,
     transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
 )
+from apps.solicitacoes.views.administracao_sistema import (
+    administracao_sistema, usuario_desativar, usuario_editar,
+    usuario_novo, usuario_senha,
+)
 from apps.solicitacoes.views.compat import (
     alterar_status, detalhe_opo, detalhe_opo_publica, documentos_solicitacao,
     gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
@@ -51,6 +55,11 @@ urlpatterns = [
     path("logout/", logout_gestao, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
+    path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
+    path("gestao/administracao/usuario/novo/", usuario_novo, name="administracao_usuario_novo"),
+    path("gestao/administracao/usuario/<int:id>/editar/", usuario_editar, name="administracao_usuario_editar"),
+    path("gestao/administracao/usuario/<int:id>/senha/", usuario_senha, name="administracao_usuario_senha"),
+    path("gestao/administracao/usuario/<int:id>/desativar/", usuario_desativar, name="administracao_usuario_desativar"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
