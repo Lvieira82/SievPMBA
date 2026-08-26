@@ -1,10 +1,125 @@
 {% extends 'base.html' %}
 {% block title %}Administração do Sistema{% endblock %}
+{% block titulo %}Administração do Sistema{% endblock %}
 {% block content %}
-<div style="max-width:1150px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
-<h1 style="color:#907C64">⚙️ Administração do Sistema</h1><p>Área exclusiva do usuário desenvolvedor. Usuários, senhas e níveis são administrados aqui, sem necessidade de entrar no Django Admin.</p>
-<p><a href="{% url 'administracao_usuario_novo' %}" style="background:#907C64;color:#fff;padding:11px 17px;border-radius:8px;text-decoration:none;font-weight:bold">+ Novo usuário</a> <a href="{% url 'painel_gestao' %}">← Painel</a></p>
-<div style="overflow:auto;margin-top:20px"><table style="width:100%;border-collapse:collapse"><thead><tr style="background:#111827;color:#fff"><th style="padding:12px">Usuário</th><th style="padding:12px">Nível</th><th style="padding:12px">CPR</th><th style="padding:12px">Unidade</th><th style="padding:12px">Status</th><th style="padding:12px">Ações</th></tr></thead><tbody>
-{% for p in perfis %}<tr><td style="padding:12px;border-bottom:1px solid #eee">{{ p.usuario.get_full_name|default:p.usuario.username }}<br><small>{{ p.usuario.username }}</small></td><td style="padding:12px;border-bottom:1px solid #eee">{{ p.get_perfil_display }}</td><td style="padding:12px;border-bottom:1px solid #eee">{{ p.cpr.sigla|default:'—' }}</td><td style="padding:12px;border-bottom:1px solid #eee">{{ p.unidade.sigla|default:'—' }}</td><td style="padding:12px;border-bottom:1px solid #eee">{% if p.ativo and p.usuario.is_active %}Ativo{% else %}Inativo{% endif %}</td><td style="padding:12px;border-bottom:1px solid #eee"><a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a> · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Senha</a> · {% if not p.usuario.is_superuser %}<a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="padding:25px;text-align:center">Nenhum perfil institucional cadastrado.</td></tr>{% endfor %}</tbody></table></div>
-</div></div>
+<div class="container-fluid" style="max-width:1200px">
+
+    <div class="card mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div>
+                    <h1 class="mb-2" style="color:#907C64">⚙️ Administração do Sistema</h1>
+                    <p class="mb-0">Área do desenvolvedor para controlar usuários, senhas, níveis de acesso e vínculos institucionais.</p>
+                </div>
+                <a href="{% url 'administracao_usuario_novo' %}" class="btn btn-primary">+ Novo usuário</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <h3 style="color:#907C64">Gestor COPPM</h3>
+                    <ul class="mb-0">
+                        <li>Cadastra membros do COPPM.</li>
+                        <li>Visualiza toda a PMBA.</li>
+                        <li>Consulta estatísticas e relatórios por CPR e unidade.</li>
+                        <li>Acompanha dashboard e ranking.</li>
+                        <li>Os membros cadastrados possuem acesso de visualização, sem cadastrar outros membros ou alterar o próprio cadastro.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <h3 style="color:#907C64">Gestor CPR</h3>
+                    <ul class="mb-0">
+                        <li>Cadastra membros vinculados ao próprio CPR.</li>
+                        <li>Visualiza as unidades subordinadas ao CPR.</li>
+                        <li>Extrai relatórios e acompanha estatísticas do CPR.</li>
+                        <li>Membros cadastrados não podem cadastrar outros membros.</li>
+                        <li>Não possui acesso a outros CPRs nem a níveis superiores.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body p-4">
+                    <h3 style="color:#907C64">Gestor de Unidade</h3>
+                    <ul class="mb-0">
+                        <li>Cadastra membros da própria unidade.</li>
+                        <li>Visualiza somente a própria unidade.</li>
+                        <li>Não visualiza unidades do mesmo nível nem níveis superiores.</li>
+                        <li>Pode lançar solicitações manualmente.</li>
+                        <li>Pode extrair relatórios da unidade e utilizar o mapa de eventos.</li>
+                        <li>Não altera a própria senha/cadastro nem os dados cadastrais ou senha de seus membros.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-body p-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h2 class="mb-1" style="color:#907C64">Usuários cadastrados</h2>
+                    <p class="text-muted mb-0">O cadastro de unidades e bairros permanece exclusivo do usuário desenvolvedor.</p>
+                </div>
+                <a href="{% url 'painel_gestao' %}" class="btn btn-outline-secondary">← Painel</a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Nível</th>
+                            <th>CPR</th>
+                            <th>Unidade</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for p in perfis %}
+                        <tr>
+                            <td>
+                                {{ p.usuario.get_full_name|default:p.usuario.username }}<br>
+                                <small class="text-muted">{{ p.usuario.username }}</small>
+                            </td>
+                            <td>{{ p.get_perfil_display }}</td>
+                            <td>{{ p.cpr.sigla|default:'—' }}</td>
+                            <td>{{ p.unidade.sigla|default:'—' }}</td>
+                            <td>
+                                {% if p.ativo and p.usuario.is_active %}
+                                    <span class="badge text-bg-success">Ativo</span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary">Inativo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>
+                                · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Senha</a>
+                                {% if not p.usuario.is_superuser %}
+                                    · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">Nenhum perfil institucional cadastrado.</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
