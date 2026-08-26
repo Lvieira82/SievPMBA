@@ -1,0 +1,5 @@
+{% extends 'base.html' %}
+{% block title %}Verificar Protocolo{% endblock %}
+{% block content %}
+<div style="max-width:700px;margin:60px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)"><h1 style="color:#907C64">✔ Verificação de protocolo</h1><p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p><p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p><p><strong>Status:</strong> {{ solicitacao.get_status_display }}</p><p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p></div>
+{% endblock %}
