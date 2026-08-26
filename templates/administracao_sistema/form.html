@@ -12,7 +12,7 @@
     .usuario-cadastro-card {
         background: #fff;
         border-radius: 18px;
-        box-shadow: 0 8px 28px rgba(0, 0, 0, .10);
+        box-shadow: 0 8px 28px rgba(0, .0, 0, .10);
         padding: 30px 34px 34px;
     }
 
@@ -289,6 +289,9 @@
 
     if (!cprSelect || !unidadeSelect) return;
 
+    // Preserva o bloqueio aplicado pelo servidor (por exemplo, gestor de unidade).
+    const unidadeBloqueadaPeloServidor = unidadeSelect.disabled;
+
     // Mapa gerado pelo Django: unidade -> CPR ao qual pertence.
     const unidadeCpr = {
         {% for unidade in form.fields.unidade.queryset %}
@@ -319,16 +322,16 @@
 
         if (!cprId) {
             unidadeSelect.value = "";
-            unidadeSelect.disabled = true;
+            unidadeSelect.disabled = true || unidadeBloqueadaPeloServidor;
             ajuda.textContent = "Selecione primeiro o CPR para visualizar as unidades.";
             return;
         }
 
-        unidadeSelect.disabled = false;
+        unidadeSelect.disabled = unidadeBloqueadaPeloServidor;
 
         if (valorAtual && unidadeCpr[valorAtual] === cprId) {
             unidadeSelect.value = valorAtual;
-        } else {
+        } else if (!unidadeBloqueadaPeloServidor) {
             unidadeSelect.value = "";
         }
 
