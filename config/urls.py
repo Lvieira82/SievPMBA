@@ -10,9 +10,13 @@ from apps.solicitacoes.portal_views import (
 )
 from apps.solicitacoes.views.administracao import (
     aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
-    desativar_usuario_unidade, editar_usuario_unidade, login_gestao,
-    logout_gestao, painel_gestao, solicitar_correcao_gestao,
-    transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
+    desativar_usuario_unidade, editar_usuario_unidade, logout_gestao,
+    painel_gestao, solicitar_correcao_gestao, transferir_solicitacao,
+    trocar_senha_usuario, usuarios_unidade,
+)
+from apps.solicitacoes.views.acesso import (
+    esqueci_senha, login_gestao, logout_gestao as logout_gestao_seguro,
+    redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador,
 )
 from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar,
@@ -55,7 +59,11 @@ urlpatterns = [
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
     path("gestao/", login_gestao, name="login_gestao"),
-    path("logout/", logout_gestao, name="logout_gestao"),
+    path("gestao/verificar-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
+    path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
+    path("gestao/redefinir-senha/<uidb64>/<token>/", redefinir_senha, name="redefinir_senha"),
+    path("gestao/primeiro-acesso/senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
+    path("logout/", logout_gestao_seguro, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
