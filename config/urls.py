@@ -2,6 +2,9 @@ from django.conf import settings
 from django.contrib import admin
 from django.urls import path
 from django.views.static import serve
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.shortcuts import redirect
 
 from apps.solicitacoes.portal_views import (
     agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
@@ -10,8 +13,7 @@ from apps.solicitacoes.portal_views import (
 )
 from apps.solicitacoes.views.administracao import (
     cadastrar_usuario_unidade, desativar_usuario_unidade, editar_usuario_unidade,
-    logout_gestao, solicitar_correcao_gestao as solicitar_correcao_antiga,
-    transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
+    logout_gestao, transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.login_acesso import login_gestao
 from apps.solicitacoes.views.acesso import (
@@ -23,9 +25,8 @@ from apps.solicitacoes.views.administracao_sistema import (
 )
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo, documentos_solicitacao, gerar_mapa_eventos_pdf,
-    importar_matriculas_painel, importar_municipios, lancamento_manual, mapa_eventos,
-    minhas_solicitacoes, opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
+    alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
+    minhas_solicitacoes, verificar_autenticidade, abrir_documento_solicitacao,
 )
 from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
@@ -40,20 +41,19 @@ from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bai
 from apps.solicitacoes.views.aprovacoes_seguras import (
     aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao, gerar_opo_seguro,
 )
-from apps.solicitacoes.views.operacional import documentos_solicitacao as documentos_solicitacao_view
+from apps.solicitacoes.views.escopo_gestao import (
+    documentos_solicitacao_seguro, opos_geradas_seguro, detalhe_opo_seguro,
+    mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
+)
 from apps.solicitacoes.models import Solicitacao
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from django.utils import timezone
+from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor
 
 
 @login_required
 def listar_pendentes_opo_seguro(request):
-    acesso = getattr(request.user, "acesso_institucional", None)
-    if not (request.user.is_superuser or request.user.is_staff or (acesso and acesso.ativo and acesso.funcao == "GESTOR")):
-        from django.contrib import messages
+    if not (eh_desenvolvedor(request.user) or eh_gestor(request.user)):
         messages.error(request, "Somente gestores podem acessar as solicitações pendentes de OPO.")
-        return __import__("django.shortcuts", fromlist=["redirect"]).redirect("painel_gestao")
+        return redirect("painel_gestao")
     return aprovacoes(request)
 
 
@@ -104,13 +104,13 @@ urlpatterns = [
     path("minhas/", minhas_solicitacoes, name="minhas_solicitacoes"),
     path("verificar/<str:protocolo>/", verificar_autenticidade, name="verificar_autenticidade"),
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
-    path("documentos/<int:id>/", documentos_solicitacao, name="documentos_solicitacao"),
+    path("documentos/<int:id>/", documentos_solicitacao_seguro, name="documentos_solicitacao"),
     path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao, name="abrir_documento_solicitacao"),
     path("gestao/lancamento-manual/", lancamento_manual, name="lancamento_manual"),
-    path("gestao/mapa-eventos/", mapa_eventos, name="mapa_eventos"),
-    path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf, name="gerar_mapa_eventos_pdf"),
-    path("gestao/opos-geradas/", opos_geradas, name="opos_geradas"),
-    path("gestao/opo/<int:id>/detalhes/", detalhe_opo, name="detalhe_opo"),
+    path("gestao/mapa-eventos/", mapa_eventos_seguro, name="mapa_eventos"),
+    path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf_seguro, name="gerar_mapa_eventos_pdf"),
+    path("gestao/opos-geradas/", opos_geradas_seguro, name="opos_geradas"),
+    path("gestao/opo/<int:id>/detalhes/", detalhe_opo_seguro, name="detalhe_opo"),
     path("opo/<int:id>/", gerar_opo_seguro, name="gerar_opo"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
