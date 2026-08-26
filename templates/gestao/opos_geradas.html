@@ -1,203 +1,24 @@
 {% extends 'base.html' %}
-
-{% block title %}
-OPOs Geradas
-{% endblock %}
-
+{% block title %}OPOs Geradas{% endblock %}
 {% block content %}
-
 <style>
-.card-opos{
-    max-width:1150px;
-    margin:40px auto;
-    background:white;
-    padding:35px;
-    border-radius:16px;
-    box-shadow:0 8px 22px rgba(0,0,0,.08);
-}
-
-.card-opos h1{
-    color:#907C64;
-    margin-bottom:25px;
-}
-
-.tabela{
-    width:100%;
-    border-collapse:collapse;
-}
-
-.tabela th,
-.tabela td{
-    padding:14px;
-    border-bottom:1px solid #e5e7eb;
-    text-align:left;
-}
-
-.tabela th{
-    background:#111827;
-    color:white;
-}
-
-.btn{
-    display:inline-block;
-    padding:9px 14px;
-    background:#907C64;
-    color:white;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-}
-
-.btn-voltar{
-    display:inline-block;
-    margin-top:25px;
-    padding:12px 22px;
-    background:#6b7280;
-    color:white;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-}
-/* ===========================
-   RESPONSIVIDADE OPOs GERADAS
-=========================== */
-
-.tabela-opos{
-    width:100%;
-    border-collapse:collapse;
-}
-
-.tabela-opos th,
-.tabela-opos td{
-    padding:12px;
-    vertical-align:top;
-}
-
-.btn-arquivo{
-    display:inline-block;
-    background:#907C64;
-    color:#fff;
-    text-decoration:none;
-    padding:10px 14px;
-    border-radius:8px;
-    margin:4px;
-    font-weight:bold;
-    white-space:nowrap;
-}
-
-@media (max-width:768px){
-
-    .container{
-        padding:15px;
-    }
-
-    h1{
-        font-size:28px;
-        text-align:center;
-    }
-
-    .tabela-opos,
-    .tabela-opos tbody,
-    .tabela-opos tr,
-    .tabela-opos td{
-        display:block;
-        width:100%;
-    }
-
-    .tabela-opos thead{
-        display:none;
-    }
-
-    .tabela-opos tr{
-        background:#fff;
-        margin-bottom:20px;
-        border-radius:14px;
-        padding:15px;
-        box-shadow:0 4px 12px rgba(0,0,0,.08);
-    }
-
-    .tabela-opos td{
-        border:none;
-        padding:8px 0;
-    }
-
-    .tabela-opos td:first-child{
-        font-size:20px;
-        font-weight:bold;
-        color:#907C64;
-        margin-bottom:10px;
-    }
-
-    .btn-arquivo{
-        display:block;
-        width:100%;
-        margin:8px 0;
-        text-align:center;
-    }
-
-    .btn-voltar{
-        width:100%;
-        display:block;
-        text-align:center;
-        margin-top:25px;
-    }
-
-}
+.opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-back{background:#6b7280}.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}
 </style>
-
-<div class="container mt-5 mb-5">
-    <div class="card shadow-lg border-0 rounded-4">
-        <div class="card-body p-4">
-
-            <h2 class="mb-4 fw-bold text-secondary">📁 OPOs Geradas</h2>
-
-            {% if protocolos %}
-
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>Protocolo</th>
-                        <th>Documentos</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                {% for protocolo in protocolos %}
-                    <tr>
-                        <td>
-                            <strong>{{ protocolo.codigo }}</strong>
-                        </td>
-
-                        <td>
-                            {% for arquivo in protocolo.arquivos %}
-                                <a href="{{ arquivo.url }}"
-                                   target="_blank"
-                                   class="btn btn-sm btn-primary mb-1">
-                                    📄 {{ arquivo.nome }}
-                                </a>
-                            {% empty %}
-                                <span class="text-muted">Nenhum PDF encontrado.</span>
-                            {% endfor %}
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-
-            {% else %}
-                <div class="alert alert-warning">
-                    Nenhum protocolo encontrado.
-                </div>
-            {% endif %}
-
-            <hr>
-
-            <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">
-                ← Voltar ao Painel
-            </a>
-
-        </div>
-    </div>
+<div class="opo-wrap"><div class="opo-card">
+<h1>📁 OPOs Geradas</h1>
+<p class="sub">Documentos arquivados pelo SiEv e vinculados aos respectivos protocolos.</p>
+{% for protocolo in protocolos %}
+<div class="opo-item">
+  <div class="opo-head"><strong>Protocolo {{ protocolo.codigo }}</strong><span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span></div>
+  <div class="meta">{{ protocolo.solicitacao.nome_evento }} · {{ protocolo.solicitacao.municipio.nome }} · {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}</div>
+  {% for arquivo in protocolo.arquivos %}
+    <a class="btn" href="{% url 'abrir_documento_solicitacao' arquivo.id 'arquivo' %}" target="_blank">📄 {{ arquivo.descricao|default:'OPO' }}</a>
+  {% endfor %}
+  <a class="btn" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
+  <a class="btn" href="{% url 'validar_matricula_opo_publica' protocolo.solicitacao.id %}">👮 Consulta policial</a>
 </div>
-
+{% empty %}<div class="empty">Nenhuma OPO foi gerada até o momento.</div>{% endfor %}
+<a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
+</div></div>
 {% endblock %}
