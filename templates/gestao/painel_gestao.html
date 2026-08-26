@@ -2,22 +2,45 @@
 {% block title %}Painel de Gestão{% endblock %}
 {% block content %}
 <style>
-.painel{max-width:1200px;margin:30px auto;padding:0 16px}.painel h1{color:#907C64;margin-bottom:20px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.card{position:relative;background:white;padding:25px;border-radius:16px;box-shadow:0 5px 18px rgba(0,0,0,.08);text-decoration:none;color:#111827;transition:.2s}.card:hover{transform:translateY(-3px)}.icone{font-size:34px;margin-bottom:10px}.card h2{color:#907C64;margin-bottom:8px}.badge{position:absolute;top:12px;right:12px;background:#dc2626;color:white;padding:6px 10px;border-radius:999px;font-weight:bold}.badge-novo{background:#bbf7d0;color:#15803d;padding:4px 9px;border-radius:999px;font-size:12px;margin-left:8px}.proximos{background:white;margin-top:28px;border-radius:18px;padding:28px;box-shadow:0 8px 22px rgba(0,0,0,.08)}.proximos h2{color:#907C64;font-size:28px;margin-bottom:22px}.tabela-card{width:100%;overflow-x:auto;border:1px solid #d1d5db;border-radius:10px}.tabela-eventos{width:100%;min-width:820px;border-collapse:collapse}.tabela-eventos th,.tabela-eventos td{padding:16px 18px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela-eventos th{background:#111827;color:#fff}.status-aprovada{display:inline-block;background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:7px 14px;border-radius:6px;font-weight:bold;font-size:13px}.status-pendente{display:inline-block;background:#fef3c7;color:#92400e;border:1px solid #facc15;padding:7px 14px;border-radius:6px;font-weight:bold;font-size:13px}.btn-detalhes{display:inline-block;background:#907C64;color:white;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold;white-space:nowrap}.acoes-eventos{text-align:center;margin-top:25px}.btn-mapa-eventos{display:inline-block;padding:13px 24px;background:#907C64;color:white;text-decoration:none;border-radius:8px;font-weight:bold}.territorio-links{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.territorio-links a{background:#f1ede7;color:#50362e;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:700}
+.painel{max-width:1200px;margin:30px auto;padding:0 16px}.painel h1{color:#907C64;margin-bottom:8px}.subacesso{color:#6b7280;margin:0 0 20px;font-weight:600}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.card{position:relative;background:white;padding:25px;border-radius:16px;box-shadow:0 5px 18px rgba(0,0,0,.08);text-decoration:none;color:#111827;transition:.2s}.card:hover{transform:translateY(-3px)}.icone{font-size:34px;margin-bottom:10px}.card h2{color:#907C64;margin-bottom:8px}.badge{position:absolute;top:12px;right:12px;background:#dc2626;color:white;padding:6px 10px;border-radius:999px;font-weight:bold}.badge-novo{background:#bbf7d0;color:#15803d;padding:4px 9px;border-radius:999px;font-size:12px;margin-left:8px}.proximos{background:white;margin-top:28px;border-radius:18px;padding:28px;box-shadow:0 8px 22px rgba(0,0,0,.08)}.proximos h2{color:#907C64;font-size:28px;margin-bottom:22px}.tabela-card{width:100%;overflow-x:auto;border:1px solid #d1d5db;border-radius:10px}.tabela-eventos{width:100%;min-width:820px;border-collapse:collapse}.tabela-eventos th,.tabela-eventos td{padding:16px 18px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela-eventos th{background:#111827;color:#fff}.status-aprovada{display:inline-block;background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:7px 14px;border-radius:6px;font-weight:bold;font-size:13px}.status-pendente{display:inline-block;background:#fef3c7;color:#92400e;border:1px solid #facc15;padding:7px 14px;border-radius:6px;font-weight:bold;font-size:13px}.btn-detalhes{display:inline-block;background:#907C64;color:white;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:bold;white-space:nowrap}.acoes-eventos{text-align:center;margin-top:25px}.btn-mapa-eventos{display:inline-block;padding:13px 24px;background:#907C64;color:white;text-decoration:none;border-radius:8px;font-weight:bold}.territorio-links{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.territorio-links a{background:#f1ede7;color:#50362e;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:700}.somente-leitura{display:inline-block;margin-top:8px;padding:5px 9px;border-radius:7px;background:#f3f4f6;color:#6b7280;font-size:12px;font-weight:700}
 </style>
-<div class="painel"><h1>⚙️ {{ titulo_painel|default:'Painel de Gestão' }}</h1>
-<div class="cards">
-<a href="{% url 'listar_pendentes_opo' %}" class="card">{% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}<div class="icone">📁</div><h2>Informações</h2><p>Documentos, análise e geração de OPO.</p></a>
-<a href="{% url 'analise_unidades' %}" class="card"><div class="icone">📊</div><h2>Análise</h2><p>Avaliação por unidade e tempo médio de resposta, inclusive solicitações transferidas.</p></a>
-<a href="{% url 'administracao_sistema' %}" class="card"><div class="icone">⚙️</div><h2>Administração</h2><p>Usuários, senhas e níveis de acesso do SiEv.</p></a>
-<a href="{% url 'agenda_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados.</p></a>
-<a href="{% url 'lancamento_manual' %}" class="card"><div class="icone">✍️</div><h2>Lançamento Manual</h2><p>Cadastrar evento presencialmente.</p></a>
-<a href="{% url 'opos_geradas' %}" class="card"><div class="icone">🗂️</div><h2>Documentação <span class="badge-novo">Novo</span></h2><p>Consultar OPOs geradas e arquivadas pelo sistema.</p></a>
-<a href="{% url 'dashboard_operacional' %}" class="card"><div class="icone">📈</div><h2>Dashboard</h2><p>Resumo geral e filtros.</p></a>
-<a href="{% url 'importar_matriculas_painel' %}" class="card"><div class="icone">📥</div><h2>Importar Matrículas</h2><p>Importar planilha Excel com policiais autorizados.</p></a>
-{% if request.user.is_superuser %}<div class="card"><div class="icone">🗺️</div><h2>Território</h2><p>Cadastros territoriais exclusivos do desenvolvedor.</p><div class="territorio-links"><a href="{% url 'cadastro_unidades' %}">Unidades</a><a href="{% url 'cadastro_bairros' %}">Bairros</a><a href="{% url 'areas_responsabilidade' %}">Responsabilidades</a></div></div>{% endif %}
-<a href="{% url 'logout_gestao' %}" class="card"><div class="icone">🚪</div><h2>Sair</h2><p>Encerrar sessão administrativa.</p></a>
+<div class="painel">
+    <h1>⚙️ {{ titulo_painel|default:'Painel de Gestão' }}</h1>
+    <p class="subacesso">Acesso: {{ descricao_acesso }}{% if eh_membro %} · Somente visualização{% endif %}</p>
+
+    <div class="cards">
+        {% if eh_desenvolvedor or eh_gestor %}
+        <a href="{% url 'listar_pendentes_opo' %}" class="card">
+            {% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}
+            <div class="icone">📁</div><h2>Informações</h2><p>Documentos, análise e aprovação de solicitações.</p>
+        </a>
+        {% endif %}
+
+        <a href="{% url 'analise_unidades' %}" class="card"><div class="icone">📊</div><h2>Análise</h2><p>Avaliação por unidade e tempo médio de resposta, respeitando seu âmbito institucional.</p>{% if eh_membro %}<span class="somente-leitura">Somente visualização</span>{% endif %}</a>
+
+        {% if pode_administrar %}
+        <a href="{% url 'administracao_sistema' %}" class="card"><div class="icone">⚙️</div><h2>Administração</h2><p>Usuários, senhas e níveis de acesso permitidos para o seu nível.</p></a>
+        {% endif %}
+
+        <a href="{% url 'agenda_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados dentro do seu âmbito.</p>{% if eh_membro %}<span class="somente-leitura">Somente visualização</span>{% endif %}</a>
+
+        {% if pode_manual %}
+        <a href="{% url 'lancamento_manual' %}" class="card"><div class="icone">✍️</div><h2>Lançamento Manual</h2><p>Cadastrar evento presencialmente para sua unidade.</p></a>
+        {% endif %}
+
+        <a href="{% url 'opos_geradas' %}" class="card"><div class="icone">🗂️</div><h2>Documentação <span class="badge-novo">OPO</span></h2><p>Consultar OPOs geradas e arquivadas dentro do seu âmbito.</p></a>
+        <a href="{% url 'dashboard_operacional' %}" class="card"><div class="icone">📈</div><h2>Dashboard</h2><p>Resumo, indicadores e filtros conforme o seu nível de acesso.</p></a>
+
+        {% if eh_desenvolvedor %}
+        <a href="{% url 'importar_matriculas_painel' %}" class="card"><div class="icone">📥</div><h2>Importar Matrículas</h2><p>Importar planilha de policiais autorizados.</p></a>
+        <div class="card"><div class="icone">🗺️</div><h2>Território</h2><p>Cadastros territoriais exclusivos do desenvolvedor.</p><div class="territorio-links"><a href="{% url 'cadastro_unidades' %}">Unidades</a><a href="{% url 'cadastro_bairros' %}">Bairros</a><a href="{% url 'areas_responsabilidade' %}">Responsabilidades</a></div></div>
+        {% endif %}
+
+        <a href="{% url 'logout_gestao' %}" class="card"><div class="icone">🚪</div><h2>Sair</h2><p>Encerrar sessão.</p></a>
+    </div>
+
+    <div class="proximos"><h2>🗓️ Próximos Eventos</h2><div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+    {% for evento in proximos_eventos %}<tr><td>{{ evento.data_evento|date:'d/m/Y' }}</td><td>{{ evento.hora_inicio|time:'H:i' }}</td><td>{{ evento.nome_evento }}</td><td>{{ evento.local }}</td><td>{% if evento.status == 'APROVADA' %}<span class="status-aprovada">APROVADA</span>{% else %}<span class="status-pendente">{{ evento.get_status_display }}</span>{% endif %}</td><td>{% if evento.status == 'APROVADA' or evento.status == 'CONCLUIDA' %}<a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 OPO</a>{% else %}<a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Documentos</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:28px;color:#6b7280">Nenhum evento futuro cadastrado.</td></tr>{% endfor %}
+    </tbody></table></div><div class="acoes-eventos"><a href="{% url 'mapa_eventos' %}" class="btn-mapa-eventos">🗺️ Mapa de Eventos</a></div></div>
 </div>
-<div class="proximos"><h2>🗓️ Próximos Eventos</h2><div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-{% for evento in proximos_eventos %}<tr><td>{{ evento.data_evento|date:'d/m/Y' }}</td><td>{{ evento.hora_inicio|time:'H:i' }}</td><td>{{ evento.nome_evento }}</td><td>{{ evento.local }}</td><td>{% if evento.status == 'APROVADA' %}<span class="status-aprovada">APROVADA</span>{% else %}<span class="status-pendente">{{ evento.get_status_display }}</span>{% endif %}</td><td>{% if evento.status == 'APROVADA' or evento.status == 'CONCLUIDA' %}<a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 OPO</a>{% else %}<a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Documentos</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:28px;color:#6b7280">Nenhum evento futuro cadastrado.</td></tr>{% endfor %}
-</tbody></table></div><div class="acoes-eventos"><a href="{% url 'mapa_eventos' %}" class="btn-mapa-eventos">🗺️ Mapa de Eventos</a></div></div></div>
 {% endblock %}
