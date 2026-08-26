@@ -128,6 +128,12 @@ def nova_solicitacao(request):
 
     if request.method == "POST":
         form = SolicitacaoForm(request.POST, request.FILES)
+
+        # A origem de uma solicitação externa nunca é informada
+        # pelo navegador. Removemos o campo antes da validação para
+        # impedir que ele gere erro ou seja manipulado pelo usuário.
+        form.fields.pop("origem", None)
+
         multiplas = _configurar_bairro_form(form, municipio)
 
         if form.is_valid():
@@ -147,6 +153,7 @@ def nova_solicitacao(request):
                     solicitacao = form.save(commit=False)
                     solicitacao.municipio = municipio
                     solicitacao.unidade = unidade
+                    solicitacao.origem = "EXTERNA"
                     solicitacao.status = "PENDENTE"
                     solicitacao.save()
 
@@ -173,6 +180,8 @@ def nova_solicitacao(request):
                 initial["bairro"] = bairro_id
 
         form = SolicitacaoForm(initial=initial)
+        # Origem é definida exclusivamente no servidor.
+        form.fields.pop("origem", None)
 
     return _render_nova(request, form, municipio)
 
