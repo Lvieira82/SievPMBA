@@ -3,7 +3,12 @@ from django.db import models
 
 
 class AcessoInstitucional(models.Model):
-    PERFIS = [("COPPM", "COPPM"), ("CPR", "CPR"), ("UNIDADE", "Unidade")]
+    PERFIS = [
+        ("COPPM", "COPPM"),
+        ("CPR", "CPR"),
+        ("UNIDADE", "Unidade"),
+        ("OPERADOR", "Operador"),
+    ]
     FUNCOES = [("GESTOR", "Gestor"), ("MEMBRO", "Membro")]
 
     usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="acesso_institucional")
