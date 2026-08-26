@@ -11,7 +11,7 @@ from apps.solicitacoes.portal_views import (
 from apps.solicitacoes.views.administracao import (
     aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
     desativar_usuario_unidade, editar_usuario_unidade, logout_gestao,
-    painel_gestao, solicitar_correcao_gestao, transferir_solicitacao,
+    solicitar_correcao_gestao, transferir_solicitacao,
     trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.acesso import (
@@ -35,6 +35,7 @@ from apps.solicitacoes.views.public_opo import (
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
+from apps.solicitacoes.views.painel_acesso import painel_gestao
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade,
     estatisticas_protocolo, fila_protocolo, historico_protocolo,
