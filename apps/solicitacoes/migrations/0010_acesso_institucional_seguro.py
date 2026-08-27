@@ -5,7 +5,7 @@ import django.db.models.deletion
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("solicitacoes", "0009_seed_bairros_feira_santana"),
+        ("solicitacoes", "0009_cadastrar_bairros_feira_santana"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
