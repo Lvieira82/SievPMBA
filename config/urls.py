@@ -9,7 +9,7 @@ from apps.solicitacoes.portal_views import (
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import (
-    aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
+    cadastrar_usuario_unidade,
     desativar_usuario_unidade, editar_usuario_unidade, login_gestao,
     logout_gestao, painel_gestao, solicitar_correcao_gestao,
     transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
@@ -20,10 +20,13 @@ from apps.solicitacoes.views.administracao_sistema import (
 )
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo, documentos_solicitacao,
+    alterar_status, detalhe_opo,
     gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
     importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
     opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
+)
+from apps.solicitacoes.views.documentos_operador import (
+    aprovacoes, aprovar_solicitacao, documentos_solicitacao,
 )
 from apps.solicitacoes.views.public_opo import (
     abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica,
