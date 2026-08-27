@@ -7,89 +7,32 @@ Aprovações
 {% block content %}
 
 <style>
-.card-aprovacoes{
-    background:#fff;
-    max-width:1200px;
-    margin:40px auto;
-    padding:35px;
-    border-radius:16px;
-    box-shadow:0 5px 20px rgba(0,0,0,.08);
-}
-.card-aprovacoes h1{
-    text-align:center;
-    margin-bottom:10px;
-    color:#111827;
-}
-.subtitulo{
-    text-align:center;
-    color:#6b7280;
-    margin-bottom:28px;
-}
+.card-aprovacoes{background:#fff;max-width:1200px;margin:40px auto;padding:35px;border-radius:16px;box-shadow:0 5px 20px rgba(0,0,0,.08)}
+.card-aprovacoes h1{text-align:center;margin-bottom:10px;color:#111827}
+.subtitulo{text-align:center;color:#6b7280;margin-bottom:28px}
 .tabela-wrap{width:100%;overflow-x:auto}
 .tabela-aprovacoes{width:100%;border-collapse:collapse}
-.tabela-aprovacoes th{
-    background:#111827;
-    color:#fff;
-    padding:14px 12px;
-    text-align:left;
-    font-size:14px;
-}
-.tabela-aprovacoes td{
-    padding:14px 12px;
-    border-bottom:1px solid #e5e7eb;
-    vertical-align:middle;
-}
+.tabela-aprovacoes th{background:#111827;color:#fff;padding:14px 12px;text-align:left;font-size:14px}
+.tabela-aprovacoes td{padding:14px 12px;border-bottom:1px solid #e5e7eb;vertical-align:middle}
 .col-acoes{white-space:nowrap}
-.btn{
-    display:inline-block;
-    padding:9px 13px;
-    border-radius:8px;
-    color:#fff;
-    text-decoration:none;
-    font-weight:bold;
-    border:0;
-    cursor:pointer;
-    margin:2px;
-}
-.btn-doc{background:#6b7280}
-.btn-aprovar{background:#198754}
-.btn-corrigir{background:#d97706}
-.btn-voltar{background:#6b7280;margin-top:25px}
-.status-doc{
-    display:inline-block;
-    padding:6px 9px;
-    border-radius:999px;
-    font-size:12px;
-    font-weight:bold;
-}
-.ok{background:#dcfce7;color:#166534}
-.pendente{background:#fee2e2;color:#991b1b}
+.btn{display:inline-block;padding:9px 13px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;border:0;cursor:pointer;margin:2px}
+.btn-doc{background:#6b7280}.btn-aprovar{background:#198754}.btn-corrigir{background:#d97706}.btn-voltar{background:#6b7280;margin-top:25px}
+.status-doc{display:inline-block;padding:6px 9px;border-radius:999px;font-size:12px;font-weight:bold}
+.ok{background:#dcfce7;color:#166534}.pendente{background:#fee2e2;color:#991b1b}
 .faltantes{display:block;color:#991b1b;font-size:12px;margin-top:5px;max-width:240px;white-space:normal}
 .vazio{text-align:center;padding:25px;color:#6b7280}
-@media(max-width:768px){
-    .card-aprovacoes{padding:20px}
-    .btn{display:block;text-align:center}
-}
+@media(max-width:768px){.card-aprovacoes{padding:20px}.btn{display:block;text-align:center}}
 </style>
 
 <div class="card-aprovacoes">
     <h1>Solicitações Pendentes de OPO</h1>
-    <p class="subtitulo">
-        O operador confere a documentação enviada pelo solicitante antes de liberar a OPO.
-    </p>
+    <p class="subtitulo">O operador confere a documentação enviada pelo solicitante antes de liberar a OPO.</p>
 
     <div class="tabela-wrap">
         <table class="tabela-aprovacoes">
-            <thead>
-                <tr>
-                    <th>Protocolo</th>
-                    <th>Evento</th>
-                    <th>Solicitante</th>
-                    <th>Data do Evento</th>
-                    <th>Documentação</th>
-                    <th>Ação</th>
-                </tr>
-            </thead>
+            <thead><tr>
+                <th>Protocolo</th><th>Evento</th><th>Solicitante</th><th>Data do Evento</th><th>Documentação</th><th>Ação</th>
+            </tr></thead>
             <tbody>
                 {% for s in solicitacoes %}
                 <tr>
@@ -103,47 +46,33 @@ Aprovações
                         {% else %}
                             <span class="status-doc pendente">⚠ Pendente</span>
                             {% if s.documentos_faltantes %}
-                                <span class="faltantes">
-                                    Faltam: {{ s.documentos_faltantes|join:", " }}
-                                </span>
+                                <span class="faltantes">Faltam: {{ s.documentos_faltantes|join:", " }}</span>
                             {% else %}
                                 <span class="faltantes">Nenhum documento anexado.</span>
                             {% endif %}
                         {% endif %}
                     </td>
                     <td class="col-acoes">
-                        <a href="{% url 'documentos_solicitacao' s.id %}" class="btn btn-doc">
-                            📁 Conferir documentos
-                        </a>
+                        <a href="{% url 'documentos_solicitacao' s.id %}" class="btn btn-doc">📁 Conferir documentos</a>
 
                         {% if s.documentacao_ok %}
                             <form method="post" action="{% url 'aprovar_solicitacao' s.id %}" style="display:inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-aprovar">
-                                    ✓ Aprovar / liberar OPO
-                                </button>
+                                <button type="submit" class="btn btn-aprovar">✓ Aprovar / liberar OPO</button>
                             </form>
                         {% endif %}
 
-                        <a href="{% url 'solicitar_correcao_gestao' s.id %}" class="btn btn-corrigir">
-                            ✏️ Corrigir
-                        </a>
+                        <a href="{% url 'solicitar_correcao' s.id %}" class="btn btn-corrigir">✏️ Corrigir</a>
                     </td>
                 </tr>
                 {% empty %}
-                <tr>
-                    <td colspan="6" class="vazio">
-                        Nenhuma solicitação pendente encontrada.
-                    </td>
-                </tr>
+                <tr><td colspan="6" class="vazio">Nenhuma solicitação pendente encontrada.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    <a href="{% url 'painel_gestao' %}" class="btn btn-voltar">
-        ← Voltar
-    </a>
+    <a href="{% url 'painel_gestao' %}" class="btn btn-voltar">← Voltar</a>
 </div>
 
 {% endblock %}
