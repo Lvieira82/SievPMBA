@@ -21,40 +21,30 @@
         </div>
         <hr>
         <ul class="menu">
-            <li>
-                <a href="{% url 'painel_gestao' %}" title="Dashboard">
-                    <i class="bi bi-speedometer2"></i><span>Dashboard</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação">
-                    <i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'consultar' %}" title="Consultar Protocolo">
-                    <i class="bi bi-search"></i><span>Consultar Protocolo</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'analise_unidades' %}" title="Análise">
-                    <i class="bi bi-check2-square"></i><span>Análise</span>
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'agenda_gestao' %}" title="Planejamento">
-                    <i class="bi bi-calendar-event"></i><span>Planejamento</span>
-                </a>
-            </li>
-            <li>
-                {% if user.is_superuser or user.is_staff %}
-                    <a href="{% url 'administracao_sistema' %}" title="Administração">
-                {% else %}
-                    <a href="{% url 'usuarios_unidade' %}" title="Administração">
-                {% endif %}
-                    <i class="bi bi-gear"></i><span>Administração</span>
-                </a>
-            </li>
+            {% if user.is_superuser or user.is_staff %}
+                <li><a href="{% url 'painel_gestao' %}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+                <li><a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação"><i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span></a></li>
+                <li><a href="{% url 'consultar' %}" title="Consultar Protocolo"><i class="bi bi-search"></i><span>Consultar Protocolo</span></a></li>
+                <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
+                <li><a href="{% url 'agenda_gestao' %}" title="Planejamento"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
+                <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+            {% elif user.perfil_siev.perfil == 'CPR' or user.perfil_siev.perfil == 'COPPM' %}
+                <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
+                <li><a href="{% url 'usuarios_unidade' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                <li><a href="{% url 'historico_gestao' %}" title="Histórico"><i class="bi bi-clock-history"></i><span>Histórico</span></a></li>
+                <li><a href="{% url 'importar_matriculas_painel' %}" title="Importar matrícula"><i class="bi bi-person-vcard"></i><span>Importar matrícula</span></a></li>
+                <li><a href="{% url 'proximos_eventos_gestao_restrito' %}" title="Próximos Eventos"><i class="bi bi-calendar-event"></i><span>Próximos Eventos</span></a></li>
+            {% elif user.perfil_siev.perfil == 'UNIDADE' %}
+                <li><a href="{% url 'painel_gestao' %}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
+                <li><a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação"><i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span></a></li>
+                <li><a href="{% url 'consultar' %}" title="Consultar Protocolo"><i class="bi bi-search"></i><span>Consultar Protocolo</span></a></li>
+                <li><a href="{% url 'agenda_gestao' %}" title="Planejamento"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
+                <li><a href="{% url 'usuarios_unidade' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                <li><a href="{% url 'logout_gestao' %}" title="Sair"><i class="bi bi-box-arrow-right"></i><span>Sair</span></a></li>
+            {% endif %}
         </ul>
     </aside>
 
