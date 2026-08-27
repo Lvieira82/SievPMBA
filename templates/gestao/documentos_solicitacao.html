@@ -6,7 +6,7 @@
 .doc-card h1{color:#907C64;margin-top:0}.identificacao{line-height:1.8;border-bottom:1px solid #e5e7eb;padding-bottom:18px}
 .aviso{padding:16px 18px;border-radius:10px;margin:20px 0}.aviso.ok{background:#ecfdf5;color:#166534;border:1px solid #bbf7d0}.aviso.pendente{background:#fff7ed;color:#9a3412;border:1px solid #fed7aa}
 .lista{margin:10px 0 25px}.item{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0}.item a{float:right;color:#907C64;font-weight:bold;text-decoration:none}
-.status{font-size:12px;font-weight:bold;padding:5px 8px;border-radius:999px;margin-left:8px}.presente{background:#dcfce7;color:#166534}.faltando{background:#fee2e2;color:#991b1b}
+.status{font-size:12px;font-weight:bold;padding:5px 8px;border-radius:999px;margin-left:8px}.presente{background:#dcfce7;color:#166534}
 .btn{display:inline-block;padding:11px 17px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:5px 5px 0 0}.voltar{background:#6b7280}.corrigir{background:#d97706}.gerar{background:#198754}
 .observacao{color:#6b7280;font-size:14px}
 </style>
@@ -41,11 +41,7 @@
     <h3>Documentos obrigatórios para esta unidade</h3>
     <div class="lista">
         {% for item in documentos_obrigatorios %}
-            <div class="item">
-                <strong>{{ item.tipo_documento.nome }}</strong>
-                {% if item.tipo_documento_id in documentos|dictsort:"tipo_documento_id" %}
-                {% endif %}
-            </div>
+            <div class="item"><strong>{{ item.tipo_documento.nome }}</strong></div>
         {% empty %}
             <p class="observacao">Não há tipos de documento obrigatório configurados para esta unidade.</p>
         {% endfor %}
