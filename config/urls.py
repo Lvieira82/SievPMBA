@@ -16,7 +16,7 @@ from apps.solicitacoes.views.administracao import (
 )
 from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar,
-    usuario_novo, usuario_senha,
+    usuario_excluir, usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
@@ -63,6 +63,7 @@ urlpatterns = [
     path("gestao/administracao/usuario/<int:id>/editar/", usuario_editar, name="administracao_usuario_editar"),
     path("gestao/administracao/usuario/<int:id>/senha/", usuario_senha, name="administracao_usuario_senha"),
     path("gestao/administracao/usuario/<int:id>/desativar/", usuario_desativar, name="administracao_usuario_desativar"),
+    path("gestao/administracao/usuario/<int:id>/excluir/", usuario_excluir, name="administracao_usuario_excluir"),
     path("gestao/cadastro/unidades/", cadastro_unidades, name="cadastro_unidades"),
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
