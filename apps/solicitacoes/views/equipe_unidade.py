@@ -4,8 +4,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import Group, User
 from django.db import transaction
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
-from apps.solicitacoes.models import MatriculaAutorizada, PerfilUsuario
+from apps.solicitacoes.models import MatriculaAutorizada, PerfilUsuario, Solicitacao
 
 
 GROUP_MEMBRO = "SIEV_MEMBRO"
@@ -138,4 +139,30 @@ def cadastrar_equipe_unidade(request):
         request,
         "gestao/cadastrar_equipe_unidade.html",
         {"form": form, "unidade": perfil.unidade},
+    )
+
+
+@login_required
+def eventos_dia_operacional(request):
+    perfil = getattr(request.user, "perfil_siev", None)
+    if not perfil or not perfil.ativo or perfil.perfil != "UNIDADE" or not perfil.unidade_id:
+        messages.error(request, "Acesso não autorizado.")
+        return redirect("painel_gestao")
+
+    if not request.user.groups.filter(name__in=[GROUP_MEMBRO, GROUP_OPERADOR]).exists():
+        messages.error(request, "Esta área é destinada ao efetivo operacional da unidade.")
+        return redirect("painel_gestao")
+
+    hoje = timezone.localdate()
+    eventos = (
+        Solicitacao.objects
+        .filter(data_evento=hoje, status="APROVADA", unidade_id=perfil.unidade_id)
+        .select_related("municipio", "bairro", "unidade")
+        .order_by("hora_inicio", "nome_evento")
+    )
+
+    return render(
+        request,
+        "gestao/eventos_dia_operacional.html",
+        {"eventos": eventos, "unidade": perfil.unidade, "data_eventos": hoje},
     )
