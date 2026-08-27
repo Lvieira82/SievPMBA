@@ -47,6 +47,9 @@ from apps.solicitacoes.views.territorio_admin import (
     areas_responsabilidade, bairros_por_municipio,
     importar_areas_responsabilidade,
 )
+from apps.solicitacoes.views.equipe_unidade import (
+    equipe_unidade, cadastrar_equipe_unidade,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -74,6 +77,8 @@ urlpatterns = [
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
+    path("gestao/equipe/", equipe_unidade, name="equipe_unidade"),
+    path("gestao/equipe/cadastrar/", cadastrar_equipe_unidade, name="cadastrar_equipe_unidade"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
