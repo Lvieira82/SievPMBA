@@ -41,7 +41,14 @@
     <h3>Documentos obrigatórios para esta unidade</h3>
     <div class="lista">
         {% for item in documentos_obrigatorios %}
-            <div class="item"><strong>{{ item.tipo_documento.nome }}</strong></div>
+            <div class="item">
+                <strong>{{ item.tipo_documento.nome }}</strong>
+                {% if item.tipo_documento.nome not in documentos_faltantes %}
+                    <span class="status presente">Presente</span>
+                {% else %}
+                    <span class="status">Ausente</span>
+                {% endif %}
+            </div>
         {% empty %}
             <p class="observacao">Não há tipos de documento obrigatório configurados para esta unidade.</p>
         {% endfor %}
@@ -54,10 +61,22 @@
                 <strong>{{ documento.tipo_documento.nome }}</strong>
                 <span class="status presente">Anexado</span>
                 {% if documento.descricao %}<div>{{ documento.descricao }}</div>{% endif %}
+                {% if documento.arquivo %}<div class="observacao">{{ documento.arquivo.name }}</div>{% endif %}
                 <a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank">Abrir PDF</a>
             </div>
         {% empty %}
-            <p class="observacao">Nenhum documento anexado.</p>
+            <p class="observacao">Nenhum documento registrado na tabela de documentos.</p>
+        {% endfor %}
+
+        {% for item in documentos_legados %}
+            <div class="item">
+                <strong>{{ item.nome }}</strong>
+                <span class="status presente">Anexado</span>
+                <div class="observacao">{{ item.arquivo.name }}</div>
+                {% if item.url %}
+                    <a href="{{ item.url }}" target="_blank">Abrir PDF</a>
+                {% endif %}
+            </div>
         {% endfor %}
     </div>
 
