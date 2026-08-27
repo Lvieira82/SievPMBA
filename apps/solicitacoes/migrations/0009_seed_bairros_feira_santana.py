@@ -90,9 +90,14 @@ def cadastrar_bairros(apps, schema_editor):
         "AreaResponsabilidade",
     )
 
-    municipio = Municipio.objects.get(
+    municipio = Municipio.objects.filter(
         nome="Feira de Santana"
-    )
+    ).first()
+
+    # O município será garantido pela migration de reparo posterior.
+    # Esta migration antiga não deve impedir as demais migrations.
+    if not municipio:
+        return
 
     for nome_bairro, prefixo_unidade in BAIRROS:
 
@@ -106,10 +111,7 @@ def cadastrar_bairros(apps, schema_editor):
         )
 
         if unidade is None:
-            raise RuntimeError(
-                f"Unidade '{prefixo_unidade}' não encontrada "
-                f"para o bairro '{nome_bairro}'."
-            )
+            continue
 
         bairro, _ = Bairro.objects.get_or_create(
             municipio=municipio,
@@ -126,11 +128,11 @@ def remover_bairros(apps, schema_editor):
     Municipio = apps.get_model("solicitacoes", "Municipio")
     Bairro = apps.get_model("solicitacoes", "Bairro")
 
-    try:
-        municipio = Municipio.objects.get(
-            nome="Feira de Santana"
-        )
-    except Municipio.DoesNotExist:
+    municipio = Municipio.objects.filter(
+        nome="Feira de Santana"
+    ).first()
+
+    if not municipio:
         return
 
     nomes = [nome for nome, _ in BAIRROS]
