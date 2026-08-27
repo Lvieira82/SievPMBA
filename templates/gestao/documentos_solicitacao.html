@@ -1,36 +1,78 @@
 {% extends 'base.html' %}
 {% block title %}Documentos da Solicitação{% endblock %}
 {% block content %}
-<div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
-<h1 style="color:#907C64">📁 Documentos</h1>
+<div style="max-width:1000px;margin:35px auto;padding:0 15px">
+<div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
+
+<h1 style="color:#907C64">📁 Documentos da Solicitação</h1>
+
 <p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p>
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
+<p><strong>Unidade responsável:</strong> {{ solicitacao.unidade|default:'Não definida' }}</p>
 <p><strong>Status:</strong> {{ solicitacao.get_status_display }}</p>
+
+<div style="background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:15px;margin:20px 0">
+<strong>Documentos são condição para a OPO.</strong><br>
+A solicitação precisa ter pelo menos um documento anexado e todos os documentos configurados como obrigatórios para a unidade precisam estar presentes.
+Sem a conferência documental, a aprovação e a geração da OPO serão bloqueadas.
+</div>
+
 <hr>
+
 <h3>Anexar documento PDF</h3>
 <form method="post" enctype="multipart/form-data" style="margin:20px 0">
 {% csrf_token %}
 <label>Tipo do documento</label>
 <select name="tipo_documento" required style="display:block;width:100%;padding:11px;margin:6px 0 14px">
 <option value="">Selecione...</option>
-{% for tipo in tipos_documento %}<option value="{{ tipo.id }}">{{ tipo.nome }}</option>{% endfor %}
+{% for tipo in tipos_documento %}
+<option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+{% endfor %}
 </select>
+
 <label>Descrição</label>
 <input name="descricao" style="display:block;width:100%;padding:11px;margin:6px 0 14px">
+
 <label>PDF</label>
 <input type="file" name="arquivo" accept="application/pdf,.pdf" required style="display:block;margin:6px 0 16px">
-<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Anexar PDF</button>
+
+<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">
+Anexar PDF
+</button>
 </form>
+
 <h3>Documentos já anexados</h3>
+
 {% for documento in documentos %}
 <div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0">
-<strong>{{ documento.tipo_documento.nome }}</strong> — {{ documento.descricao|default:'Sem descrição' }}
-<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" style="float:right;color:#907C64;font-weight:bold">Abrir PDF</a>
+<strong>{{ documento.tipo_documento.nome }}</strong>
+{% if documento.descricao %} — {{ documento.descricao }}{% else %} — Sem descrição{% endif %}
+<span style="float:right">
+<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" style="color:#907C64;font-weight:bold">
+Abrir PDF
+</a>
+</span>
 </div>
-{% empty %}<p style="color:#6b7280">Nenhum documento anexado.</p>{% endfor %}
-{% if solicitacao.status == 'APROVADA' or solicitacao.status == 'CONCLUIDA' %}
-<p style="margin-top:25px"><a href="{% url 'gerar_opo' solicitacao.id %}" style="background:#28a745;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">✔ Gerar OPO</a></p>
+{% empty %}
+<p style="color:#b45309;font-weight:bold">⚠ Nenhum documento anexado. A aprovação e a OPO estão bloqueadas.</p>
+{% endfor %}
+
+{% if documentos %}
+<div style="background:#ecfdf5;border:1px solid #bbf7d0;color:#166534;border-radius:10px;padding:14px;margin-top:20px">
+✓ Há documento(s) anexado(s). A aprovação ainda verificará os documentos obrigatórios configurados para a unidade.
+</div>
 {% endif %}
+
+{% if solicitacao.status == 'APROVADA' or solicitacao.status == 'CONCLUIDA' %}
+<p style="margin-top:25px">
+<a href="{% url 'gerar_opo' solicitacao.id %}" style="background:#28a745;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">
+✔ Gerar OPO
+</a>
+</p>
+{% endif %}
+
 <p style="margin-top:25px"><a href="{% url 'painel_gestao' %}">← Voltar ao painel</a></p>
-</div></div>
+
+</div>
+</div>
 {% endblock %}
