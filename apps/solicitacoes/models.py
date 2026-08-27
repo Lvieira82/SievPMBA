@@ -5,50 +5,25 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 
 
-# ==========================================================
-# FUNÇÕES AUXILIARES
-# ==========================================================
-
 def gerar_protocolo_unico():
     while True:
         protocolo = uuid.uuid4().hex[:8].upper()
-
-        if not Solicitacao.objects.filter(
-            protocolo=protocolo
-        ).exists():
+        if not Solicitacao.objects.filter(protocolo=protocolo).exists():
             return protocolo
 
 
 def upload_documento(instance, filename):
-    return os.path.join(
-        "protocolos",
-        instance.solicitacao.protocolo,
-        filename
-    )
+    return os.path.join("protocolos", instance.solicitacao.protocolo, filename)
 
 
 def upload_comandante(instance, filename):
-    return os.path.join(
-        "protocolos",
-        instance.protocolo,
-        "oficio_comandante.pdf"
-    )
+    return os.path.join("protocolos", instance.protocolo, "oficio_comandante.pdf")
 
 
 def pasta_opo(instance, filename):
     protocolo = instance.protocolo or "SEM_PROTOCOLO"
+    return os.path.join("protocolos", protocolo, "opo", filename)
 
-    return os.path.join(
-        "protocolos",
-        protocolo,
-        "opo",
-        filename
-    )
-
-
-# ==========================================================
-# ORGANIZAÇÃO PMBA
-# ==========================================================
 
 class COPPM(models.Model):
     nome = models.CharField(max_length=120)
@@ -102,20 +77,10 @@ class Unidade(models.Model):
         return self.sigla
 
 
-# ==========================================================
-# LOCALIZAÇÃO
-# ==========================================================
-
 class Municipio(models.Model):
     nome = models.CharField(max_length=120, unique=True)
     ibge = models.CharField(max_length=10, blank=True, null=True)
-    unidade_responsavel = models.ForeignKey(
-        Unidade,
-        on_delete=models.PROTECT,
-        blank=True,
-        null=True,
-        related_name="municipios"
-    )
+    unidade_responsavel = models.ForeignKey(Unidade, on_delete=models.PROTECT, blank=True, null=True, related_name="municipios")
     ativo = models.BooleanField(default=True)
 
     class Meta:
@@ -151,10 +116,6 @@ class AreaResponsabilidade(models.Model):
     def __str__(self):
         return f"{self.bairro} → {self.unidade}"
 
-
-# ==========================================================
-# CONFIGURAÇÕES DO SISTEMA
-# ==========================================================
 
 class TipoEvento(models.Model):
     nome = models.CharField(max_length=120, unique=True)
@@ -214,10 +175,6 @@ class ConfiguracaoUnidade(models.Model):
         return str(self.unidade)
 
 
-# ==========================================================
-# CAMPOS DINÂMICOS
-# ==========================================================
-
 class CampoPersonalizado(models.Model):
     TIPOS = [
         ("texto", "Texto"),
@@ -228,7 +185,6 @@ class CampoPersonalizado(models.Model):
         ("lista", "Lista"),
         ("textarea", "Texto Longo"),
     ]
-
     modulo = models.ForeignKey(Modulo, on_delete=models.CASCADE, related_name="campos")
     nome = models.CharField(max_length=120)
     label = models.CharField(max_length=150)
@@ -257,10 +213,6 @@ class OpcaoCampo(models.Model):
         return self.valor
 
 
-# ==========================================================
-# MÓDULOS DA SOLICITAÇÃO
-# ==========================================================
-
 class SolicitacaoModulo(models.Model):
     solicitacao = models.ForeignKey("Solicitacao", on_delete=models.CASCADE, related_name="modulos")
     modulo = models.ForeignKey(Modulo, on_delete=models.PROTECT)
@@ -284,10 +236,6 @@ class ValorCampo(models.Model):
         return self.campo.label
 
 
-# ==========================================================
-# SOLICITAÇÕES
-# ==========================================================
-
 class Solicitacao(models.Model):
     STATUS = [
         ("RASCUNHO", "Rascunho"),
@@ -299,7 +247,6 @@ class Solicitacao(models.Model):
         ("REJEITADA", "Rejeitada"),
         ("CONCLUIDA", "Concluída"),
     ]
-
     protocolo = models.CharField(max_length=20, unique=True, blank=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     unidade = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="solicitacoes", null=True, blank=True)
@@ -323,11 +270,7 @@ class Solicitacao(models.Model):
     status = models.CharField(max_length=20, choices=STATUS, default="RASCUNHO")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-    ORIGEM_CHOICES = [
-        ("EXTERNA", "Externa"),
-        ("MANUAL", "Manual"),
-        ("TRANSFERIDA", "Transferida"),
-    ]
+    ORIGEM_CHOICES = [("EXTERNA", "Externa"), ("MANUAL", "Manual"), ("TRANSFERIDA", "Transferida")]
     origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default="EXTERNA")
 
     def save(self, *args, **kwargs):
@@ -338,10 +281,6 @@ class Solicitacao(models.Model):
     def __str__(self):
         return f"{self.protocolo} - {self.nome_evento}"
 
-
-# ==========================================================
-# DOCUMENTOS
-# ==========================================================
 
 class DocumentoSolicitacao(models.Model):
     solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name="documentos")
@@ -357,10 +296,6 @@ class DocumentoSolicitacao(models.Model):
         return f"{self.solicitacao.protocolo} - {self.tipo_documento}"
 
 
-# ==========================================================
-# OPO
-# ==========================================================
-
 class AnexoOPO(models.Model):
     solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name="opos")
     arquivo = models.FileField(upload_to=pasta_opo)
@@ -370,10 +305,6 @@ class AnexoOPO(models.Model):
     def __str__(self):
         return self.arquivo.name
 
-
-# ==========================================================
-# MATRÍCULAS AUTORIZADAS
-# ==========================================================
 
 class MatriculaAutorizada(models.Model):
     matricula = models.CharField(max_length=20, unique=True)
@@ -394,26 +325,14 @@ class MatriculaAutorizada(models.Model):
         return f"{self.posto} {self.nome}"
 
 
-# ==========================================================
-# PERFIL E ACESSO DO USUÁRIO
-# ==========================================================
-
 class PerfilUsuario(models.Model):
     PERFIS = [
         ("COPPM", "Gestor COPPM"),
         ("CPR", "Gestor CPR"),
         ("UNIDADE", "Gestor de Unidade"),
     ]
-
-    FUNCOES = [
-        ("GESTOR", "Gestor"),
-        ("MEMBRO", "Membro operacional"),
-        ("OPERADOR", "Operador de eventos"),
-    ]
-
     usuario = models.OneToOneField(User, on_delete=models.CASCADE, related_name="perfil_siev")
     perfil = models.CharField(max_length=20, choices=PERFIS)
-    funcao = models.CharField(max_length=20, choices=FUNCOES, default="GESTOR")
     cpr = models.ForeignKey(CPR, on_delete=models.SET_NULL, null=True, blank=True, related_name="gestores_siev")
     unidade = models.ForeignKey(Unidade, on_delete=models.SET_NULL, null=True, blank=True, related_name="gestores_siev")
     ativo = models.BooleanField(default=True)
@@ -425,27 +344,17 @@ class PerfilUsuario(models.Model):
         verbose_name_plural = "Perfis de Usuários"
 
     def __str__(self):
-        if self.funcao == "OPERADOR":
-            funcao = "Operador"
-        elif self.funcao == "MEMBRO":
-            funcao = "Membro"
-        elif self.perfil == "COPPM":
-            funcao = "Gestor COPPM"
-        elif self.perfil == "CPR":
-            funcao = "Gestor CPR"
-        elif self.perfil == "UNIDADE":
-            funcao = "Gestor Unidade"
-        else:
-            funcao = self.get_perfil_display()
-        return f"{self.usuario.username} - {funcao}"
+        if self.perfil == "COPPM":
+            return f"{self.usuario.username} - Gestor COPPM"
+        if self.perfil == "CPR":
+            return f"{self.usuario.username} - Gestor CPR - {self.cpr}"
+        if self.perfil == "UNIDADE":
+            return f"{self.usuario.username} - Gestor Unidade - {self.unidade}"
+        return self.usuario.username
 
 
 UsuarioPerfil = PerfilUsuario
 
-
-# ==========================================================
-# LOG DO SISTEMA
-# ==========================================================
 
 class LogSistema(models.Model):
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -465,12 +374,34 @@ class LogSistema(models.Model):
 
 
 class TransferenciaSolicitacao(models.Model):
-    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE)
-    unidade_origem = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="transferencias_saida")
-    unidade_destino = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="transferencias_entrada")
-    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name="transferencias")
+    unidade_origem = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="transferencias_origem")
+    unidade_destino = models.ForeignKey(Unidade, on_delete=models.PROTECT, related_name="transferencias_destino")
+    usuario = models.ForeignKey(User, on_delete=models.PROTECT, related_name="transferencias_realizadas")
     motivo = models.TextField(blank=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ["-criado_em"]
+
     def __str__(self):
-        return f"{self.solicitacao.protocolo}: {self.unidade_origem} → {self.unidade_destino}"
+        return f"{self.solicitacao.protocolo} - {self.unidade_origem} → {self.unidade_destino}"
+
+
+class HistoricoSolicitacao(models.Model):
+    solicitacao = models.ForeignKey(Solicitacao, on_delete=models.CASCADE, related_name="historico")
+    usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="historicos_siev")
+    status = models.CharField(max_length=40, blank=True)
+    status_anterior = models.CharField(max_length=40, blank=True)
+    status_novo = models.CharField(max_length=40, blank=True)
+    unidade_anterior = models.ForeignKey(Unidade, on_delete=models.SET_NULL, null=True, blank=True, related_name="historicos_unidade_anterior")
+    unidade_nova = models.ForeignKey(Unidade, on_delete=models.SET_NULL, null=True, blank=True, related_name="historicos_unidade_nova")
+    acao = models.CharField(max_length=50, blank=True)
+    observacao = models.TextField(blank=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-criado_em"]
+
+    def __str__(self):
+        return f"{self.solicitacao.protocolo} - {self.acao or self.status_novo or self.status}"
