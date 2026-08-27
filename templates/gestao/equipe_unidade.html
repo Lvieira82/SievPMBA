@@ -22,14 +22,11 @@
     <div class="card-body">
       <div class="table-responsive">
         <table class="table table-hover align-middle">
-          <thead><tr><th>Nome</th><th>Matrícula</th><th>Usuário</th><th>Função</th><th>Status</th></tr></thead>
+          <thead><tr><th>Nome</th><th>Usuário</th><th>Função</th><th>Status</th></tr></thead>
           <tbody>
           {% for perfil_item in usuarios %}
             <tr>
               <td>{{ perfil_item.usuario.get_full_name }}</td>
-              <td>
-                {% for matricula in perfil_item.usuario.matriculasautorizadas_set.all %}{{ matricula.matricula }}{% empty %}—{% endfor %}
-              </td>
               <td>{{ perfil_item.usuario.username }}</td>
               <td>
                 {% if perfil_item.usuario.groups.all %}
@@ -41,7 +38,7 @@
               <td><span class="badge bg-success">Ativo</span></td>
             </tr>
           {% empty %}
-            <tr><td colspan="5" class="text-center">Nenhum integrante cadastrado nesta unidade.</td></tr>
+            <tr><td colspan="4" class="text-center">Nenhum integrante cadastrado nesta unidade.</td></tr>
           {% endfor %}
           </tbody>
         </table>
