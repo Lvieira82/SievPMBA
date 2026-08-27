@@ -18,6 +18,9 @@ from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar,
     usuario_novo, usuario_senha,
 )
+from apps.solicitacoes.views.acesso_institucional import (
+    historico_gestao, proximos_eventos_gestao_restrito,
+)
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
     alterar_status, detalhe_opo,
@@ -82,6 +85,8 @@ urlpatterns = [
     path("aprovacoes/transferir/<int:id>/", transferir_solicitacao, name="transferir_solicitacao"),
     path("solicitacao/<int:id>/corrigir/", solicitar_correcao_gestao, name="solicitar_correcao"),
     path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
+    path("gestao/proximos-eventos-restrito/", proximos_eventos_gestao_restrito, name="proximos_eventos_gestao_restrito"),
+    path("gestao/historico/", historico_gestao, name="historico_gestao"),
     path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
     path("dashboard/", dashboard, name="dashboard"),
     path("dashboard/operacional/", dashboard, name="dashboard_operacional"),
