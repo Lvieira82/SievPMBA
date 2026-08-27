@@ -48,7 +48,7 @@ from apps.solicitacoes.views.territorio_admin import (
     importar_areas_responsabilidade,
 )
 from apps.solicitacoes.views.equipe_unidade import (
-    equipe_unidade, cadastrar_equipe_unidade,
+    cadastrar_equipe_unidade, equipe_unidade, eventos_dia_operacional,
 )
 
 urlpatterns = [
@@ -79,6 +79,7 @@ urlpatterns = [
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
     path("gestao/equipe/", equipe_unidade, name="equipe_unidade"),
     path("gestao/equipe/cadastrar/", cadastrar_equipe_unidade, name="cadastrar_equipe_unidade"),
+    path("gestao/equipe/eventos-do-dia/", eventos_dia_operacional, name="eventos_dia_operacional"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
