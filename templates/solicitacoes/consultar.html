@@ -157,6 +157,40 @@
             color: #b91c1c;
         }
 
+        .documentos {
+            margin-top: 18px;
+            padding-top: 15px;
+            border-top: 1px solid #d1d5db;
+        }
+
+        .documentos h3 {
+            color: #111827;
+            margin-bottom: 10px;
+            font-size: 17px;
+        }
+
+        .documento {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-top: 8px;
+        }
+
+        .documento strong {
+            color: #111827;
+        }
+
+        .documento small {
+            display: block;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+
+        .sem-documentos {
+            color: #6b7280;
+        }
+
         .erro {
             margin-top: 25px;
 
@@ -325,6 +359,21 @@
                 {% endif %}
 
             </p>
+
+            <div class="documentos">
+                <h3>Documentos anexos</h3>
+
+                {% for documento in documentos %}
+                    <div class="documento">
+                        <strong>{{ documento.tipo_documento.nome }}</strong>
+                        {% if documento.descricao %}
+                            <small>{{ documento.descricao }}</small>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p class="sem-documentos">Nenhum documento anexado.</p>
+                {% endfor %}
+            </div>
 
         </div>
 
