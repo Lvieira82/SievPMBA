@@ -1,5 +1,99 @@
 {% extends 'base.html' %}
 {% block title %}{% if novo %}Novo usuário{% else %}Editar usuário{% endif %}{% endblock %}
 {% block content %}
-<div style="max-width:760px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)"><h1 style="color:#907C64">👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}</h1>{% if novo %}<p style="color:#475569">A matrícula será usada para entrar no sistema. Uma senha provisória aleatória será enviada ao e-mail de validação. No primeiro acesso, o usuário deverá criar sua própria senha.</p>{% endif %}<form method="post">{% csrf_token %}{{ form.non_field_errors }}{% for field in form %}<div style="margin-bottom:14px"><label for="{{ field.id_for_label }}" style="display:block;font-weight:bold;margin-bottom:5px">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<div style="color:#b91c1c;font-size:13px">{{ error }}</div>{% endfor %}</div>{% endfor %}<button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Salvar</button> <a href="{% url 'administracao_sistema' %}">Cancelar</a></form></div></div>
+<div style="max-width:760px;margin:35px auto;padding:0 15px">
+  <div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
+    <h1 style="color:#907C64">👤 {% if novo %}Novo usuário{% else %}Editar usuário{% endif %}</h1>
+    {% if novo %}
+      <p style="color:#475569">A matrícula será usada para entrar no sistema. Uma senha provisória aleatória será enviada ao e-mail de validação. No primeiro acesso, o usuário deverá criar sua própria senha.</p>
+    {% endif %}
+
+    <form method="post" id="usuario-form">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+
+      {% for field in form %}
+        <div style="margin-bottom:14px" {% if field.name == 'unidade' %}id="campo-unidade"{% endif %}>
+          <label for="{{ field.id_for_label }}" style="display:block;font-weight:bold;margin-bottom:5px">{{ field.label }}</label>
+          {{ field }}
+          {% if field.name == 'unidade' %}
+            <small id="ajuda-unidade" style="display:block;margin-top:5px;color:#64748b">Selecione primeiro um CPR para carregar somente as unidades subordinadas.</small>
+          {% endif %}
+          {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+          {% for error in field.errors %}
+            <div style="color:#b91c1c;font-size:13px">{{ error }}</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+
+      <button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Salvar</button>
+      <a href="{% url 'administracao_sistema' %}">Cancelar</a>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  const cpr = document.getElementById('{{ form.cpr.id_for_label }}');
+  const unidade = document.getElementById('{{ form.unidade.id_for_label }}');
+  const ajuda = document.getElementById('ajuda-unidade');
+  const unidadeInicial = '{{ form.unidade.value|default_if_none:""|escapejs }}';
+  const endpointBase = '/api/unidades/';
+
+  if (!cpr || !unidade) return;
+
+  async function carregarUnidades(preservarId) {
+    const cprId = cpr.value;
+    unidade.innerHTML = '';
+
+    const vazio = document.createElement('option');
+    vazio.value = '';
+    vazio.textContent = cprId ? '---------' : 'Selecione primeiro o CPR';
+    unidade.appendChild(vazio);
+    unidade.disabled = !cprId;
+
+    if (!cprId) {
+      if (ajuda) ajuda.textContent = 'Selecione primeiro um CPR para carregar somente as unidades subordinadas.';
+      return;
+    }
+
+    if (ajuda) ajuda.textContent = 'Carregando unidades subordinadas...';
+
+    try {
+      const resposta = await fetch(endpointBase + cprId + '/', {
+        headers: {'X-Requested-With': 'XMLHttpRequest'}
+      });
+
+      if (!resposta.ok) throw new Error('Falha ao consultar unidades');
+
+      const unidades = await resposta.json();
+      unidades.forEach(function (item) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.nome;
+        if (preservarId && String(item.id) === String(preservarId)) {
+          option.selected = true;
+        }
+        unidade.appendChild(option);
+      });
+
+      unidade.disabled = false;
+      if (ajuda) {
+        ajuda.textContent = unidades.length
+          ? 'Somente unidades subordinadas ao CPR selecionado são exibidas.'
+          : 'Não há unidades ativas cadastradas para este CPR.';
+      }
+    } catch (erro) {
+      unidade.disabled = true;
+      if (ajuda) ajuda.textContent = 'Não foi possível carregar as unidades. Atualize a página e tente novamente.';
+    }
+  }
+
+  cpr.addEventListener('change', function () {
+    carregarUnidades('');
+  });
+
+  carregarUnidades(unidadeInicial);
+})();
+</script>
 {% endblock %}
