@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-Usuários da Unidade
+Cadastrar Usuário
 {% endblock %}
 
 {% block content %}
@@ -11,105 +11,110 @@ Usuários da Unidade
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
-            <h2>Usuários da Unidade</h2>
+            <h2>Cadastrar Usuário</h2>
 
-            <p class="text-muted mb-0">
-                {{ unidade }}
-            </p>
+            {% if unidade %}
+                <p class="text-muted mb-0">
+                    Unidade: {{ unidade }}
+                </p>
+            {% elif perfil and perfil.cpr %}
+                <p class="text-muted mb-0">
+                    CPR: {{ perfil.cpr }}
+                </p>
+            {% else %}
+                <p class="text-muted mb-0">
+                    Cadastro de usuário institucional
+                </p>
+            {% endif %}
         </div>
 
         <a
-            href="{% url 'cadastrar_usuario_unidade' %}"
-            class="btn btn-primary"
+            href="{% url 'usuarios_unidade' %}"
+            class="btn btn-secondary"
         >
-            + Cadastrar Usuário
+            ← Voltar
         </a>
 
     </div>
 
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {% for error in form.non_field_errors %}
+                <div>{{ error }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="card shadow-sm">
 
-        <div class="card-body">
+        <div class="card-body p-4">
 
-            {% if usuarios %}
+            <form method="post" novalidate>
 
-                <div class="table-responsive">
+                {% csrf_token %}
 
-                    <table class="table table-hover align-middle">
+                <div class="row g-3">
 
-                        <thead>
+                    {% for field in form %}
 
-                            <tr>
+                        <div class="col-12 {% if field.name == 'nome' or field.name == 'email' %}col-md-6{% endif %}">
 
-                                <th>Nome</th>
+                            <label for="{{ field.id_for_label }}" class="form-label">
+                                {{ field.label }}
+                                {% if field.field.required %}
+                                    <span class="text-danger">*</span>
+                                {% endif %}
+                            </label>
 
-                                <th>Usuário</th>
+                            {{ field }}
 
-                                <th>Perfil</th>
+                            {% if field.help_text %}
+                                <div class="form-text">
+                                    {{ field.help_text }}
+                                </div>
+                            {% endif %}
 
-                                <th>Status</th>
+                            {% if field.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in field.errors %}
+                                        <div>{{ error }}</div>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
 
-                            </tr>
+                        </div>
 
-                        </thead>
-
-                        <tbody>
-
-                            {% for perfil in usuarios %}
-
-                            <tr>
-
-                                <td>
-                                    {{ perfil.usuario.get_full_name }}
-                                </td>
-
-                                <td>
-                                    {{ perfil.usuario.username }}
-                                </td>
-
-                                <td>
-                                    {{ perfil.get_perfil_display }}
-                                </td>
-
-                                <td>
-
-                                    {% if perfil.ativo %}
-
-                                        <span class="badge bg-success">
-                                            Ativo
-                                        </span>
-
-                                    {% else %}
-
-                                        <span class="badge bg-danger">
-                                            Inativo
-                                        </span>
-
-                                    {% endif %}
-
-                                </td>
-
-                            </tr>
-
-                            {% endfor %}
-
-                        </tbody>
-
-                    </table>
+                    {% endfor %}
 
                 </div>
 
-            {% else %}
+                <div class="mt-4 d-flex gap-2">
 
-                <div class="alert alert-info mb-0">
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Salvar Usuário
+                    </button>
 
-                    Ainda não existem usuários cadastrados
-                    nesta Unidade.
+                    <a
+                        href="{% url 'usuarios_unidade' %}"
+                        class="btn btn-secondary"
+                    >
+                        Cancelar
+                    </a>
 
                 </div>
 
-            {% endif %}
+            </form>
 
         </div>
 
