@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.solicitacoes.models import CPR, PerfilUsuario, Unidade
@@ -181,4 +182,32 @@ def usuario_desativar(request, id):
         perfil.ativo = False
         perfil.save(update_fields=["ativo"])
     messages.success(request, "Usuário desativado.")
+    return redirect("administracao_sistema")
+
+
+@login_required
+def usuario_excluir(request, id):
+    if not _somente_desenvolvedor(request):
+        messages.error(request, "Acesso restrito ao desenvolvedor.")
+        return redirect("painel_gestao")
+
+    user = get_object_or_404(User, pk=id)
+
+    if user.is_superuser:
+        messages.error(request, "O usuário desenvolvedor não pode ser excluído por esta tela.")
+        return redirect("administracao_sistema")
+
+    if user.pk == request.user.pk:
+        messages.error(request, "Você não pode excluir o próprio usuário.")
+        return redirect("administracao_sistema")
+
+    if request.method != "POST":
+        messages.error(request, "A exclusão deve ser confirmada pelo botão Excluir.")
+        return redirect("administracao_sistema")
+
+    nome = user.get_full_name() or user.username
+    with transaction.atomic():
+        user.delete()
+
+    messages.success(request, f"Usuário {nome} excluído com sucesso.")
     return redirect("administracao_sistema")
