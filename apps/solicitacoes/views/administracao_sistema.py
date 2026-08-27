@@ -57,12 +57,28 @@ class UsuarioSistemaForm(forms.Form):
     def clean(self):
         cleaned = super().clean()
         perfil = cleaned.get("perfil")
-        if perfil == "CPR" and not cleaned.get("cpr"): self.add_error("cpr", "Selecione o CPR.")
-        if perfil == "UNIDADE" and not cleaned.get("unidade"): self.add_error("unidade", "Selecione a unidade.")
-        if perfil == "COPPM": cleaned["cpr"], cleaned["unidade"] = None, None
+        cpr = cleaned.get("cpr")
+        unidade = cleaned.get("unidade")
+
+        if perfil == "CPR" and not cpr:
+            self.add_error("cpr", "Selecione o CPR.")
+        if perfil == "UNIDADE" and not unidade:
+            self.add_error("unidade", "Selecione a unidade.")
+
+        # A unidade escolhida deve obrigatoriamente pertencer ao CPR selecionado.
+        # A checagem no servidor impede que alguém burle o filtro do navegador.
+        if cpr and unidade and unidade.cpr_id != cpr.id:
+            self.add_error("unidade", "A unidade selecionada não pertence ao CPR informado.")
+
+        if perfil == "COPPM":
+            cleaned["cpr"], cleaned["unidade"] = None, None
+
         if self.scope and not self.scope["desenvolvedor"]:
-            if self.scope["perfil"] == "CPR": cleaned.update(perfil="CPR", cpr=self.scope["cpr"], funcao="MEMBRO")
-            elif self.scope["perfil"] == "UNIDADE": cleaned.update(perfil="UNIDADE", cpr=self.scope["cpr"], unidade=self.scope["unidade"], funcao="MEMBRO")
+            if self.scope["perfil"] == "CPR":
+                cleaned.update(perfil="CPR", cpr=self.scope["cpr"], funcao="MEMBRO")
+            elif self.scope["perfil"] == "UNIDADE":
+                cleaned.update(perfil="UNIDADE", cpr=self.scope["cpr"], unidade=self.scope["unidade"], funcao="MEMBRO")
+
         return cleaned
 
 def _escopo(request):
