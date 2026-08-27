@@ -264,6 +264,7 @@ PMBA - Uma força a serviço do cidadão.
 def consultar_protocolo(request):
     protocolo = request.GET.get("protocolo", "").strip().upper()
     solicitacao = None
+    documentos = []
     erro = None
 
     if protocolo:
@@ -275,6 +276,13 @@ def consultar_protocolo(request):
         )
         if not solicitacao:
             erro = "Protocolo não encontrado."
+        else:
+            documentos = (
+                DocumentoSolicitacao.objects
+                .filter(solicitacao=solicitacao)
+                .select_related("tipo_documento")
+                .order_by("tipo_documento__nome", "id")
+            )
 
     eventos_hoje = (
         Solicitacao.objects
@@ -288,6 +296,7 @@ def consultar_protocolo(request):
         "solicitacoes/consultar.html",
         {
             "solicitacao": solicitacao,
+            "documentos": documentos,
             "erro": erro,
             "eventos_hoje": eventos_hoje,
         },
