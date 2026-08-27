@@ -1,4 +1,5 @@
 {% load static %}
+{% load role_tags %}
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -28,18 +29,29 @@
                 <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
                 <li><a href="{% url 'agenda_gestao' %}" title="Planejamento"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
                 <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+
+            {% elif user|has_group:'SIEV_OPERADOR' %}
+                <li><a href="{% url 'eventos_dia_operacional' %}" title="Eventos do Dia"><i class="bi bi-calendar-event"></i><span>Eventos do Dia</span></a></li>
+
+            {% elif user|has_group:'SIEV_MEMBRO' %}
+                <li><a href="{% url 'listar_pendentes_opo' %}" title="Informações"><i class="bi bi-folder2-open"></i><span>Informações</span></a></li>
+                <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
+                <li><a href="{% url 'opos_geradas' %}" title="OPOs Geradas"><i class="bi bi-folder"></i><span>OPOs Geradas</span></a></li>
+                <li><a href="{% url 'eventos_dia_operacional' %}" title="Eventos do Dia"><i class="bi bi-calendar-event"></i><span>Eventos do Dia</span></a></li>
+
             {% elif user.perfil_siev.perfil == 'CPR' or user.perfil_siev.perfil == 'COPPM' %}
                 <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
                 <li><a href="{% url 'usuarios_unidade' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                 <li><a href="{% url 'historico_gestao' %}" title="Histórico"><i class="bi bi-clock-history"></i><span>Histórico</span></a></li>
                 <li><a href="{% url 'importar_matriculas_painel' %}" title="Importar matrícula"><i class="bi bi-person-vcard"></i><span>Importar matrícula</span></a></li>
                 <li><a href="{% url 'proximos_eventos_gestao_restrito' %}" title="Próximos Eventos"><i class="bi bi-calendar-event"></i><span>Próximos Eventos</span></a></li>
+
             {% elif user.perfil_siev.perfil == 'UNIDADE' %}
                 <li><a href="{% url 'painel_gestao' %}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
                 <li><a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação"><i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span></a></li>
                 <li><a href="{% url 'consultar' %}" title="Consultar Protocolo"><i class="bi bi-search"></i><span>Consultar Protocolo</span></a></li>
                 <li><a href="{% url 'agenda_gestao' %}" title="Planejamento"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
-                <li><a href="{% url 'usuarios_unidade' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                <li><a href="{% url 'equipe_unidade' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
             {% endif %}
 
             {% if user.is_authenticated %}
@@ -66,6 +78,10 @@
                         </span>
                         {% if user.is_superuser %}
                             <span class="perfil-usuario">Desenvolvedor / Administrador</span>
+                        {% elif user|has_group:'SIEV_OPERADOR' %}
+                            <span class="perfil-usuario">Operador</span>
+                        {% elif user|has_group:'SIEV_MEMBRO' %}
+                            <span class="perfil-usuario">Membro operacional</span>
                         {% elif user.perfil_siev %}
                             <span class="perfil-usuario">{{ user.perfil_siev.get_perfil_display }}</span>
                         {% endif %}
