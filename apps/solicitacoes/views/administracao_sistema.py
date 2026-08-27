@@ -3,6 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.solicitacoes.models import CPR, PerfilUsuario, Unidade
@@ -206,8 +207,15 @@ def usuario_excluir(request, id):
         return redirect("administracao_sistema")
 
     nome = user.get_full_name() or user.username
-    with transaction.atomic():
-        user.delete()
+    try:
+        with transaction.atomic():
+            user.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "Este usuário possui registros que dependem dele (por exemplo, transferências) e não pode ser excluído. Desative-o em vez disso.",
+        )
+        return redirect("administracao_sistema")
 
     messages.success(request, f"Usuário {nome} excluído com sucesso.")
     return redirect("administracao_sistema")
