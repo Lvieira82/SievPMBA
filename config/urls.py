@@ -9,9 +9,9 @@ from apps.solicitacoes.portal_views import (
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import (
-    aprovacoes, aprovar_solicitacao, cadastrar_usuario_unidade,
+    aprovacoes, cadastrar_usuario_unidade,
     desativar_usuario_unidade, editar_usuario_unidade, login_gestao,
-    logout_gestao, painel_gestao, solicitar_correcao_gestao,
+    logout_gestao, painel_gestao,
     transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.administracao_sistema import (
@@ -21,9 +21,14 @@ from apps.solicitacoes.views.administracao_sistema import (
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
     alterar_status, detalhe_opo, documentos_solicitacao,
-    gerar_mapa_eventos_pdf, gerar_opo, importar_matriculas_painel,
+    gerar_mapa_eventos_pdf, importar_matriculas_painel,
     importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
     opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
+)
+from apps.solicitacoes.views.documentos_regras import (
+    aprovar_com_validacao_documentos,
+    corrigir_com_validacao_documentos,
+    gerar_opo_com_validacao_documentos,
 )
 from apps.solicitacoes.views.public_opo import (
     abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica,
@@ -75,9 +80,9 @@ urlpatterns = [
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
     path("gestao/pendentes-opo/", listar_pendentes_opo, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
-    path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
+    path("aprovar/<int:id>/", aprovar_com_validacao_documentos, name="aprovar_solicitacao"),
     path("aprovacoes/transferir/<int:id>/", transferir_solicitacao, name="transferir_solicitacao"),
-    path("solicitacao/<int:id>/corrigir/", solicitar_correcao_gestao, name="solicitar_correcao"),
+    path("solicitacao/<int:id>/corrigir/", corrigir_com_validacao_documentos, name="solicitar_correcao"),
     path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
     path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
     path("dashboard/", dashboard, name="dashboard"),
@@ -92,7 +97,7 @@ urlpatterns = [
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf, name="gerar_mapa_eventos_pdf"),
     path("gestao/opos-geradas/", opos_geradas, name="opos_geradas"),
     path("gestao/opo/<int:id>/detalhes/", detalhe_opo, name="detalhe_opo"),
-    path("opo/<int:id>/", gerar_opo, name="gerar_opo"),
+    path("opo/<int:id>/", gerar_opo_com_validacao_documentos, name="gerar_opo"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
     path("consulta/opo/<int:id>/arquivo/", abrir_opo_publica, name="abrir_opo_publica"),
