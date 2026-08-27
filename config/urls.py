@@ -23,9 +23,10 @@ from apps.solicitacoes.views.compat import (
     alterar_status, detalhe_opo,
     gerar_mapa_eventos_pdf, importar_matriculas_painel,
     importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
-    opos_geradas, verificar_autenticidade, abrir_documento_solicitacao,
+    opos_geradas, verificar_autenticidade,
 )
 from apps.solicitacoes.views.documentos_operador import (
+    abrir_documento_solicitacao,
     aprovacoes, aprovar_solicitacao, documentos_solicitacao, gerar_opo,
 )
 from apps.solicitacoes.views.public_opo import (
