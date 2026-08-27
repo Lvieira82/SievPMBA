@@ -7,9 +7,9 @@ from apps.solicitacoes.models import (
     ConfiguracaoUnidade,
     DocumentoSolicitacao,
     HistoricoSolicitacao,
-    PerfilUsuario,
     Solicitacao,
 )
+from .compat import gerar_opo as _gerar_opo_original
 
 
 def _perfil_e_escopo(request):
@@ -119,9 +119,6 @@ def documentos_solicitacao(request, id):
         escopo.select_related("municipio", "bairro", "unidade", "tipo_evento"),
         pk=id,
     )
-
-    # Esta tela é de conferência. O operador não anexa documentos aqui:
-    # ele apenas verifica o que o solicitante já enviou.
     status = _documentacao(solicitacao)
 
     return render(
@@ -158,28 +155,15 @@ def aprovar_solicitacao(request, id):
     if not status_documental["ok"]:
         if status_documental["faltantes"]:
             faltantes = ", ".join(status_documental["faltantes"])
-            messages.error(
-                request,
-                f"OPO bloqueada: falta(m) documento(s) obrigatório(s): {faltantes}.",
-            )
+            messages.error(request, f"OPO bloqueada: falta(m) documento(s) obrigatório(s): {faltantes}.")
         else:
-            messages.error(
-                request,
-                "OPO bloqueada: a solicitação ainda não possui documento anexado.",
-            )
+            messages.error(request, "OPO bloqueada: a solicitação ainda não possui documento anexado.")
         return redirect("documentos_solicitacao", id=id)
 
     solicitacao.status = "APROVADA"
     solicitacao.data_aprovacao = timezone.now()
     solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
-    solicitacao.save(
-        update_fields=[
-            "status",
-            "data_aprovacao",
-            "aprovado_por",
-            "atualizado_em",
-        ]
-    )
+    solicitacao.save(update_fields=["status", "data_aprovacao", "aprovado_por", "atualizado_em"])
 
     HistoricoSolicitacao.objects.create(
         solicitacao=solicitacao,
@@ -188,8 +172,23 @@ def aprovar_solicitacao(request, id):
         observacao="Solicitação aprovada após conferência da documentação para geração da OPO.",
     )
 
-    messages.success(
-        request,
-        f"Solicitação {solicitacao.protocolo} aprovada. A OPO está liberada para geração.",
-    )
+    messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. A OPO está liberada para geração.")
     return redirect("aprovacoes")
+
+
+@login_required
+def gerar_opo(request, id):
+    """Última barreira: nenhuma OPO é gerada sem documentação conferida."""
+    _, escopo = _perfil_e_escopo(request)
+    solicitacao = get_object_or_404(escopo, pk=id)
+    status_documental = _documentacao(solicitacao)
+
+    if not status_documental["ok"]:
+        if status_documental["faltantes"]:
+            faltantes = ", ".join(status_documental["faltantes"])
+            messages.error(request, f"OPO bloqueada: falta(m) documento(s) obrigatório(s): {faltantes}.")
+        else:
+            messages.error(request, "OPO bloqueada: a solicitação não possui documento anexado.")
+        return redirect("documentos_solicitacao", id=id)
+
+    return _gerar_opo_original(request, id)
