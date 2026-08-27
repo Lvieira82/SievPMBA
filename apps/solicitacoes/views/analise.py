@@ -29,6 +29,16 @@ def _unidades_permitidas(request):
     return Unidade.objects.none()
 
 
+def _exigir_analise(request):
+    if request.user.is_superuser or request.user.is_staff:
+        return True
+    perfil = getattr(request.user, "perfil_siev", None)
+    if perfil and perfil.ativo and perfil.perfil in {"COPPM", "CPR"}:
+        return True
+    messages.error(request, "A Análise não está disponível para o gestor de unidade.")
+    return False
+
+
 def _inicio_atendimento(solicitacao, unidade):
     """Define quando a solicitação chegou à unidade analisada."""
     transferencia = (
@@ -58,6 +68,9 @@ def _tempo_horas(solicitacao, unidade):
 
 @login_required
 def analise_unidades(request):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
+
     unidades = _unidades_permitidas(request).order_by("nome")
     unidade_id = request.GET.get("unidade")
     origem = request.GET.get("origem")
@@ -134,6 +147,8 @@ def painel_analise(request):
 
 @login_required
 def fila_analise(request):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     unidades = _unidades_permitidas(request)
     solicitacoes = Solicitacao.objects.filter(
         unidade__in=unidades,
@@ -144,6 +159,8 @@ def fila_analise(request):
 
 @login_required
 def detalhes(request, pk):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     solicitacao = get_object_or_404(Solicitacao, pk=pk)
     documentos = solicitacao.documentos.select_related("tipo_documento").all()
     historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
@@ -152,6 +169,8 @@ def detalhes(request, pk):
 
 @login_required
 def aprovar(request, pk):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     solicitacao = get_object_or_404(Solicitacao, pk=pk)
     solicitacao.status = "APROVADA"
     solicitacao.data_aprovacao = timezone.now()
@@ -164,6 +183,8 @@ def aprovar(request, pk):
 
 @login_required
 def solicitar_correcao(request, pk):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     solicitacao = get_object_or_404(Solicitacao, pk=pk)
     motivo = request.POST.get("motivo", "").strip()
     if request.method == "POST" and not motivo:
@@ -179,6 +200,8 @@ def solicitar_correcao(request, pk):
 
 @login_required
 def indeferir(request, pk):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     solicitacao = get_object_or_404(Solicitacao, pk=pk)
     motivo = request.POST.get("motivo", "").strip()
     if request.method == "POST" and not motivo:
@@ -195,6 +218,8 @@ def indeferir(request, pk):
 
 @login_required
 def historico(request, pk):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     solicitacao = get_object_or_404(Solicitacao, pk=pk)
     historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
     return render(request, "analise/historico.html", {"solicitacao": solicitacao, "historico": historico})
@@ -202,6 +227,8 @@ def historico(request, pk):
 
 @login_required
 def estatisticas(request):
+    if not _exigir_analise(request):
+        return redirect("painel_gestao")
     unidades = _unidades_permitidas(request)
     dados = Solicitacao.objects.filter(unidade__in=unidades).values("status").annotate(total=Count("id")).order_by("status")
     return render(request, "analise/estatisticas.html", {"dados": dados, "total": sum(item["total"] for item in dados)})
