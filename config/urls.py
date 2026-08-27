@@ -9,47 +9,40 @@ from apps.solicitacoes.portal_views import (
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import (
-    cadastrar_usuario_unidade,
-    desativar_usuario_unidade, editar_usuario_unidade, login_gestao,
-    logout_gestao, painel_gestao, solicitar_correcao_gestao,
-    transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
+    cadastrar_usuario_unidade, desativar_usuario_unidade, editar_usuario_unidade,
+    painel_gestao, solicitar_correcao_gestao, transferir_solicitacao,
+    trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.administracao_sistema import (
-    administracao_sistema, usuario_desativar, usuario_editar,
+    administracao_sistema, usuario_desativar, usuario_editar, usuario_excluir,
     usuario_novo, usuario_senha,
+)
+from apps.solicitacoes.views.acesso import (
+    esqueci_senha, login_gestao, logout_gestao, redefinir_senha,
+    trocar_senha_primeiro_acesso, verificar_novo_navegador,
 )
 from apps.solicitacoes.views.acesso_institucional import (
     historico_gestao, proximos_eventos_gestao_restrito,
 )
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo,
-    gerar_mapa_eventos_pdf, importar_matriculas_painel,
+    alterar_status, detalhe_opo, gerar_mapa_eventos_pdf, importar_matriculas_painel,
     importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
     opos_geradas, verificar_autenticidade,
 )
 from apps.solicitacoes.views.documentos_operador import (
-    abrir_documento_solicitacao,
-    aprovacoes, aprovar_solicitacao, documentos_solicitacao, gerar_opo,
+    abrir_documento_solicitacao, aprovacoes, aprovar_solicitacao, documentos_solicitacao, gerar_opo,
 )
-from apps.solicitacoes.views.public_opo import (
-    abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica,
-)
+from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.protocolo import (
-    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade,
-    estatisticas_protocolo, fila_protocolo, historico_protocolo,
-    painel_protocolo, reenviar_email,
+    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
+    fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
 )
-from apps.solicitacoes.views.territorio_admin import (
-    areas_responsabilidade, bairros_por_municipio,
-    importar_areas_responsabilidade,
-)
-from apps.solicitacoes.views.equipe_unidade import (
-    cadastrar_equipe_unidade, equipe_unidade, eventos_dia_operacional,
-)
+from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bairros_por_municipio, importar_areas_responsabilidade
+from apps.solicitacoes.views.equipe_unidade import cadastrar_equipe_unidade, equipe_unidade, eventos_dia_operacional
 from apps.solicitacoes.access_control import membro_ou_gestor
 
 urlpatterns = [
@@ -65,8 +58,15 @@ urlpatterns = [
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
+
+    # Autenticação segura da gestão
     path("gestao/", login_gestao, name="login_gestao"),
+    path("gestao/novo-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
+    path("gestao/trocar-senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
+    path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
+    path("gestao/redefinir-senha/<uidb64>/<token>/", redefinir_senha, name="redefinir_senha"),
     path("logout/", logout_gestao, name="logout_gestao"),
+
     path("painel/", painel_gestao, name="painel_gestao"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
@@ -74,6 +74,7 @@ urlpatterns = [
     path("gestao/administracao/usuario/<int:id>/editar/", usuario_editar, name="administracao_usuario_editar"),
     path("gestao/administracao/usuario/<int:id>/senha/", usuario_senha, name="administracao_usuario_senha"),
     path("gestao/administracao/usuario/<int:id>/desativar/", usuario_desativar, name="administracao_usuario_desativar"),
+    path("gestao/administracao/usuario/<int:id>/excluir/", usuario_excluir, name="administracao_usuario_excluir"),
     path("gestao/cadastro/unidades/", cadastro_unidades, name="cadastro_unidades"),
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
