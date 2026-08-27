@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-Usuários da Unidade
+Usuários da Gestão
 {% endblock %}
 
 {% block content %}
@@ -11,11 +11,15 @@ Usuários da Unidade
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
-            <h2>Usuários da Unidade</h2>
-
-            <p class="text-muted mb-0">
-                {{ unidade }}
-            </p>
+            {% if unidade %}
+                <h2>Usuários da Unidade</h2>
+                <p class="text-muted mb-0">{{ unidade }}</p>
+            {% elif perfil and perfil.cpr %}
+                <h2>Usuários do CPR</h2>
+                <p class="text-muted mb-0">{{ perfil.cpr }}</p>
+            {% else %}
+                <h2>Usuários da Gestão</h2>
+            {% endif %}
         </div>
 
         <a
@@ -27,19 +31,13 @@ Usuários da Unidade
 
     </div>
 
-
     {% if messages %}
-
         {% for message in messages %}
-
             <div class="alert alert-{{ message.tags }}">
                 {{ message }}
             </div>
-
         {% endfor %}
-
     {% endif %}
-
 
     <div class="card shadow-sm">
 
@@ -52,50 +50,43 @@ Usuários da Unidade
                     <table class="table table-hover align-middle">
 
                         <thead>
-
                             <tr>
                                 <th>Nome</th>
                                 <th>Usuário</th>
+                                <th>Matrícula</th>
                                 <th>Perfil</th>
                                 <th>Status</th>
                             </tr>
-
                         </thead>
 
                         <tbody>
 
-                            {% for perfil in usuarios %}
+                            {% for perfil_usuario in usuarios %}
 
                             <tr>
 
                                 <td>
-                                    {{ perfil.usuario.get_full_name }}
+                                    {{ perfil_usuario.usuario.get_full_name }}
                                 </td>
 
                                 <td>
-                                    {{ perfil.usuario.username }}
+                                    {{ perfil_usuario.usuario.username }}
                                 </td>
 
                                 <td>
-                                    {{ perfil.get_perfil_display }}
+                                    {{ perfil_usuario.matricula|default:"—" }}
                                 </td>
 
                                 <td>
+                                    {{ perfil_usuario.get_perfil_display }}
+                                </td>
 
-                                    {% if perfil.ativo %}
-
-                                        <span class="badge bg-success">
-                                            Ativo
-                                        </span>
-
+                                <td>
+                                    {% if perfil_usuario.ativo %}
+                                        <span class="badge bg-success">Ativo</span>
                                     {% else %}
-
-                                        <span class="badge bg-danger">
-                                            Inativo
-                                        </span>
-
+                                        <span class="badge bg-danger">Inativo</span>
                                     {% endif %}
-
                                 </td>
 
                             </tr>
@@ -111,8 +102,13 @@ Usuários da Unidade
             {% else %}
 
                 <div class="alert alert-info mb-0">
-                    Ainda não existem usuários cadastrados
-                    nesta Unidade.
+                    {% if unidade %}
+                        Ainda não existem usuários cadastrados nesta Unidade.
+                    {% elif perfil and perfil.cpr %}
+                        Ainda não existem usuários cadastrados neste CPR.
+                    {% else %}
+                        Ainda não existem usuários cadastrados.
+                    {% endif %}
                 </div>
 
             {% endif %}
