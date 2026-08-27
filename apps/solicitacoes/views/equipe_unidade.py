@@ -37,7 +37,7 @@ class EquipeUnidadeForm(forms.Form):
 
     def clean_matricula(self):
         matricula = self.cleaned_data["matricula"].strip()
-        if MatriculaAutorizada.objects.filter(matricula=matricula, ativo=True).exists():
+        if MatriculaAutorizada.objects.filter(matricula=matricula).exists():
             raise forms.ValidationError("Esta matrícula já está cadastrada.")
         return matricula
 
@@ -55,14 +55,6 @@ def _gestor_unidade(request):
     if request.user.groups.filter(name__in=[GROUP_MEMBRO, GROUP_OPERADOR]).exists():
         return None
     return perfil
-
-
-def _grupo_funcao(usuario):
-    if usuario.groups.filter(name=GROUP_MEMBRO).exists():
-        return "Membro operacional"
-    if usuario.groups.filter(name=GROUP_OPERADOR).exists():
-        return "Operador"
-    return "Gestor de Unidade"
 
 
 @login_required
