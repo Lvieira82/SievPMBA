@@ -89,3 +89,12 @@ from .protocolo import (
     painel_protocolo,
     reenviar_email,
 )
+
+# O fluxo abaixo é específico da conferência documental do operador.
+# Estas importações ficam por último de propósito para substituir as
+# versões antigas exportadas pelos módulos de compatibilidade/gestão.
+from .documentos_operador import (
+    aprovacoes,
+    aprovar_solicitacao,
+    documentos_solicitacao,
+)
