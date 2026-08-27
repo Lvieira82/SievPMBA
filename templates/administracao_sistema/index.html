@@ -8,7 +8,6 @@
       <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
           <h1 class="mb-2" style="color:#907C64">⚙️ Administração do Sistema</h1>
-          <p class="mb-0">Cadastro institucional sem uso do Django Admin. As permissões são determinadas pelo vínculo do usuário.</p>
         </div>
         <a href="{% url 'administracao_usuario_novo' %}" class="btn btn-primary">+ Novo usuário</a>
       </div>
@@ -32,7 +31,7 @@
 
   <div class="card"><div class="card-body p-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <div><h2 class="mb-1" style="color:#907C64">Usuários sob sua gestão</h2><p class="text-muted mb-0">Unidades e bairros continuam exclusivos do desenvolvedor.</p></div>
+      <div><h2 class="mb-1" style="color:#907C64">Usuários sob sua gestão</h2></div>
       <a href="{% url 'painel_gestao' %}" class="btn btn-outline-secondary">← Painel</a>
     </div>
     <div class="table-responsive">
@@ -49,7 +48,14 @@
             <td>{{ p.cpr.sigla|default:'—' }}</td>
             <td>{{ p.unidade.sigla|default:'—' }}</td>
             <td>{% if p.ativo and p.usuario.is_active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
-            <td><a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>{% if scope.desenvolvedor %} · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>{% endif %}{% if p.ativo %} · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>{% endif %}</td>
+            <td class="text-nowrap">
+              <a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>
+              {% if scope.desenvolvedor %} · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>{% endif %}
+              <form method="post" action="{% url 'administracao_usuario_excluir' p.usuario.id %}" class="d-inline ms-1" onsubmit="return confirm('Excluir definitivamente este usuário? Esta ação não poderá ser desfeita.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link p-0 align-baseline text-danger text-decoration-none">· Excluir</button>
+              </form>
+            </td>
           </tr>
         {% empty %}<tr><td colspan="9" class="text-center py-4">Nenhum membro cadastrado neste âmbito.</td></tr>{% endfor %}
         </tbody>
