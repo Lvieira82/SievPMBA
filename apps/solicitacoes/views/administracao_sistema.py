@@ -72,7 +72,6 @@ class UsuarioSistemaForm(forms.Form):
                 )
 
             elif scope["perfil"] == "UNIDADE":
-                # O Gestor de Unidade pode cadastrar membro da unidade ou Operador.
                 self.fields["perfil"].choices = [
                     ("UNIDADE", "Membro de Unidade"),
                     ("OPERADOR", "Operador"),
@@ -399,16 +398,30 @@ def usuario_senha(request, id):
 
 
 @login_required
-def usuario_desativar(request, id):
+def usuario_excluir(request, id):
     scope = _escopo(request)
     user = get_object_or_404(User, pk=id)
     acesso = getattr(user, "acesso_institucional", None)
+
     if not scope or not _pode_gerenciar(scope, acesso):
-        messages.error(request, "Você não pode alterar este cadastro.")
+        messages.error(request, "Você não pode excluir este usuário.")
         return redirect("administracao_sistema")
-    acesso.ativo = False
-    acesso.save(update_fields=["ativo", "atualizado_em"])
-    user.is_active = False
-    user.save(update_fields=["is_active"])
-    messages.success(request, "Usuário desativado.")
+
+    if user.is_superuser:
+        messages.error(request, "O usuário desenvolvedor não pode ser excluído por esta tela.")
+        return redirect("administracao_sistema")
+
+    if user.pk == request.user.pk:
+        messages.error(request, "Você não pode excluir o próprio usuário.")
+        return redirect("administracao_sistema")
+
+    if request.method != "POST":
+        messages.error(request, "A exclusão deve ser confirmada pelo botão Excluir.")
+        return redirect("administracao_sistema")
+
+    matricula = acesso.matricula if acesso else user.username
+    with transaction.atomic():
+        user.delete()
+
+    messages.success(request, f"Usuário {matricula} excluído com sucesso.")
     return redirect("administracao_sistema")
