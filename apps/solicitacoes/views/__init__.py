@@ -97,4 +97,5 @@ from .documentos_operador import (
     aprovacoes,
     aprovar_solicitacao,
     documentos_solicitacao,
+    gerar_opo,
 )
