@@ -9,7 +9,10 @@ from apps.solicitacoes.models import (
     HistoricoSolicitacao,
     Solicitacao,
 )
-from .compat import gerar_opo as _gerar_opo_original
+from .compat import (
+    abrir_documento_solicitacao as _abrir_documento_original,
+    gerar_opo as _gerar_opo_original,
+)
 
 
 def _perfil_e_escopo(request):
@@ -132,6 +135,18 @@ def documentos_solicitacao(request, id):
             "documentacao_ok": status["ok"],
         },
     )
+
+
+@login_required
+def abrir_documento_solicitacao(request, id, tipo):
+    """Só permite abrir um PDF pertencente ao escopo institucional do operador."""
+    _, escopo = _perfil_e_escopo(request)
+    documento = get_object_or_404(
+        DocumentoSolicitacao.objects.select_related("solicitacao"),
+        pk=id,
+        solicitacao__in=escopo,
+    )
+    return _abrir_documento_original(request, documento.id, tipo)
 
 
 @login_required
