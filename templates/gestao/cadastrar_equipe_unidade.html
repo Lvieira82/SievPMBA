@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Adicionar à equipe{% endblock %}
+{% block content %}
+<div class="container py-4" style="max-width:850px">
+  <div class="card shadow-sm">
+    <div class="card-body p-4">
+      <h2>Adicionar à equipe da unidade</h2>
+      <p class="text-muted">{{ unidade }}</p>
+
+      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary">Salvar</button>
+        <a href="{% url 'equipe_unidade' %}" class="btn btn-secondary">Cancelar</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
