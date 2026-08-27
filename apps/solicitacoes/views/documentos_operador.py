@@ -35,6 +35,45 @@ def _perfil_e_escopo(request):
     return None, Solicitacao.objects.none()
 
 
+def _documentos_legados(solicitacao):
+    """Lê campos de arquivo antigos sem exigir alteração do banco."""
+    campos = [
+        ("Ofício ao Comandante", "oficio_comandante"),
+        ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
+        ("Documento Sanitário", "documento_sanitario"),
+        ("Documento de Meio Ambiente", "documento_meio_ambiente"),
+    ]
+    encontrados = []
+    for nome, campo in campos:
+        arquivo = getattr(solicitacao, campo, None)
+        if arquivo:
+            try:
+                url = arquivo.url
+            except Exception:
+                url = ""
+            encontrados.append({"nome": nome, "campo": campo, "arquivo": arquivo, "url": url})
+    return encontrados
+
+
+def _normalizar(texto):
+    return "".join(ch.lower() for ch in str(texto or "") if ch.isalnum())
+
+
+def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
+    nome = _normalizar(nome_tipo)
+    for item in documentos_legados:
+        campo = item["campo"]
+        if campo == "oficio_comandante" and ("oficio" in nome and "comandante" in nome):
+            return True
+        if campo == "oficio_bombeiro" and "bombeiro" in nome:
+            return True
+        if campo == "documento_sanitario" and ("sanitario" in nome or "sanitaria" in nome):
+            return True
+        if campo == "documento_meio_ambiente" and "meioambiente" in nome:
+            return True
+    return False
+
+
 def _documentacao(solicitacao):
     """Calcula a situação documental sem alterar o banco de dados."""
     documentos = list(
@@ -42,6 +81,7 @@ def _documentacao(solicitacao):
         .filter(solicitacao=solicitacao)
         .select_related("tipo_documento")
     )
+    documentos_legados = _documentos_legados(solicitacao)
 
     obrigatorios = []
     if solicitacao.unidade_id:
@@ -61,15 +101,15 @@ def _documentacao(solicitacao):
         item.tipo_documento.nome
         for item in obrigatorios
         if item.tipo_documento_id not in tipos_anexados
+        and not _legado_satisfaz_tipo(item.tipo_documento.nome, documentos_legados)
     ]
 
-    # A documentação é condição para a OPO: deve existir pelo menos
-    # um documento e, quando houver configuração de obrigatórios,
-    # todos eles precisam estar presentes.
-    ok = bool(documentos) and not faltantes
+    # DocumentoSolicitacao e campos legados contam como documentação.
+    ok = bool(documentos or documentos_legados) and not faltantes
 
     return {
         "documentos": documentos,
+        "documentos_legados": documentos_legados,
         "obrigatorios": obrigatorios,
         "faltantes": faltantes,
         "ok": ok,
@@ -79,6 +119,7 @@ def _documentacao(solicitacao):
 def _anexar_status_documental(solicitacao):
     status = _documentacao(solicitacao)
     solicitacao.documentos = status["documentos"]
+    solicitacao.documentos_legados = status["documentos_legados"]
     solicitacao.documentos_obrigatorios = status["obrigatorios"]
     solicitacao.documentos_faltantes = status["faltantes"]
     solicitacao.documentacao_ok = status["ok"]
@@ -130,6 +171,7 @@ def documentos_solicitacao(request, id):
         {
             "solicitacao": solicitacao,
             "documentos": status["documentos"],
+            "documentos_legados": status["documentos_legados"],
             "documentos_obrigatorios": status["obrigatorios"],
             "documentos_faltantes": status["faltantes"],
             "documentacao_ok": status["ok"],
