@@ -9,9 +9,9 @@
 {% if nivel == 'CPR' or nivel == 'COPPM' %}
 <a href="{% url 'analise_unidades' %}" class="card"><div class="icone">📊</div><h2>Análise</h2><p>Avaliação por unidade e tempo médio de resposta, inclusive solicitações transferidas.</p></a>
 <a href="{% url 'administracao_sistema' %}" class="card"><div class="icone">⚙️</div><h2>Administração</h2><p>Usuários, senhas e níveis de acesso do SiEv.</p></a>
-<a href="{% url 'agenda_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados.</p></a>
+<a href="{% url 'historico_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados.</p></a>
 <a href="{% url 'importar_matriculas_painel' %}" class="card"><div class="icone">📥</div><h2>Importar matrícula</h2><p>Importar planilha Excel com policiais autorizados.</p></a>
-<a href="{% url 'proximos_eventos_gestao' %}" class="card"><div class="icone">📅</div><h2>Próximos Eventos</h2><p>Consultar os próximos eventos da área de gestão.</p></a>
+<a href="{% url 'proximos_eventos_gestao_restrito' %}" class="card"><div class="icone">📅</div><h2>Próximos Eventos</h2><p>Consultar os próximos eventos da área de gestão.</p></a>
 {% else %}
 {% if nivel == 'UNIDADE' or nivel == 'DESENVOLVEDOR' %}
 <a href="{% url 'listar_pendentes_opo' %}" class="card">{% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}<div class="icone">📁</div><h2>Informações</h2><p>Documentos, análise e geração de OPO.</p></a>
