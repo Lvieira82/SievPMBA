@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Equipe da Unidade{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2>Equipe da Unidade</h2>
+      <p class="text-muted mb-0">{{ unidade }}</p>
+    </div>
+    <a href="{% url 'cadastrar_equipe_unidade' %}" class="btn btn-primary">+ Adicionar membro / operador</a>
+  </div>
+
+  {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+
+  <div class="alert alert-info">
+    <strong>Membro operacional:</strong> trabalha na conferência, geração das OPOs e mapas de eventos.
+    <br>
+    <strong>Operador:</strong> consulta os eventos do dia e utiliza as OPOs para o cumprimento do serviço.
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead><tr><th>Nome</th><th>Matrícula</th><th>Usuário</th><th>Função</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for perfil_item in usuarios %}
+            <tr>
+              <td>{{ perfil_item.usuario.get_full_name }}</td>
+              <td>
+                {% for matricula in perfil_item.usuario.matriculasautorizadas_set.all %}{{ matricula.matricula }}{% empty %}—{% endfor %}
+              </td>
+              <td>{{ perfil_item.usuario.username }}</td>
+              <td>
+                {% if perfil_item.usuario.groups.all %}
+                  {% for grupo in perfil_item.usuario.groups.all %}
+                    {% if grupo.name == 'SIEV_MEMBRO' %}Membro operacional{% elif grupo.name == 'SIEV_OPERADOR' %}Operador{% endif %}
+                  {% endfor %}
+                {% else %}Gestor de Unidade{% endif %}
+              </td>
+              <td><span class="badge bg-success">Ativo</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center">Nenhum integrante cadastrado nesta unidade.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
