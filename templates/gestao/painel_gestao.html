@@ -7,7 +7,26 @@
 </style>
 <div class="painel"><h1>⚙️ {{ titulo_painel|default:'Painel de Gestão' }}</h1>
 
-{% if request.user|has_group:'SIEV_OPERADOR' %}
+{# ===================================================== #}
+{# DESENVOLVEDOR / ADMINISTRADOR DO SISTEMA                #}
+{# Não administra efetivo operacional. Administra apenas #}
+{# as contas dos gestores institucionais.                 #}
+{# ===================================================== #}
+{% if request.user.is_superuser %}
+<div class="cards">
+  <a href="{% url 'administracao_sistema' %}" class="card">
+    <div class="icone">⚙️</div>
+    <h2>Administração</h2>
+    <p>Cadastrar e administrar os Gestores COPPM, Gestores CPR e Gestores de Unidade.</p>
+  </a>
+  <a href="{% url 'logout_gestao' %}" class="card">
+    <div class="icone">🚪</div>
+    <h2>Sair</h2>
+    <p>Encerrar sessão administrativa.</p>
+  </a>
+</div>
+
+{% elif request.user|has_group:'SIEV_OPERADOR' %}
 <div class="cards">
   <a href="{% url 'eventos_dia_operacional' %}" class="card"><div class="icone">📅</div><h2>Eventos do Dia</h2><p>Consultar os eventos aprovados da unidade e acessar as respectivas OPOs.</p></a>
   <a href="{% url 'logout_gestao' %}" class="card"><div class="icone">🚪</div><h2>Sair</h2><p>Encerrar sessão administrativa.</p></a>
