@@ -6,15 +6,27 @@
 </style>
 <div class="painel"><h1>⚙️ {{ titulo_painel|default:'Painel de Gestão' }}</h1>
 <div class="cards">
-<a href="{% url 'listar_pendentes_opo' %}" class="card">{% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}<div class="icone">📁</div><h2>Informações</h2><p>Documentos, análise e geração de OPO.</p></a>
+{% if nivel == 'CPR' or nivel == 'COPPM' %}
 <a href="{% url 'analise_unidades' %}" class="card"><div class="icone">📊</div><h2>Análise</h2><p>Avaliação por unidade e tempo médio de resposta, inclusive solicitações transferidas.</p></a>
 <a href="{% url 'administracao_sistema' %}" class="card"><div class="icone">⚙️</div><h2>Administração</h2><p>Usuários, senhas e níveis de acesso do SiEv.</p></a>
 <a href="{% url 'agenda_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados.</p></a>
+<a href="{% url 'importar_matriculas_painel' %}" class="card"><div class="icone">📥</div><h2>Importar matrícula</h2><p>Importar planilha Excel com policiais autorizados.</p></a>
+<a href="{% url 'proximos_eventos_gestao' %}" class="card"><div class="icone">📅</div><h2>Próximos Eventos</h2><p>Consultar os próximos eventos da área de gestão.</p></a>
+{% else %}
+{% if nivel == 'UNIDADE' or nivel == 'DESENVOLVEDOR' %}
+<a href="{% url 'listar_pendentes_opo' %}" class="card">{% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}<div class="icone">📁</div><h2>Informações</h2><p>Documentos, análise e geração de OPO.</p></a>
+{% endif %}
+{% if nivel != 'UNIDADE' %}<a href="{% url 'analise_unidades' %}" class="card"><div class="icone">📊</div><h2>Análise</h2><p>Avaliação por unidade e tempo médio de resposta, inclusive solicitações transferidas.</p></a>{% endif %}
+<a href="{% url 'administracao_sistema' %}" class="card"><div class="icone">⚙️</div><h2>Administração</h2><p>Usuários, senhas e níveis de acesso do SiEv.</p></a>
+<a href="{% url 'agenda_gestao' %}" class="card"><div class="icone">📚</div><h2>Histórico</h2><p>Consultar eventos já realizados.</p></a>
+{% if nivel == 'UNIDADE' or nivel == 'DESENVOLVEDOR' %}
 <a href="{% url 'lancamento_manual' %}" class="card"><div class="icone">✍️</div><h2>Lançamento Manual</h2><p>Cadastrar evento presencialmente.</p></a>
 <a href="{% url 'opos_geradas' %}" class="card"><div class="icone">🗂️</div><h2>Documentação <span class="badge-novo">Novo</span></h2><p>Consultar OPOs geradas e arquivadas pelo sistema.</p></a>
 <a href="{% url 'dashboard_operacional' %}" class="card"><div class="icone">📈</div><h2>Dashboard</h2><p>Resumo geral e filtros.</p></a>
 <a href="{% url 'importar_matriculas_painel' %}" class="card"><div class="icone">📥</div><h2>Importar Matrículas</h2><p>Importar planilha Excel com policiais autorizados.</p></a>
-{% if request.user.is_superuser %}<div class="card"><div class="icone">🗺️</div><h2>Território</h2><p>Cadastros territoriais exclusivos do desenvolvedor.</p><div class="territorio-links"><a href="{% url 'cadastro_unidades' %}">Unidades</a><a href="{% url 'cadastro_bairros' %}">Bairros</a><a href="{% url 'areas_responsabilidade' %}">Responsabilidades</a></div></div>{% endif %}
+{% endif %}
+{% if nivel == 'DESENVOLVEDOR' %}<div class="card"><div class="icone">🗺️</div><h2>Território</h2><p>Cadastros territoriais exclusivos do desenvolvedor.</p><div class="territorio-links"><a href="{% url 'cadastro_unidades' %}">Unidades</a><a href="{% url 'cadastro_bairros' %}">Bairros</a><a href="{% url 'areas_responsabilidade' %}">Responsabilidades</a></div></div>{% endif %}
+{% endif %}
 <a href="{% url 'logout_gestao' %}" class="card"><div class="icone">🚪</div><h2>Sair</h2><p>Encerrar sessão administrativa.</p></a>
 </div>
 <div class="proximos"><h2>🗓️ Próximos Eventos</h2><div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
