@@ -44,8 +44,9 @@ def historico_gestao(request):
         return redirect("login_gestao")
 
     hoje = timezone.localdate()
+    escopo = _escopo_solicitacoes(request)
     eventos = (
-        _escopo_solicitacoes(request)
+        escopo
         .filter(data_evento__lt=hoje, status__in=["APROVADA", "CONCLUIDA", "REJEITADA"])
         .select_related("municipio", "unidade", "bairro")
         .order_by("-data_evento", "-hora_inicio")
@@ -74,7 +75,7 @@ def historico_gestao(request):
     anos = [
         item.year
         for item in (
-            _escopo_solicitacoes()
+            escopo
             .filter(data_evento__lt=hoje)
             .dates("data_evento", "year", order="DESC")
         )
