@@ -12,19 +12,11 @@
 
       {% for field in form %}
         <div class="campo-form" data-field="{{ field.name }}" {% if field.name == 'cpr' %}id="campo-cpr"{% elif field.name == 'unidade' %}id="campo-unidade"{% endif %} style="margin-bottom:14px">
-          {% if field.name != 'funcao' or not field.is_hidden %}
-            <label for="{{ field.id_for_label }}" style="display:block;font-weight:bold;margin-bottom:5px">{{ field.label }}</label>
-          {% endif %}
+          {% if not field.is_hidden %}<label for="{{ field.id_for_label }}" style="display:block;font-weight:bold;margin-bottom:5px">{{ field.label }}</label>{% endif %}
           {{ field }}
-          {% if field.name == 'perfil_acesso' %}
-            <small style="display:block;margin-top:5px;color:#64748b">Membro recebe as permissões institucionais do âmbito. Operador possui somente acesso de visualização das OPOs e mapas de eventos.</small>
-          {% endif %}
-          {% if field.name == 'cpr' %}
-            <small id="ajuda-cpr" style="display:block;margin-top:5px;color:#64748b">Selecione o CPR correspondente ao âmbito.</small>
-          {% endif %}
-          {% if field.name == 'unidade' %}
-            <small id="ajuda-unidade" style="display:block;margin-top:5px;color:#64748b">Selecione primeiro o CPR para carregar somente as unidades subordinadas.</small>
-          {% endif %}
+          {% if field.name == 'perfil_acesso' %}<small style="display:block;margin-top:5px;color:#64748b">Membro recebe as permissões institucionais do âmbito. Operador possui somente acesso de visualização das OPOs e mapas de eventos.</small>{% endif %}
+          {% if field.name == 'cpr' %}<small id="ajuda-cpr" style="display:block;margin-top:5px;color:#64748b">Selecione o CPR correspondente ao âmbito.</small>{% endif %}
+          {% if field.name == 'unidade' %}<small id="ajuda-unidade" style="display:block;margin-top:5px;color:#64748b">Selecione primeiro o CPR para carregar somente as unidades subordinadas.</small>{% endif %}
           {% for error in field.errors %}<div style="color:#b91c1c;font-size:13px">{{ error }}</div>{% endfor %}
         </div>
       {% endfor %}
@@ -44,7 +36,6 @@
 (function () {
   const ambito = document.getElementById('{{ form.perfil.id_for_label }}');
   const perfilAcesso = document.getElementById('{{ form.perfil_acesso.id_for_label }}');
-  const funcao = document.getElementById('{{ form.funcao.id_for_label }}');
   const cpr = document.getElementById('{{ form.cpr.id_for_label }}');
   const unidade = document.getElementById('{{ form.unidade.id_for_label }}');
   const campoCpr = document.getElementById('campo-cpr');
@@ -93,26 +84,19 @@
     const operador = perfilAcesso && perfilAcesso.value === 'OPERADOR';
 
     if (campoCpr) campoCpr.style.display = valor === 'COPPM' ? 'none' : '';
-    if (campoUnidade) {
-      const mostrarUnidade = valor === 'UNIDADE' || (valor === 'CPR' && operador);
-      campoUnidade.style.display = mostrarUnidade ? '' : 'none';
-    }
+    if (campoUnidade) campoUnidade.style.display = (valor === 'UNIDADE' || (valor === 'CPR' && operador)) ? '' : 'none';
 
     if (valor === 'COPPM') {
       if (ajudaCpr) ajudaCpr.textContent = 'COPPM não possui CPR ou unidade vinculados.';
-      if (developer) { cpr.value = ''; unidade.value = ''; }
     } else if (valor === 'CPR') {
       if (ajudaCpr) ajudaCpr.textContent = 'Selecione o CPR que ficará responsável por este cadastro.';
     } else if (valor === 'UNIDADE') {
       if (ajudaCpr) ajudaCpr.textContent = 'Selecione o CPR ao qual a unidade pertence.';
     }
-
-    if (valor !== 'COPPM') preencherUnidades(cpr.value, unidadeInicial);
   }
 
   if (developer) {
     ambito.addEventListener('change', function () {
-      unidadeInicial = '';
       cpr.value = '';
       limparSelect(unidade, 'Selecione primeiro o CPR');
       atualizarCampos();
@@ -127,13 +111,13 @@
 
   cpr.addEventListener('change', function () {
     preencherUnidades(cpr.value, '');
-    if (ambito.value === 'CPR' && perfilAcesso && perfilAcesso.value !== 'OPERADOR') {
-      unidade.value = '';
-    }
+    if (ambito.value === 'CPR' && perfilAcesso && perfilAcesso.value !== 'OPERADOR') unidade.value = '';
   });
 
-  if (developer && cprInicial) cpr.value = cprInicial;
-  if (developer && unidadeInicial) preencherUnidades(cpr.value, unidadeInicial);
+  if (developer && cprInicial) {
+    cpr.value = cprInicial;
+    preencherUnidades(cpr.value, unidadeInicial);
+  }
   atualizarCampos();
 })();
 </script>
