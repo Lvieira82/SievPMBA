@@ -1,28 +1,30 @@
 {% extends 'base.html' %}
-{% block title %}Adicionar à equipe{% endblock %}
+{% block title %}Cadastrar Usuário{% endblock %}
 {% block content %}
-<div class="container py-4" style="max-width:850px">
-  <div class="card shadow-sm">
-    <div class="card-body p-4">
-      <h2>Adicionar à equipe da unidade</h2>
-      <p class="text-muted">{{ unidade }}</p>
-
-      {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
-
-      <form method="post">
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label">{{ field.label }}</label>
-            {{ field }}
-            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
-            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-          </div>
-        {% endfor %}
-        <button type="submit" class="btn btn-primary">Salvar</button>
-        <a href="{% url 'equipe_unidade' %}" class="btn btn-secondary">Cancelar</a>
-      </form>
-    </div>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h2>Cadastrar Usuário</h2><p class="text-muted mb-0">Unidade: {{ unidade }}</p></div>
+    <a href="{% url 'equipe_unidade' %}" class="btn btn-secondary">← Voltar</a>
   </div>
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <div class="alert alert-info"><strong>Função operacional:</strong> escolha entre <strong>Membro operacional</strong>, que gera OPOs e mapas, e <strong>Operador</strong>, que consulta e cumpre eventos/OPOs.</div>
+    {% if form.non_field_errors %}<div class="alert alert-danger">{% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+    <form method="post" novalidate>{% csrf_token %}
+      <div class="row g-3">
+      {% for field in form %}
+        <div class="col-12 {% if field.name == 'nome' or field.name == 'email' %}col-md-6{% endif %}">
+          <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}</label>
+          {{ field }}
+          {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+          {% if field.errors %}<div class="text-danger small mt-1">{% for error in field.errors %}<div>{{ error }}</div>{% endfor %}</div>{% endif %}
+        </div>
+      {% endfor %}
+      </div>
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-primary">Salvar Usuário</button>
+        <a href="{% url 'equipe_unidade' %}" class="btn btn-secondary">Cancelar</a>
+      </div>
+    </form>
+  </div></div>
 </div>
 {% endblock %}
