@@ -9,13 +9,15 @@ from .acesso import (
     esqueci_senha, login_gestao, logout_gestao, redefinir_senha,
     trocar_senha_primeiro_acesso, verificar_novo_navegador,
 )
+from .gestao_acesso import (
+    administracao_sistema, usuario_novo, usuario_editar, usuario_senha,
+    usuario_desativar, transferir_solicitacao_segura,
+)
 from .administracao import (
-    aprovacoes, aprovar_solicitacao, backup, bairros, cadastrar_usuario_unidade,
-    configuracoes, cprs, desativar_usuario_unidade, editar_usuario_unidade,
+    aprovacoes, aprovar_solicitacao, backup, bairros, cprs, configuracoes,
     municipios, obter_perfil_gestor, painel_administracao, painel_gestao,
-    solicitar_correcao_gestao, tipos_documento, tipos_evento,
-    transferir_solicitacao, trocar_senha_usuario, unidades, usuarios,
-    usuarios_unidade,
+    solicitar_correcao_gestao, tipos_documento, tipos_evento, unidades,
+    usuarios,
 )
 from .analise import (
     aprovar, detalhes, estatisticas, fila_analise, historico, indeferir,
@@ -38,3 +40,11 @@ from .protocolo import (
     estatisticas_protocolo, fila_protocolo, historico_protocolo,
     painel_protocolo, reenviar_email,
 )
+
+# Rotas antigas de gestão passam a usar as regras institucionais centralizadas.
+usuarios_unidade = administracao_sistema
+cadastrar_usuario_unidade = usuario_novo
+editar_usuario_unidade = usuario_editar
+trocar_senha_usuario = usuario_senha
+desativar_usuario_unidade = usuario_desativar
+transferir_solicitacao = transferir_solicitacao_segura
