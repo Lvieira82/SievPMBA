@@ -6,9 +6,10 @@ from ..portal_views import (
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from .acesso import (
-    esqueci_senha, login_gestao, logout_gestao, redefinir_senha,
-    trocar_senha_primeiro_acesso, verificar_novo_navegador,
+    esqueci_senha, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso,
+    verificar_novo_navegador,
 )
+from .login_institucional import login_gestao
 from .gestao_acesso import (
     administracao_sistema, usuario_novo, usuario_editar, usuario_senha,
     usuario_desativar, transferir_solicitacao_segura,
@@ -40,11 +41,9 @@ from .protocolo import (
     estatisticas_protocolo, fila_protocolo, historico_protocolo,
     painel_protocolo, reenviar_email,
 )
-
-# Rotas antigas de gestão passam a usar as regras institucionais centralizadas.
-usuarios_unidade = administracao_sistema
-cadastrar_usuario_unidade = usuario_novo
-editar_usuario_unidade = usuario_editar
-trocar_senha_usuario = usuario_senha
-desativar_usuario_unidade = usuario_desativar
-transferir_solicitacao = transferir_solicitacao_segura
+usuarios_unidade=administracao_sistema
+cadastrar_usuario_unidade=usuario_novo
+editar_usuario_unidade=usuario_editar
+trocar_senha_usuario=usuario_senha
+desativar_usuario_unidade=usuario_desativar
+transferir_solicitacao=transferir_solicitacao_segura
