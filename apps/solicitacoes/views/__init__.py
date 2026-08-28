@@ -3,9 +3,10 @@ from ..portal_views import consultar_protocolo, corrigir_solicitacao, lista_bair
 from .acesso import esqueci_senha, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador
 from .login_institucional import login_gestao
 from .gestao_acesso import administracao_sistema, usuario_novo, usuario_editar, usuario_senha, usuario_desativar, transferir_solicitacao_segura
-from .administracao import backup, bairros, cprs, configuracoes, municipios, obter_perfil_gestor, painel_administracao, painel_gestao, tipos_documento, tipos_evento, unidades, usuarios
+from .administracao import backup, bairros, cprs, configuracoes, municipios, obter_perfil_gestor, painel_administracao, tipos_documento, tipos_evento, unidades, usuarios
 from .seguranca_operacional import aprovacoes_seguras, aprovar_solicitacao_segura, solicitar_correcao_segura, indeferir_seguro, lancamento_manual_seguro
 from .gestao_solicitacoes_seguras import agenda_gestao_segura, proximos_eventos_gestao_seguro, listar_pendentes_opo_seguro
+from .painel_seguro import painel_gestao_seguro
 from .analise import detalhes, estatisticas, fila_analise, historico, painel_analise, solicitar_correcao, aprovar as aprovar_analise
 from .compat import alterar_status, detalhe_opo_publica, importar_matriculas_painel, importar_municipios, minhas_solicitacoes, validar_matricula_opo_publica, verificar_autenticidade
 from .escopo_gestao import documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro, opos_geradas_seguro, detalhe_opo_seguro, gerar_opo_seguro, mapa_eventos_seguro
@@ -13,6 +14,7 @@ from .mapa_seguro import gerar_mapa_eventos_pdf_seguro
 from .dashboard import calendario, dashboard, eventos_hoje, mapa, por_municipio, por_tipo, por_unidade
 from .eventos import eventos_dia, eventos_dia_resultado
 from .protocolo import cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo, fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email
+painel_gestao=painel_gestao_seguro
 agenda_gestao=agenda_gestao_segura
 proximos_eventos_gestao=proximos_eventos_gestao_seguro
 listar_pendentes_opo=listar_pendentes_opo_seguro
