@@ -104,7 +104,6 @@ def _documentacao(solicitacao):
         and not _legado_satisfaz_tipo(item.tipo_documento.nome, documentos_legados)
     ]
 
-    # DocumentoSolicitacao e campos legados contam como documentação.
     ok = bool(documentos or documentos_legados) and not faltantes
 
     return {
@@ -229,8 +228,8 @@ def aprovar_solicitacao(request, id):
         observacao="Solicitação aprovada após conferência da documentação para geração da OPO.",
     )
 
-    messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. A OPO está liberada para geração.")
-    return redirect("aprovacoes")
+    messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. A OPO será gerada agora.")
+    return redirect("gerar_opo", id=id)
 
 
 @login_required
