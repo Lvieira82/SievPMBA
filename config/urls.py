@@ -8,42 +8,28 @@ from apps.solicitacoes.portal_views import (
     lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
-from apps.solicitacoes.views.administracao import (
-    cadastrar_usuario_unidade, desativar_usuario_unidade, editar_usuario_unidade,
-    painel_gestao, solicitar_correcao_gestao, transferir_solicitacao,
-    trocar_senha_usuario, usuarios_unidade,
-)
-from apps.solicitacoes.views.administracao_sistema import (
-    administracao_sistema, usuario_desativar, usuario_editar, usuario_excluir,
-    usuario_novo, usuario_senha,
-)
-from apps.solicitacoes.views.acesso import (
-    esqueci_senha, login_gestao, logout_gestao, redefinir_senha,
-    trocar_senha_primeiro_acesso, verificar_novo_navegador,
-)
-from apps.solicitacoes.views.acesso_institucional import (
-    historico_gestao, proximos_eventos_gestao_restrito,
-)
+from apps.solicitacoes.views.administracao import painel_gestao, solicitar_correcao_gestao, transferir_solicitacao, trocar_senha_usuario
+from apps.solicitacoes.views.administracao_sistema import administracao_sistema, usuario_desativar, usuario_editar, usuario_excluir, usuario_novo, usuario_senha
+from apps.solicitacoes.views.acesso import esqueci_senha, login_gestao, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador
+from apps.solicitacoes.views.acesso_institucional import historico_gestao, proximos_eventos_gestao_restrito
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
-from apps.solicitacoes.views.compat import (
-    alterar_status, detalhe_opo, gerar_mapa_eventos_pdf, importar_matriculas_painel,
-    importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes,
-    opos_geradas, verificar_autenticidade,
-)
-from apps.solicitacoes.views.documentos_operador import (
-    abrir_documento_solicitacao, aprovacoes, aprovar_solicitacao, documentos_solicitacao, gerar_opo,
-)
+from apps.solicitacoes.views.compat import alterar_status, detalhe_opo, gerar_mapa_eventos_pdf, importar_matriculas_painel, importar_municipios, lancamento_manual, mapa_eventos, minhas_solicitacoes, opos_geradas, verificar_autenticidade
+from apps.solicitacoes.views.documentos_operador import abrir_documento_solicitacao, aprovacoes, aprovar_solicitacao, documentos_solicitacao, gerar_opo
 from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
-from apps.solicitacoes.views.protocolo import (
-    cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
-    fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
-)
+from apps.solicitacoes.views.protocolo import cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo, fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email
 from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bairros_por_municipio, importar_areas_responsabilidade
 from apps.solicitacoes.views.equipe_unidade import cadastrar_equipe_unidade, equipe_unidade, eventos_dia_operacional
 from apps.solicitacoes.access_control import membro_ou_gestor
+from apps.solicitacoes.views.gestao_usuarios import (
+    usuarios_unidade_nova_lista as usuarios_unidade,
+    usuarios_unidade_novo as cadastrar_usuario_unidade,
+    usuarios_unidade_novo_editar as editar_usuario_unidade,
+    usuarios_unidade_novo_desativar as desativar_usuario_unidade,
+    usuarios_unidade_novo_excluir as excluir_usuario_unidade,
+)
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -58,15 +44,12 @@ urlpatterns = [
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
-
-    # Autenticação segura da gestão
     path("gestao/", login_gestao, name="login_gestao"),
     path("gestao/novo-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
     path("gestao/trocar-senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
     path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
     path("gestao/redefinir-senha/<uidb64>/<token>/", redefinir_senha, name="redefinir_senha"),
     path("logout/", logout_gestao, name="logout_gestao"),
-
     path("painel/", painel_gestao, name="painel_gestao"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
@@ -79,12 +62,13 @@ urlpatterns = [
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
-    path("gestao/equipe/", equipe_unidade, name="equipe_unidade"),
-    path("gestao/equipe/cadastrar/", cadastrar_equipe_unidade, name="cadastrar_equipe_unidade"),
-    path("gestao/equipe/eventos-do-dia/", eventos_dia_operacional, name="eventos_dia_operacional"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
+    path("gestao/usuarios/<int:id>/excluir/", excluir_usuario_unidade, name="excluir_usuario_unidade"),
+    path("gestao/equipe/", equipe_unidade, name="equipe_unidade"),
+    path("gestao/equipe/cadastrar/", cadastrar_equipe_unidade, name="cadastrar_equipe_unidade"),
+    path("gestao/equipe/eventos-do-dia/", eventos_dia_operacional, name="eventos_dia_operacional"),
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
     path("gestao/pendentes-opo/", membro_ou_gestor(listar_pendentes_opo), name="listar_pendentes_opo"),
