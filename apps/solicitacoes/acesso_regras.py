@@ -49,7 +49,9 @@ def escopo_usuario(user):
     if not user or not user.is_authenticated:
         return None
 
-    if user.is_superuser or user.is_staff:
+    # Somente superuser possui privilégios de desenvolvedor.
+    # is_staff não transforma usuário institucional em administrador.
+    if user.is_superuser:
         return {"tipo": "SUPERUSER"}
 
     acesso = getattr(user, "acesso_institucional", None)
