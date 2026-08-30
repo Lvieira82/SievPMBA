@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import transaction
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.solicitacoes.models import CPR, PerfilUsuario, Unidade
@@ -37,12 +38,8 @@ class UsuarioSistemaForm(forms.Form):
     perfil = forms.ChoiceField(choices=AMBITOS, label="Âmbito")
     perfil_acesso = forms.ChoiceField(choices=PERFIS_ACESSO, label="Perfil")
     funcao = forms.ChoiceField(choices=FUNCOES, label="Função")
-    cpr = forms.ModelChoiceField(
-        queryset=CPR.objects.none(), required=False, label="CPR"
-    )
-    unidade = forms.ModelChoiceField(
-        queryset=Unidade.objects.none(), required=False, label="Unidade"
-    )
+    cpr = forms.ModelChoiceField(queryset=CPR.objects.none(), required=False, label="CPR")
+    unidade = forms.ModelChoiceField(queryset=Unidade.objects.none(), required=False, label="Unidade")
     ativo = forms.BooleanField(required=False, initial=True, label="Usuário ativo")
 
     def __init__(self, *args, instance=None, scope=None, **kwargs):
@@ -54,11 +51,11 @@ class UsuarioSistemaForm(forms.Form):
         self.fields["unidade"].queryset = (
             Unidade.objects.filter(ativo=True)
             .select_related("cpr")
-            .order_by("nome")
+            .order_by("cpr__sigla", "nome")
         )
 
         if scope and not scope["desenvolvedor"]:
-            # Gestores/membros institucionais não criam outro gestor.
+            # Gestores e membros institucionais não criam outro gestor.
             self.fields["funcao"].initial = "MEMBRO"
             self.fields["funcao"].widget = forms.HiddenInput()
             self.fields["perfil_acesso"].choices = PERFIS_ACESSO
@@ -92,9 +89,7 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["cpr"].pk)
                 self.fields["cpr"].initial = scope["cpr"].pk
                 self.fields["cpr"].disabled = True
-                self.fields["unidade"].queryset = Unidade.objects.filter(
-                    pk=scope["unidade"].pk
-                )
+                self.fields["unidade"].queryset = Unidade.objects.filter(pk=scope["unidade"].pk)
                 self.fields["unidade"].initial = scope["unidade"].pk
                 self.fields["unidade"].disabled = True
 
@@ -122,7 +117,6 @@ class UsuarioSistemaForm(forms.Form):
                     "ativo": acesso.ativo and instance.is_active,
                 })
 
-                # Apenas o superusuário pode editar a função institucional.
                 if scope and not scope["desenvolvedor"]:
                     self.fields["funcao"].initial = "MEMBRO"
                     self.fields["funcao"].widget = forms.HiddenInput()
@@ -158,14 +152,12 @@ class UsuarioSistemaForm(forms.Form):
         unidade = cleaned.get("unidade")
 
         if self.scope and not self.scope["desenvolvedor"]:
-            # Nunca aceitar pelo POST uma função de gestor enviada manualmente.
             cleaned["funcao"] = "MEMBRO"
-            funcao = "MEMBRO"
 
             if self.scope["perfil"] == "COPPM":
                 if ambito not in {"COPPM", "CPR", "UNIDADE"}:
                     self.add_error("perfil", "Selecione o âmbito institucional.")
-                if ambito == "COPPM":
+                elif ambito == "COPPM":
                     cleaned["cpr"] = None
                     cleaned["unidade"] = None
                 elif ambito == "CPR":
@@ -183,6 +175,12 @@ class UsuarioSistemaForm(forms.Form):
                             "A unidade selecionada não pertence ao CPR informado.",
                         )
 
+                if perfil_acesso == "OPERADOR" and ambito != "UNIDADE":
+                    self.add_error(
+                        "perfil_acesso",
+                        "Operador deve ser vinculado a uma Unidade.",
+                    )
+
             elif self.scope["perfil"] == "CPR":
                 cleaned["perfil"] = "CPR"
                 cleaned["cpr"] = self.scope["cpr"]
@@ -190,9 +188,7 @@ class UsuarioSistemaForm(forms.Form):
                     if not unidade:
                         self.add_error("unidade", "Selecione a unidade do operador.")
                     elif unidade.cpr_id != self.scope["cpr"].id:
-                        self.add_error(
-                            "unidade", "A unidade deve pertencer ao seu CPR."
-                        )
+                        self.add_error("unidade", "A unidade deve pertencer ao seu CPR.")
                 else:
                     cleaned["unidade"] = None
 
@@ -282,12 +278,8 @@ def _escopo(request):
 def _pode_gerenciar(scope, acesso):
     if not scope or not acesso:
         return False
-
     if scope["desenvolvedor"]:
         return not acesso.usuario.is_superuser
-
-    # Todos os perfis institucionais podem administrar seus usuários.
-    # Gestores não podem administrar outro gestor; somente membros/operadores.
     if acesso.funcao != "MEMBRO":
         return False
 
@@ -295,14 +287,10 @@ def _pode_gerenciar(scope, acesso):
         return acesso.perfil in {"COPPM", "CPR", "UNIDADE", "OPERADOR"}
 
     if scope["perfil"] == "CPR":
-        return acesso.cpr_id == scope["cpr"].id and acesso.perfil in {
-            "CPR", "OPERADOR"
-        }
+        return acesso.cpr_id == scope["cpr"].id and acesso.perfil in {"CPR", "OPERADOR"}
 
     if scope["perfil"] == "UNIDADE":
-        return acesso.unidade_id == scope["unidade"].id and acesso.perfil in {
-            "UNIDADE", "OPERADOR"
-        }
+        return acesso.unidade_id == scope["unidade"].id and acesso.perfil in {"UNIDADE", "OPERADOR"}
 
     return False
 
@@ -332,9 +320,7 @@ def _enviar_senha_inicial(user, senha):
 
 def _sincronizar_perfil_compat(user, data):
     perfil, _ = PerfilUsuario.objects.get_or_create(usuario=user)
-    perfil.perfil = (
-        data["perfil"] if data["perfil"] != "OPERADOR" else "UNIDADE"
-    )
+    perfil.perfil = data["perfil"] if data["perfil"] != "OPERADOR" else "UNIDADE"
     perfil.cpr = data["cpr"]
     perfil.unidade = data["unidade"]
     perfil.ativo = data["ativo"]
@@ -361,16 +347,12 @@ def administracao_sistema(request):
             qs = qs.filter(funcao="MEMBRO").exclude(perfil="COPPM")
         elif scope["perfil"] == "CPR":
             qs = qs.filter(
-                funcao="MEMBRO",
-                cpr=scope["cpr"],
-                perfil__in=["CPR", "OPERADOR"],
+                Q(funcao="MEMBRO", cpr=scope["cpr"], perfil__in=["CPR", "OPERADOR"])
             )
         elif scope["perfil"] == "UNIDADE":
-            from django.db.models import Q
             qs = qs.filter(
-                funcao="MEMBRO",
-                Q(perfil="UNIDADE", unidade=scope["unidade"]) |
-                Q(perfil="OPERADOR", unidade=scope["unidade"])
+                Q(funcao="MEMBRO", perfil="UNIDADE", unidade=scope["unidade"])
+                | Q(funcao="MEMBRO", perfil="OPERADOR", unidade=scope["unidade"])
             )
 
     return render(
@@ -507,12 +489,7 @@ def usuario_editar(request, id):
     return render(
         request,
         "administracao_sistema/form.html",
-        {
-            "form": form,
-            "novo": False,
-            "usuario": user,
-            "scope": scope,
-        },
+        {"form": form, "novo": False, "usuario": user, "scope": scope},
     )
 
 
@@ -535,23 +512,13 @@ def usuario_senha(request, id):
 
         try:
             _enviar_senha_inicial(user, senha)
-            messages.success(
-                request,
-                "Nova senha provisória enviada para o e-mail do usuário.",
-            )
+            messages.success(request, "Nova senha provisória enviada para o e-mail do usuário.")
         except Exception:
-            messages.error(
-                request,
-                "A senha foi redefinida, mas não foi possível enviar o e-mail. Verifique o serviço de e-mail.",
-            )
+            messages.error(request, "A senha foi redefinida, mas não foi possível enviar o e-mail. Verifique o serviço de e-mail.")
 
         return redirect("administracao_sistema")
 
-    return render(
-        request,
-        "administracao_sistema/senha.html",
-        {"usuario": user},
-    )
+    return render(request, "administracao_sistema/senha.html", {"usuario": user})
 
 
 @login_required
