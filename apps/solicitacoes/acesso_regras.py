@@ -41,95 +41,61 @@ def sincronizar_acesso(
             "ativo": ativo,
         },
     )
-
     return acesso
 
 
 def escopo_usuario(user):
     if not user or not user.is_authenticated:
         return None
-
-    # Somente superuser possui privilégios de desenvolvedor.
-    # is_staff não transforma usuário institucional em administrador.
     if user.is_superuser:
         return {"tipo": "SUPERUSER"}
 
     acesso = getattr(user, "acesso_institucional", None)
-
     if not acesso or not acesso.ativo or not user.is_active:
         return None
-
     return acesso
 
 
 def pode_gerenciar_usuarios(user):
     acesso = escopo_usuario(user)
-
     if isinstance(acesso, dict):
         return True
-
     if not acesso:
         return False
-
-    return (
-        (acesso.funcao == "GESTOR" and acesso.perfil in {"COPPM", "CPR", "UNIDADE"})
-        or
-        (acesso.funcao == "MEMBRO" and acesso.perfil in {"CPR", "UNIDADE"})
-    )
+    return acesso.funcao == "GESTOR" and acesso.perfil in {"COPPM", "CPR", "UNIDADE"}
 
 
-def pode_criar_usuario(
-    user,
-    perfil_destino,
-    funcao_destino="MEMBRO",
-    unidade=None,
-    cpr=None,
-):
+def pode_criar_usuario(user, perfil_destino, funcao_destino="MEMBRO", unidade=None, cpr=None):
+    """Define exatamente o que cada gestor pode cadastrar.
+
+    COPPM -> somente Membro do COPPM.
+    CPR   -> somente Membro do seu próprio CPR.
+    Unidade -> Membro ou Operador da própria Unidade.
+    """
     acesso = escopo_usuario(user)
 
     if isinstance(acesso, dict):
         return True
-
-    if not acesso:
-        return False
-
-    if perfil_destino == "OPERADOR":
-        if not unidade:
-            return False
-        if acesso.perfil == "COPPM":
-            return True
-        if acesso.perfil == "CPR":
-            return unidade.cpr_id == acesso.cpr_id
-        if acesso.perfil == "UNIDADE":
-            return unidade.id == acesso.unidade_id
-        return False
-
-    if funcao_destino not in {"GESTOR", "MEMBRO"}:
-        return False
-
-    if acesso.funcao == "MEMBRO":
-        if funcao_destino != "MEMBRO":
-            return False
-        if acesso.perfil == "CPR":
-            return perfil_destino in {"CPR", "UNIDADE"} and (
-                (perfil_destino == "CPR" and cpr and cpr.id == acesso.cpr_id)
-                or (perfil_destino == "UNIDADE" and unidade and unidade.cpr_id == acesso.cpr_id)
-            )
-        if acesso.perfil == "UNIDADE":
-            return perfil_destino == "UNIDADE" and unidade and unidade.id == acesso.unidade_id
+    if not acesso or acesso.funcao != "GESTOR":
         return False
 
     if acesso.perfil == "COPPM":
-        return perfil_destino in {"COPPM", "CPR", "UNIDADE"}
+        return perfil_destino == "COPPM" and funcao_destino == "MEMBRO"
 
     if acesso.perfil == "CPR":
-        if perfil_destino == "CPR":
-            return bool(cpr and cpr.id == acesso.cpr_id)
-        if perfil_destino == "UNIDADE":
-            return bool(unidade and unidade.cpr_id == acesso.cpr_id)
-        return False
+        return (
+            perfil_destino == "CPR"
+            and funcao_destino == "MEMBRO"
+            and cpr is not None
+            and cpr.id == acesso.cpr_id
+        )
 
     if acesso.perfil == "UNIDADE":
-        return perfil_destino == "UNIDADE" and bool(unidade and unidade.id == acesso.unidade_id)
+        return (
+            perfil_destino == "UNIDADE"
+            and funcao_destino in {"MEMBRO", "OPERADOR"}
+            and unidade is not None
+            and unidade.id == acesso.unidade_id
+        )
 
     return False
