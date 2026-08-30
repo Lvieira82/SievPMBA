@@ -21,7 +21,7 @@ from .compat import (
 )
 from .dashboard import calendario, dashboard, eventos_hoje, mapa, por_municipio, por_tipo, por_unidade
 from .eventos import eventos_dia, eventos_dia_resultado
-from .protocolo import aprovar_solicitacao as aprovar_solicitacao_protocolo, cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo, fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email
+from .protocolo import cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo, fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email
 
 # Gestão de usuários: esta importação fica por último para substituir as views antigas.
 from .gestao_usuarios import (
