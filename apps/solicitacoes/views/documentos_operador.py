@@ -39,7 +39,7 @@ def _perfil_e_escopo(request):
 
 
 def _documentos_legados(solicitacao):
-    """Localiza documentos antigos e arquivos físicos já existentes no protocolo."""
+    """Recupera campos antigos e PDFs físicos que já pertencem ao protocolo."""
     campos = [
         ("Ofício ao Comandante", "oficio_comandante"),
         ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
@@ -50,7 +50,6 @@ def _documentos_legados(solicitacao):
     encontrados = []
     caminhos = set()
 
-    # Compatibilidade com versões antigas que ainda possuíam campos FileField.
     for nome, campo in campos:
         arquivo = getattr(solicitacao, campo, None)
         if arquivo:
@@ -67,8 +66,6 @@ def _documentos_legados(solicitacao):
                 "url": url,
             })
 
-    # Recupera arquivos que continuam gravados em MEDIA_ROOT, mesmo quando
-    # a linha correspondente em DocumentoSolicitacao não existe mais no DB.
     pasta = os.path.join(settings.MEDIA_ROOT, "protocolos", solicitacao.protocolo)
 
     if os.path.isdir(pasta):
@@ -79,37 +76,37 @@ def _documentos_legados(solicitacao):
             "documento_meio_ambiente.pdf": "Documento de Meio Ambiente",
         }
 
-        for nome_arquivo in sorted(os.listdir(pasta)):
-            caminho = os.path.join(pasta, nome_arquivo)
+        media_url = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
 
-            if not os.path.isfile(caminho):
-                continue
-            if not nome_arquivo.lower().endswith(".pdf"):
-                continue
-            if nome_arquivo in caminhos:
-                continue
+        # Algumas versões antigas gravaram documentos diretamente na pasta
+        # do protocolo; outras criaram subpastas. Recuperamos os dois casos.
+        for raiz, _, arquivos in os.walk(pasta):
+            for nome_arquivo in sorted(arquivos):
+                if not nome_arquivo.lower().endswith(".pdf"):
+                    continue
 
-            chave = nome_arquivo.lower()
-            nome_exibicao = nomes_conhecidos.get(
-                chave,
-                nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
-            )
+                caminho = os.path.join(raiz, nome_arquivo)
+                relativo = os.path.relpath(caminho, settings.MEDIA_ROOT).replace(os.sep, "/")
 
-            relativo = os.path.join(
-                "protocolos",
-                solicitacao.protocolo,
-                nome_arquivo,
-            ).replace(os.sep, "/")
+                if relativo in caminhos or nome_arquivo in caminhos:
+                    continue
 
-            media_url = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
-            url = f"{media_url}/{relativo}"
+                chave = nome_arquivo.lower()
+                nome_exibicao = nomes_conhecidos.get(
+                    chave,
+                    nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
+                )
 
-            encontrados.append({
-                "nome": nome_exibicao,
-                "campo": "arquivo_fisico",
-                "arquivo": nome_arquivo,
-                "url": url,
-            })
+                url = f"{media_url}/{relativo}"
+
+                encontrados.append({
+                    "nome": nome_exibicao,
+                    "campo": "arquivo_fisico",
+                    "arquivo": nome_arquivo,
+                    "url": url,
+                })
+                caminhos.add(relativo)
+                caminhos.add(nome_arquivo)
 
     return encontrados
 
@@ -134,7 +131,6 @@ def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
         if campo == "documento_meio_ambiente" and "meioambiente" in nome:
             return True
 
-        # Compatibilidade com arquivos físicos antigos.
         if arquivo and _normalizar(nome_tipo) in {arquivo, nome_item}:
             return True
         if "bombeiro" in nome and "bombeiro" in arquivo:
@@ -150,7 +146,6 @@ def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
 
 
 def _documentacao(solicitacao):
-    """Calcula a situação documental sem perder anexos antigos."""
     documentos = list(
         DocumentoSolicitacao.objects
         .filter(solicitacao=solicitacao)
@@ -255,7 +250,6 @@ def documentos_solicitacao(request, id):
 
 @login_required
 def abrir_documento_solicitacao(request, id, tipo):
-    """Só permite abrir um PDF pertencente ao escopo institucional do operador."""
     _, escopo = _perfil_e_escopo(request)
     documento = get_object_or_404(
         DocumentoSolicitacao.objects.select_related("solicitacao"),
@@ -309,7 +303,6 @@ def aprovar_solicitacao(request, id):
 
 @login_required
 def gerar_opo(request, id):
-    """Última barreira: nenhuma OPO é gerada sem documentação conferida."""
     _, escopo = _perfil_e_escopo(request)
     solicitacao = get_object_or_404(escopo, pk=id)
     status_documental = _documentacao(solicitacao)
