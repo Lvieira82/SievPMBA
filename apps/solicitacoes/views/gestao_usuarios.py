@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.solicitacoes.models import PerfilUsuario, MatriculaAutorizada, CPR, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
+from apps.solicitacoes.permissoes import pode_administrar_usuarios
 
 
 def _desenvolvedor(user):
@@ -27,14 +28,16 @@ def _pode_ver_alvo(request_user, alvo):
     acesso = _acesso(request_user)
     if not acesso or alvo.usuario_id == request_user.id:
         return False
-    if acesso.perfil == "COPPM":
-        return True
-    if acesso.perfil == "CPR":
-        return bool(alvo.cpr_id == acesso.cpr_id)
-    if acesso.perfil == "UNIDADE":
-        return bool(alvo.unidade_id == acesso.unidade_id)
-    if acesso.perfil == "OPERADOR":
+    if acesso.funcao not in {"GESTOR", "MEMBRO"}:
         return False
+    if acesso.perfil == "COPPM":
+        return alvo.perfil in {"COPPM", "CPR", "UNIDADE", "OPERADOR"}
+    if acesso.perfil == "CPR":
+        if alvo.perfil == "CPR":
+            return alvo.cpr_id == acesso.cpr_id
+        return bool(alvo.perfil in {"UNIDADE", "OPERADOR"} and alvo.unidade_id and Unidade.objects.filter(pk=alvo.unidade_id, cpr_id=acesso.cpr_id, ativo=True).exists())
+    if acesso.perfil == "UNIDADE":
+        return bool(alvo.perfil in {"UNIDADE", "OPERADOR"} and alvo.unidade_id == acesso.unidade_id)
     return False
 
 
@@ -42,22 +45,24 @@ def _pode_criar(request_user, perfil, funcao, cpr=None, unidade=None):
     if _desenvolvedor(request_user):
         return True
     acesso = _acesso(request_user)
-    if not acesso:
+    if not acesso or acesso.funcao not in {"GESTOR", "MEMBRO"}:
         return False
 
     if perfil == "OPERADOR":
+        if not unidade:
+            return False
         if acesso.perfil == "COPPM":
-            return bool(unidade)
+            return True
         if acesso.perfil == "CPR":
-            return bool(unidade and unidade.cpr_id == acesso.cpr_id)
+            return unidade.cpr_id == acesso.cpr_id
         if acesso.perfil == "UNIDADE":
-            return bool(unidade and unidade.id == acesso.unidade_id)
+            return unidade.id == acesso.unidade_id
         return False
 
     if funcao not in {"GESTOR", "MEMBRO"}:
         return False
 
-    if acesso.funcao == "MEMBRO":
+    if acesso.funcao == "MEMBRO" and funcao != "MEMBRO":
         return False
 
     if acesso.perfil == "COPPM":
@@ -78,16 +83,28 @@ def _pode_criar(request_user, perfil, funcao, cpr=None, unidade=None):
 
 def _escopo_cadastro(user):
     if _desenvolvedor(user):
-        return CPR.objects.filter(ativo=True).order_by("sigla"), Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla")
+        return (
+            CPR.objects.filter(ativo=True).order_by("sigla"),
+            Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        )
     acesso = _acesso(user)
     if not acesso:
         return CPR.objects.none(), Unidade.objects.none()
     if acesso.perfil == "COPPM":
-        return CPR.objects.filter(ativo=True).order_by("sigla"), Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla")
+        return (
+            CPR.objects.filter(ativo=True).order_by("sigla"),
+            Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        )
     if acesso.perfil == "CPR":
-        return CPR.objects.filter(id=acesso.cpr_id, ativo=True), Unidade.objects.filter(cpr_id=acesso.cpr_id, ativo=True).order_by("sigla")
+        return (
+            CPR.objects.filter(id=acesso.cpr_id, ativo=True),
+            Unidade.objects.filter(cpr_id=acesso.cpr_id, ativo=True).order_by("sigla"),
+        )
     if acesso.perfil == "UNIDADE":
-        return CPR.objects.filter(id=acesso.unidade.cpr_id, ativo=True), Unidade.objects.filter(id=acesso.unidade_id, ativo=True)
+        return (
+            CPR.objects.filter(id=acesso.unidade.cpr_id, ativo=True),
+            Unidade.objects.filter(id=acesso.unidade_id, ativo=True),
+        )
     return CPR.objects.none(), Unidade.objects.none()
 
 
@@ -96,7 +113,7 @@ def _alvos_usuario(user):
     if _desenvolvedor(user):
         return qs.order_by("usuario__first_name", "usuario__last_name")
     acesso = _acesso(user)
-    if not acesso:
+    if not acesso or acesso.funcao not in {"GESTOR", "MEMBRO"}:
         return qs.none()
     if acesso.perfil == "COPPM":
         return qs.order_by("usuario__first_name", "usuario__last_name")
@@ -126,13 +143,11 @@ def _form_context(request, form_data=None, erro=None):
 
 @login_required
 def usuarios_unidade_novo(request):
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
     acesso = _acesso(request.user)
-    if not _desenvolvedor(request.user) and not acesso:
-        messages.error(request, "Seu usuário não possui acesso institucional ativo.")
-        return redirect("painel_gestao")
-    if not _desenvolvedor(request.user) and acesso.perfil == "OPERADOR":
-        messages.error(request, "Operadores não administram usuários.")
-        return redirect("painel_gestao")
 
     if request.method == "POST":
         data = request.POST
@@ -156,10 +171,11 @@ def usuarios_unidade_novo(request):
             return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "A senha deve possuir pelo menos 6 caracteres."))
         if User.objects.filter(username=username).exists():
             return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Este nome de usuário já existe."))
-        if MatriculaAutorizada.objects.filter(matricula=matricula, ativo=True).exists():
+        if AcessoInstitucional.objects.filter(matricula=matricula).exists() or MatriculaAutorizada.objects.filter(matricula=matricula, ativo=True).exists():
             return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Esta matrícula já está cadastrada."))
         if perfil not in {"COPPM", "CPR", "UNIDADE", "OPERADOR"}:
             return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione um perfil válido."))
+
         if perfil == "OPERADOR":
             funcao = "MEMBRO"
         elif funcao not in {"GESTOR", "MEMBRO"}:
@@ -167,23 +183,28 @@ def usuarios_unidade_novo(request):
 
         cpr = get_object_or_404(CPR, id=cpr_id, ativo=True) if cpr_id else None
         unidade = get_object_or_404(Unidade, id=unidade_id, ativo=True) if unidade_id else None
+
         if unidade:
             cpr = unidade.cpr
-        if perfil == "CPR" and not cpr:
-            return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione o CPR."))
-        if perfil == "UNIDADE" and not unidade:
-            return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione a Unidade."))
-        if perfil == "OPERADOR" and not unidade:
-            return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione a Unidade do operador."))
+
         if perfil == "COPPM":
-            unidade = None
             cpr = None
+            unidade = None
+        elif perfil == "CPR" and not cpr:
+            return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione o CPR."))
+        elif perfil in {"UNIDADE", "OPERADOR"} and not unidade:
+            return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Selecione a Unidade."))
 
         if not _pode_criar(request.user, perfil, funcao, cpr, unidade):
             return render(request, "gestao/cadastrar_usuario.html", _form_context(request, data, "Você não possui permissão para criar este perfil nesse âmbito."))
 
         with transaction.atomic():
-            user = User.objects.create_user(username=username, email=email, password=senha, first_name=nome)
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=senha,
+                first_name=nome,
+            )
             partes = nome.split()
             user.first_name = partes[0]
             user.last_name = " ".join(partes[1:])
@@ -201,6 +222,7 @@ def usuarios_unidade_novo(request):
                 primeiro_acesso=True,
                 ativo=True,
             )
+
             PerfilUsuario.objects.update_or_create(
                 usuario=user,
                 defaults={
@@ -210,6 +232,7 @@ def usuarios_unidade_novo(request):
                     "ativo": True,
                 },
             )
+
             MatriculaAutorizada.objects.create(
                 matricula=matricula,
                 nome=nome,
@@ -226,26 +249,42 @@ def usuarios_unidade_novo(request):
 
 @login_required
 def usuarios_unidade_nova_lista(request):
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
     acesso = _acesso(request.user)
-    if not _desenvolvedor(request.user) and not acesso:
-        messages.error(request, "Seu usuário não possui acesso institucional ativo.")
-        return redirect("painel_gestao")
-    if not _desenvolvedor(request.user) and acesso.perfil == "OPERADOR":
-        messages.error(request, "Operadores não administram usuários.")
-        return redirect("painel_gestao")
     usuarios = list(_alvos_usuario(request.user))
+
     for item in usuarios:
         item.rotulo_perfil = _rotulo_perfil(item)
         item.pode_editar = _pode_ver_alvo(request.user, item)
+        item.pode_senha = item.pode_editar
         item.pode_excluir = item.pode_editar
         item.pode_desativar = item.pode_editar and item.ativo
-    return render(request, "gestao/usuarios_unidade.html", {"usuarios": usuarios, "perfil": acesso, "desenvolvedor": _desenvolvedor(request.user)})
+
+    return render(
+        request,
+        "gestao/usuarios_unidade.html",
+        {
+            "usuarios": usuarios,
+            "perfil": acesso,
+            "desenvolvedor": _desenvolvedor(request.user),
+        },
+    )
 
 
 @login_required
 def usuarios_unidade_novo_editar(request, id):
-    acesso = _acesso(request.user)
-    alvo = get_object_or_404(AcessoInstitucional.objects.select_related("usuario", "cpr", "unidade"), id=id)
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
+    alvo = get_object_or_404(
+        AcessoInstitucional.objects.select_related("usuario", "cpr", "unidade"),
+        id=id,
+    )
+
     if not _pode_ver_alvo(request.user, alvo):
         messages.error(request, "Você não possui acesso a este usuário.")
         return redirect("usuarios_unidade")
@@ -255,64 +294,143 @@ def usuarios_unidade_novo_editar(request, id):
         username = request.POST.get("username", "").strip()
         email = request.POST.get("email", "").strip()
         matricula = request.POST.get("matricula", "").strip()
+
         if not nome or not username or not matricula:
             messages.error(request, "Nome, usuário e matrícula são obrigatórios.")
             return redirect("editar_usuario_unidade", id=id)
+
         if User.objects.filter(username=username).exclude(id=alvo.usuario_id).exists():
             messages.error(request, "Este nome de usuário já está sendo utilizado.")
             return redirect("editar_usuario_unidade", id=id)
+
         if AcessoInstitucional.objects.filter(matricula=matricula).exclude(id=alvo.id).exists():
             messages.error(request, "Esta matrícula já está sendo utilizada.")
             return redirect("editar_usuario_unidade", id=id)
+
         alvo.usuario.username = username
         alvo.usuario.email = email
         partes = nome.split()
         alvo.usuario.first_name = partes[0]
         alvo.usuario.last_name = " ".join(partes[1:])
         alvo.usuario.save()
+
+        antiga_matricula = alvo.matricula
         alvo.matricula = matricula
         alvo.save(update_fields=["matricula", "atualizado_em"])
-        MatriculaAutorizada.objects.filter(matricula=matricula).update(nome=nome)
+
+        MatriculaAutorizada.objects.filter(matricula=antiga_matricula).update(
+            matricula=matricula,
+            nome=nome,
+        )
+
         messages.success(request, "Usuário atualizado com sucesso.")
         return redirect("usuarios_unidade")
 
-    return render(request, "gestao/editar_usuario.html", {"perfil": acesso, "acesso": alvo, "usuario": alvo.usuario, "perfil_usuario": getattr(alvo.usuario, "perfil_siev", None)})
+    return render(
+        request,
+        "gestao/editar_usuario.html",
+        {
+            "perfil": _acesso(request.user),
+            "acesso": alvo,
+            "usuario": alvo.usuario,
+            "perfil_usuario": getattr(alvo.usuario, "perfil_siev", None),
+        },
+    )
+
+
+@login_required
+def usuarios_unidade_novo_senha(request, id):
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
+    alvo = get_object_or_404(AcessoInstitucional, id=id)
+
+    if not _pode_ver_alvo(request.user, alvo):
+        messages.error(request, "Você não possui acesso a este usuário.")
+        return redirect("usuarios_unidade")
+
+    if request.method == "POST":
+        senha = request.POST.get("senha", "")
+        confirmacao = request.POST.get("senha_confirmacao", "")
+
+        if len(senha) < 6:
+            messages.error(request, "A senha deve possuir pelo menos 6 caracteres.")
+            return redirect("trocar_senha_usuario", id=id)
+
+        if senha != confirmacao:
+            messages.error(request, "As senhas não conferem.")
+            return redirect("trocar_senha_usuario", id=id)
+
+        alvo.usuario.set_password(senha)
+        alvo.usuario.save(update_fields=["password"])
+        alvo.primeiro_acesso = False
+        alvo.save(update_fields=["primeiro_acesso", "atualizado_em"])
+
+        messages.success(request, "Senha alterada com sucesso.")
+        return redirect("usuarios_unidade")
+
+    return render(
+        request,
+        "gestao/trocar_senha.html",
+        {
+            "perfil": _acesso(request.user),
+            "perfil_usuario": alvo,
+        },
+    )
 
 
 @login_required
 def usuarios_unidade_novo_desativar(request, id):
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
     alvo = get_object_or_404(AcessoInstitucional, id=id)
+
     if alvo.usuario_id == request.user.id:
         messages.error(request, "Você não pode desativar seu próprio usuário.")
         return redirect("usuarios_unidade")
+
     if not _pode_ver_alvo(request.user, alvo):
         messages.error(request, "Você não possui acesso a este usuário.")
         return redirect("usuarios_unidade")
+
     alvo.ativo = False
     alvo.save(update_fields=["ativo", "atualizado_em"])
     alvo.usuario.is_active = False
     alvo.usuario.save(update_fields=["is_active"])
     PerfilUsuario.objects.filter(usuario_id=alvo.usuario_id).update(ativo=False)
     MatriculaAutorizada.objects.filter(matricula=alvo.matricula).update(ativo=False)
+
     messages.success(request, "Usuário desativado com sucesso.")
     return redirect("usuarios_unidade")
 
 
 @login_required
 def usuarios_unidade_novo_excluir(request, id):
+    if not pode_administrar_usuarios(request.user):
+        messages.error(request, "Você não possui permissão para administrar usuários.")
+        return redirect("painel_gestao")
+
     alvo = get_object_or_404(AcessoInstitucional, id=id)
+
     if alvo.usuario_id == request.user.id:
         messages.error(request, "Você não pode excluir seu próprio usuário.")
         return redirect("usuarios_unidade")
+
     if not _pode_ver_alvo(request.user, alvo):
         messages.error(request, "Você não possui acesso a este usuário.")
         return redirect("usuarios_unidade")
+
     if request.method != "POST":
         messages.error(request, "A exclusão deve ser confirmada pelo formulário.")
         return redirect("usuarios_unidade")
+
     matricula = alvo.matricula
     user = alvo.usuario
     MatriculaAutorizada.objects.filter(matricula=matricula).delete()
     user.delete()
+
     messages.success(request, "Usuário excluído com sucesso.")
     return redirect("usuarios_unidade")
