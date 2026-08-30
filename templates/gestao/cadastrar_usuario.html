@@ -6,10 +6,8 @@
     <div><h2>Cadastrar Usuário</h2><p class="text-muted mb-0">Cadastro de usuário institucional</p></div>
     <a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">← Voltar</a>
   </div>
-
   {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
   {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
-
   <div class="card shadow-sm"><div class="card-body p-4">
     <form method="post">
       {% csrf_token %}
@@ -19,7 +17,6 @@
         <div class="col-md-6"><label class="form-label">Posto / Graduação</label><input name="posto" value="{{ form_data.posto|default:'' }}" class="form-control"></div>
         <div class="col-md-6"><label class="form-label">Usuário de acesso *</label><input name="username" value="{{ form_data.username|default:'' }}" class="form-control" required></div>
         <div class="col-md-6"><label class="form-label">E-mail</label><input type="email" name="email" value="{{ form_data.email|default:'' }}" class="form-control"></div>
-
         <div class="col-md-4">
           <label class="form-label">Perfil *</label>
           <select name="perfil_acesso" id="id_perfil_acesso" class="form-select" required>
@@ -28,78 +25,60 @@
           </select>
           <div class="form-text">Membro participa da gestão do âmbito. Operador atua somente na Unidade.</div>
         </div>
-
         {% if desenvolvedor %}
-        <div class="col-md-4" id="bloco_funcao">
-          <label class="form-label">Função *</label>
-          <select name="funcao" id="id_funcao" class="form-select">
-            <option value="MEMBRO" {% if form_data.funcao == 'MEMBRO' %}selected{% endif %}>Membro</option>
-            <option value="GESTOR" {% if form_data.funcao == 'GESTOR' %}selected{% endif %}>Gestor</option>
-          </select>
-        </div>
-        {% else %}
-        <input type="hidden" name="funcao" value="MEMBRO">
-        {% endif %}
-
+        <div class="col-md-4" id="bloco_funcao"><label class="form-label">Função *</label><select name="funcao" id="id_funcao" class="form-select"><option value="MEMBRO">Membro</option><option value="GESTOR">Gestor</option></select></div>
+        {% else %}<input type="hidden" name="funcao" value="MEMBRO">{% endif %}
         <div class="col-md-4" id="bloco_ambito">
           <label class="form-label">Âmbito *</label>
           <select name="perfil" id="id_perfil" class="form-select" required>
-            <option value="COPPM">COPPM</option>
-            <option value="CPR">CPR</option>
+            {% if perfil.perfil == 'COPPM' or desenvolvedor %}<option value="COPPM">COPPM</option>{% endif %}
+            {% if perfil.perfil == 'CPR' or perfil.perfil == 'COPPM' or desenvolvedor %}<option value="CPR">CPR</option>{% endif %}
             <option value="UNIDADE">Unidade</option>
           </select>
         </div>
-
         <div class="col-md-6" id="bloco_cpr">
-          <label class="form-label">CPR</label>
+          <label class="form-label">CPR *</label>
           <select name="cpr" id="id_cpr" class="form-select">
-            <option value="">Selecione</option>
-            {% for cpr in cprs %}<option value="{{ cpr.id }}">{{ cpr }}</option>{% endfor %}
+            <option value="">Selecione o CPR</option>
+            {% for cpr in cprs %}<option value="{{ cpr.id }}">{{ cpr.sigla }}{% if cpr.nome %} - {{ cpr.nome }}{% endif %}</option>{% empty %}<option value="" disabled>Nenhum CPR disponível</option>{% endfor %}
           </select>
         </div>
         <div class="col-md-6" id="bloco_unidade">
-          <label class="form-label">Unidade</label>
+          <label class="form-label">Unidade *</label>
           <select name="unidade" id="id_unidade" class="form-select">
-            <option value="">Selecione</option>
-            {% for unidade in unidades %}<option value="{{ unidade.id }}" data-cpr="{{ unidade.cpr_id }}">{{ unidade }}</option>{% endfor %}
+            <option value="">Selecione a Unidade</option>
+            {% for unidade in unidades %}<option value="{{ unidade.id }}" data-cpr="{{ unidade.cpr_id }}">{{ unidade.sigla }}{% if unidade.nome %} - {{ unidade.nome }}{% endif %}</option>{% empty %}<option value="" disabled>Nenhuma Unidade disponível</option>{% endfor %}
           </select>
         </div>
-
         <div class="col-md-6"><label class="form-label">Senha *</label><input type="password" name="senha" class="form-control" minlength="6" required></div>
         <div class="col-md-6"><label class="form-label">Confirmar senha *</label><input type="password" name="confirmar_senha" class="form-control" minlength="6" required></div>
       </div>
-
       <div class="mt-4 d-flex gap-2"><button class="btn btn-primary" type="submit">Salvar Usuário</button><a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">Cancelar</a></div>
     </form>
   </div></div>
 </div>
 <script>
 (function(){
-  const perfilAcesso=document.getElementById('id_perfil_acesso');
-  const ambito=document.getElementById('id_perfil');
-  const funcao=document.getElementById('id_funcao');
-  const cpr=document.getElementById('bloco_cpr');
-  const unidade=document.getElementById('bloco_unidade');
-
+  const perfilAcesso=document.getElementById('id_perfil_acesso'), ambito=document.getElementById('id_perfil'), funcao=document.getElementById('id_funcao'), blocoCpr=document.getElementById('bloco_cpr'), blocoUnidade=document.getElementById('bloco_unidade'), cpr=document.getElementById('id_cpr'), unidade=document.getElementById('id_unidade');
+  if(!perfilAcesso||!ambito||!cpr||!unidade)return;
+  const unidades=[...unidade.options].map(o=>o.cloneNode(true));
+  function filtrarUnidades(){
+    const selecionado=cpr.value, atual=unidade.value;
+    unidade.innerHTML='';
+    const inicio=document.createElement('option'); inicio.value=''; inicio.textContent='Selecione a Unidade'; unidade.appendChild(inicio);
+    unidades.forEach(o=>{if(o.value&&(!selecionado||o.dataset.cpr===selecionado))unidade.appendChild(o.cloneNode(true));});
+    if([...unidade.options].some(o=>o.value===atual))unidade.value=atual;
+  }
   function atualiza(){
     const operador=perfilAcesso.value==='OPERADOR';
+    if(operador){ambito.value='UNIDADE';if(funcao)funcao.value='MEMBRO';}
     const a=ambito.value;
-
-    if (funcao && operador) funcao.value='MEMBRO';
-
-    ambito.disabled=false;
-    if (operador) ambito.value='UNIDADE';
-
-    cpr.style.display=(operador || a==='UNIDADE' || a==='COPPM')?'none':'';
-    unidade.style.display=(operador || a==='UNIDADE')?'':'none';
-
-    if (operador || a!=='CPR') document.getElementById('id_cpr').value='';
-    if (!operador && a!=='UNIDADE') document.getElementById('id_unidade').value='';
+    blocoCpr.style.display=a==='CPR'||a==='UNIDADE'?'':'none';
+    blocoUnidade.style.display=a==='CPR'||a==='UNIDADE'?'':'none';
+    if(a==='COPPM'){cpr.value='';unidade.value='';blocoCpr.style.display='none';blocoUnidade.style.display='none';}
+    filtrarUnidades();
   }
-
-  perfilAcesso.addEventListener('change',atualiza);
-  ambito.addEventListener('change',atualiza);
-  atualiza();
+  cpr.addEventListener('change',filtrarUnidades); perfilAcesso.addEventListener('change',atualiza); ambito.addEventListener('change',atualiza); atualiza();
 })();
 </script>
 {% endblock %}
