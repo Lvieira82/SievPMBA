@@ -1,125 +1,100 @@
 {% extends "base.html" %}
-
-{% block title %}
-Cadastrar Usuário
-{% endblock %}
-
+{% block title %}Cadastrar Usuário{% endblock %}
 {% block content %}
-
 <div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h2>Cadastrar Usuário</h2><p class="text-muted mb-0">Cadastro de usuário institucional</p></div>
+    <a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">← Voltar</a>
+  </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  {% if erro %}<div class="alert alert-danger">{{ erro }}</div>{% endif %}
+  {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
 
-        <div>
-            <h2>Cadastrar Usuário</h2>
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <form method="post">
+      {% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Nome completo *</label><input name="nome" value="{{ form_data.nome|default:'' }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">Matrícula *</label><input name="matricula" value="{{ form_data.matricula|default:'' }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">Posto / Graduação</label><input name="posto" value="{{ form_data.posto|default:'' }}" class="form-control"></div>
+        <div class="col-md-6"><label class="form-label">Usuário de acesso *</label><input name="username" value="{{ form_data.username|default:'' }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">E-mail</label><input type="email" name="email" value="{{ form_data.email|default:'' }}" class="form-control"></div>
 
-            {% if unidade %}
-                <p class="text-muted mb-0">
-                    Unidade: {{ unidade }}
-                </p>
-            {% elif perfil and perfil.cpr %}
-                <p class="text-muted mb-0">
-                    CPR: {{ perfil.cpr }}
-                </p>
-            {% else %}
-                <p class="text-muted mb-0">
-                    Cadastro de usuário institucional
-                </p>
-            {% endif %}
+        <div class="col-md-4">
+          <label class="form-label">Perfil *</label>
+          <select name="perfil" id="id_perfil" class="form-select" required>
+            <option value="">Selecione</option>
+            <option value="COPPM">Membro</option>
+            <option value="CPR">Membro</option>
+            <option value="UNIDADE">Membro</option>
+            <option value="OPERADOR">Operador</option>
+          </select>
+          <div class="form-text">Membro usa o âmbito selecionado. Operador atua somente na Unidade.</div>
         </div>
 
-        <a
-            href="{% url 'usuarios_unidade' %}"
-            class="btn btn-secondary"
-        >
-            ← Voltar
-        </a>
-
-    </div>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
-        {% endfor %}
-    {% endif %}
-
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            {% for error in form.non_field_errors %}
-                <div>{{ error }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    <div class="card shadow-sm">
-
-        <div class="card-body p-4">
-
-            <form method="post" novalidate>
-
-                {% csrf_token %}
-
-                <div class="row g-3">
-
-                    {% for field in form %}
-
-                        <div class="col-12 {% if field.name == 'nome' or field.name == 'email' %}col-md-6{% endif %}">
-
-                            <label for="{{ field.id_for_label }}" class="form-label">
-                                {{ field.label }}
-                                {% if field.field.required %}
-                                    <span class="text-danger">*</span>
-                                {% endif %}
-                            </label>
-
-                            {{ field }}
-
-                            {% if field.help_text %}
-                                <div class="form-text">
-                                    {{ field.help_text }}
-                                </div>
-                            {% endif %}
-
-                            {% if field.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in field.errors %}
-                                        <div>{{ error }}</div>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-
-                        </div>
-
-                    {% endfor %}
-
-                </div>
-
-                <div class="mt-4 d-flex gap-2">
-
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-                        Salvar Usuário
-                    </button>
-
-                    <a
-                        href="{% url 'usuarios_unidade' %}"
-                        class="btn btn-secondary"
-                    >
-                        Cancelar
-                    </a>
-
-                </div>
-
-            </form>
-
+        <div class="col-md-4" id="bloco_funcao">
+          <label class="form-label">Função *</label>
+          <select name="funcao" id="id_funcao" class="form-select">
+            <option value="MEMBRO">Membro</option>
+            <option value="GESTOR">Gestor</option>
+          </select>
         </div>
 
-    </div>
+        <div class="col-md-4" id="bloco_ambito">
+          <label class="form-label">Âmbito *</label>
+          <select id="id_ambito" class="form-select">
+            <option value="COPPM">COPPM</option>
+            <option value="CPR">CPR</option>
+            <option value="UNIDADE">Unidade</option>
+          </select>
+        </div>
 
+        <div class="col-md-6" id="bloco_cpr">
+          <label class="form-label">CPR</label>
+          <select name="cpr" id="id_cpr" class="form-select">
+            <option value="">Selecione</option>
+            {% for cpr in cprs %}<option value="{{ cpr.id }}">{{ cpr }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6" id="bloco_unidade">
+          <label class="form-label">Unidade</label>
+          <select name="unidade" id="id_unidade" class="form-select">
+            <option value="">Selecione</option>
+            {% for unidade in unidades %}<option value="{{ unidade.id }}" data-cpr="{{ unidade.cpr_id }}">{{ unidade }}</option>{% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6"><label class="form-label">Senha *</label><input type="password" name="senha" class="form-control" minlength="6" required></div>
+        <div class="col-md-6"><label class="form-label">Confirmar senha *</label><input type="password" name="confirmar_senha" class="form-control" minlength="6" required></div>
+      </div>
+
+      <div class="mt-4 d-flex gap-2"><button class="btn btn-primary" type="submit">Salvar Usuário</button><a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">Cancelar</a></div>
+    </form>
+  </div></div>
 </div>
-
+<script>
+(function(){
+  const perfil=document.getElementById('id_perfil');
+  const funcao=document.getElementById('id_funcao');
+  const ambito=document.getElementById('id_ambito');
+  const cpr=document.getElementById('bloco_cpr');
+  const unidade=document.getElementById('bloco_unidade');
+  const funcaoBox=document.getElementById('bloco_funcao');
+  function atualiza(){
+    const p=perfil.value;
+    const a=ambito.value;
+    const operador=p==='OPERADOR';
+    funcaoBox.style.display=operador?'none':'';
+    if(operador) funcao.value='MEMBRO';
+    const mostraCpr=!operador && a==='CPR';
+    const mostraUnidade=operador || (!operador && a==='UNIDADE');
+    cpr.style.display=mostraCpr?'':'none';
+    unidade.style.display=mostraUnidade?'':'none';
+    if(!mostraCpr) document.getElementById('id_cpr').value='';
+    if(!mostraUnidade) document.getElementById('id_unidade').value='';
+    if(operador) ambito.value='UNIDADE';
+  }
+  perfil.addEventListener('change',atualiza); ambito.addEventListener('change',atualiza); atualiza();
+})();
+</script>
 {% endblock %}
