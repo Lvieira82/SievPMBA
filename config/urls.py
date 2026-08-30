@@ -27,6 +27,7 @@ from apps.solicitacoes.views.gestao_usuarios import (
     usuarios_unidade_nova_lista as usuarios_unidade,
     usuarios_unidade_novo as cadastrar_usuario_unidade,
     usuarios_unidade_novo_editar as editar_usuario_unidade,
+    usuarios_unidade_novo_senha as trocar_senha_usuario,
     usuarios_unidade_novo_desativar as desativar_usuario_unidade,
     usuarios_unidade_novo_excluir as excluir_usuario_unidade,
 )
