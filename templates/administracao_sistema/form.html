@@ -13,7 +13,6 @@
 .campo-form input:focus,.campo-form select:focus,.campo-form textarea:focus{outline:none;border-color:#907C64;box-shadow:0 0 0 3px rgba(144,124,100,.14)}
 .campo-form input[type=checkbox]{width:18px;height:18px;accent-color:#907C64}.campo-form select:disabled,.campo-form input:disabled{background:#f1f5f9;color:#64748b}
 .ajuda{display:block;margin-top:5px;color:#64748b;font-size:13px}.erro-campo{margin-top:5px;color:#b91c1c;font-size:13px}.erros-gerais{margin-bottom:18px;padding:12px 15px;border-radius:9px;background:#fef2f2;color:#991b1b}
-.escopo-fixo{min-height:44px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#f1f5f9;color:#475569;box-sizing:border-box}
 .acoes-form{margin-top:28px;display:flex;gap:10px}.btn-salvar{border:0;border-radius:9px;padding:12px 24px;background:#c9a43b;color:#111;font-weight:700;cursor:pointer}.btn-cancelar{display:inline-flex;align-items:center;padding:12px 20px;border-radius:9px;background:#6b7280;color:#fff;text-decoration:none}
 @media(max-width:800px){.usuario-grid{grid-template-columns:1fr}.campo-form.full{grid-column:auto}.usuario-card{padding:25px 20px}}
 </style>
@@ -24,11 +23,11 @@
 {% if scope.desenvolvedor %}
 Defina o perfil institucional e o direcionamento territorial do usuário.
 {% elif scope.perfil == 'COPPM' %}
-Você está cadastrando um Membro do COPPM. O usuário ficará vinculado exclusivamente ao COPPM.
+Você está cadastrando um Membro do COPPM. O vínculo com o COPPM é definido automaticamente.
 {% elif scope.perfil == 'CPR' %}
-Você está cadastrando um Membro do seu CPR. O direcionamento é definido automaticamente pelo sistema.
+Você está cadastrando um Membro do seu CPR. O vínculo com o CPR é definido automaticamente.
 {% else %}
-Você está cadastrando um Membro ou Operador da sua Unidade. O direcionamento é definido automaticamente pelo sistema.
+Você está cadastrando um Membro ou Operador da sua Unidade. O vínculo com a Unidade é definido automaticamente.
 {% endif %}
 </div>
 
@@ -50,14 +49,6 @@ Você está cadastrando um Membro ou Operador da sua Unidade. O direcionamento �
 <div class="campo-form"><label for="id_perfil">Âmbito</label>{{ form.perfil }}{% for error in form.perfil.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
 <div class="campo-form"><label for="id_cpr">CPR</label>{{ form.cpr }}{% for error in form.cpr.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
 <div class="campo-form"><label for="id_unidade">Unidade</label>{{ form.unidade }}{% for error in form.unidade.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
-{% else %}
-<div class="campo-form"><label>Âmbito</label><div class="escopo-fixo">{% if scope.perfil == 'COPPM' %}COPPM{% elif scope.perfil == 'CPR' %}CPR{% else %}Unidade{% endif %}</div></div>
-{% if scope.perfil == 'CPR' %}
-<div class="campo-form"><label>CPR</label><div class="escopo-fixo">{{ scope.cpr.sigla }}{% if scope.cpr.nome and scope.cpr.nome != scope.cpr.sigla %} - {{ scope.cpr.nome }}{% endif %}</div><small class="ajuda">Vínculo definido automaticamente pelo seu perfil de gestor.</small></div>
-{% elif scope.perfil == 'UNIDADE' %}
-<div class="campo-form"><label>CPR</label><div class="escopo-fixo">{{ scope.cpr.sigla }}{% if scope.cpr.nome and scope.cpr.nome != scope.cpr.sigla %} - {{ scope.cpr.nome }}{% endif %}</div></div>
-<div class="campo-form"><label>Unidade</label><div class="escopo-fixo">{{ scope.unidade.sigla }}{% if scope.unidade.nome and scope.unidade.nome != scope.unidade.sigla %} - {{ scope.unidade.nome }}{% endif %}</div><small class="ajuda">Vínculo definido automaticamente pelo seu perfil de gestor.</small></div>
-{% endif %}
 {% endif %}
 </div>
 <div class="acoes-form"><button type="submit" class="btn-salvar">Salvar Usuário</button><a href="{% url 'administracao_sistema' %}" class="btn-cancelar">Cancelar</a></div>
