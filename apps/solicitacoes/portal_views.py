@@ -1,4 +1,5 @@
 from datetime import date
+import unicodedata
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -50,12 +51,7 @@ def selecionar_unidade(request):
 
 
 def listar_unidades(request, cpr_id):
-    unidades = (
-        Unidade.objects
-        .filter(cpr_id=cpr_id, ativo=True)
-        .order_by("nome")
-    )
-
+    unidades = Unidade.objects.filter(cpr_id=cpr_id, ativo=True).order_by("nome")
     return JsonResponse(
         [{"id": unidade.id, "nome": unidade.nome} for unidade in unidades],
         safe=False,
@@ -64,11 +60,10 @@ def listar_unidades(request, cpr_id):
 
 def lista_municipios(request):
     termo = request.GET.get("q", "").strip()
-    municipios = (
-        Municipio.objects
-        .filter(nome__icontains=termo, ativo=True)
-        .order_by("nome")[:20]
-    )
+    municipios = Municipio.objects.filter(
+        nome__icontains=termo,
+        ativo=True,
+    ).order_by("nome")[:20]
 
     dados = []
     for municipio in municipios:
@@ -128,12 +123,7 @@ def nova_solicitacao(request):
 
     if request.method == "POST":
         form = SolicitacaoForm(request.POST, request.FILES)
-
-        # A origem de uma solicitação externa nunca é informada
-        # pelo navegador. Removemos o campo antes da validação para
-        # impedir que ele gere erro ou seja manipulado pelo usuário.
         form.fields.pop("origem", None)
-
         multiplas = _configurar_bairro_form(form, municipio)
 
         if form.is_valid():
@@ -180,15 +170,68 @@ def nova_solicitacao(request):
                 initial["bairro"] = bairro_id
 
         form = SolicitacaoForm(initial=initial)
-        # Origem é definida exclusivamente no servidor.
         form.fields.pop("origem", None)
 
     return _render_nova(request, form, municipio)
 
 
+def _normalizar_documento(valor):
+    texto = unicodedata.normalize("NFKD", str(valor or ""))
+    texto = "".join(ch for ch in texto if not unicodedata.combining(ch))
+    return "".join(ch.lower() for ch in texto if ch.isalnum())
+
+
+def _obter_tipo_documento(nome):
+    """Localiza o tipo mesmo quando o formulário usa uma variação do nome cadastrado."""
+    nome = str(nome or "").strip()
+    if not nome:
+        return None
+
+    tipo = TipoDocumento.objects.filter(nome=nome, ativo=True).first()
+    if tipo:
+        return tipo
+
+    normalizado = _normalizar_documento(nome)
+    tipos = TipoDocumento.objects.filter(ativo=True)
+
+    for candidato in tipos:
+        atual = _normalizar_documento(candidato.nome)
+        if atual == normalizado:
+            return candidato
+
+        if "bombeiro" in normalizado and "bombeiro" in atual:
+            return candidato
+        if "comandante" in normalizado and "comandante" in atual:
+            return candidato
+        if "sanitario" in normalizado and "sanitari" in atual:
+            return candidato
+        if "meioambiente" in normalizado and "meioambiente" in atual:
+            return candidato
+
+    return TipoDocumento.objects.create(nome=nome, ativo=True)
+
+
 def _salvar_documentos(request, solicitacao):
+    """Salva o ofício e todos os documentos complementares no mesmo protocolo."""
     tipos = request.POST.getlist("tipo_documento")
     descricoes = request.POST.getlist("descricao_documento")
+
+    # O ofício ao comandante é um documento obrigatório e estava sendo
+    # recebido pelo navegador, mas não era persistido em DocumentoSolicitacao.
+    oficio = request.FILES.get("oficio_comandante")
+    if oficio:
+        try:
+            validar_pdf_upload(oficio)
+            tipo = _obter_tipo_documento("Ofício ao Comandante")
+            DocumentoSolicitacao.objects.create(
+                solicitacao=solicitacao,
+                tipo_documento=tipo,
+                descricao="Ofício ao Comandante da Unidade",
+                arquivo=oficio,
+            )
+        except Exception as erro:
+            messages.error(request, f"Ofício ao Comandante rejeitado: {erro}")
+
     arquivos = request.FILES.getlist("documentos")
 
     for indice, arquivo in enumerate(arquivos):
@@ -205,22 +248,18 @@ def _salvar_documentos(request, solicitacao):
         descricao = descricoes[indice] if indice < len(descricoes) else ""
 
         if not tipo_nome:
-            continue
+            tipo_nome = "Outro Documento"
 
-        tipo_documento = TipoDocumento.objects.filter(
-            nome=tipo_nome,
-            ativo=True,
-        ).first()
-
-        if not tipo_documento:
-            continue
-
-        DocumentoSolicitacao.objects.create(
-            solicitacao=solicitacao,
-            tipo_documento=tipo_documento,
-            descricao=descricao,
-            arquivo=arquivo,
-        )
+        try:
+            tipo_documento = _obter_tipo_documento(tipo_nome)
+            DocumentoSolicitacao.objects.create(
+                solicitacao=solicitacao,
+                tipo_documento=tipo_documento,
+                descricao=descricao,
+                arquivo=arquivo,
+            )
+        except Exception as erro:
+            messages.error(request, f"Não foi possível salvar o documento: {erro}")
 
 
 def _enviar_email_recebimento(solicitacao):
@@ -314,6 +353,8 @@ def corrigir_solicitacao(request, protocolo):
             obj.data_evento = solicitacao.data_evento
             obj.status = "PENDENTE"
             obj.save()
+
+            _salvar_documentos(request, obj)
 
             messages.success(
                 request,
