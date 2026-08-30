@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Corrigir Solicitação{% endblock %}
+{% block content %}
+<style>
+.corr-card{max-width:950px;margin:35px auto;background:#fff;padding:32px;border-radius:18px;box-shadow:0 8px 25px rgba(0,0,0,.10)}
+.corr-card h1{margin-bottom:8px}.info{background:#f5f7fa;border-left:5px solid #806f59;padding:18px;border-radius:10px;margin:20px 0}.motivo{background:#fff7ed;border:1px solid #fed7aa;padding:18px;border-radius:10px;margin:20px 0}.doc{display:flex;justify-content:space-between;gap:15px;align-items:center;border:1px solid #e5e7eb;border-radius:10px;padding:13px;margin:8px 0}.btn{display:inline-block;border:0;border-radius:8px;padding:11px 18px;text-decoration:none;font-weight:bold;cursor:pointer}.btn-primary{background:#806f59;color:#fff}.btn-doc{background:#6b7280;color:#fff}.form-control{width:100%;box-sizing:border-box;padding:11px;border:1px solid #d1d5db;border-radius:8px;margin-top:6px}.acoes{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}@media(max-width:700px){.acoes{flex-direction:column}.doc{align-items:flex-start;flex-direction:column}}
+</style>
+<div class="corr-card">
+<h1>✏️ Corrigir Solicitação</h1>
+<p>Faça as alterações solicitadas e envie novamente para análise.</p>
+<div class="info">
+<strong>Protocolo:</strong> {{ solicitacao.protocolo }}<br>
+<strong>Evento:</strong> {{ solicitacao.nome_evento }}<br>
+<strong>Município:</strong> {{ solicitacao.municipio }}<br>
+<strong>Data do evento:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }}
+</div>
+<div class="motivo"><strong>Motivo da correção informado pela gestão:</strong><br>{{ solicitacao.motivo_correcao|default:'Consulte a equipe responsável.'|linebreaksbr }}</div>
+<h3>Documentos atualmente cadastrados</h3>
+{% for documento in documentos %}
+<div class="doc"><span><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %}<br>{{ documento.descricao }}{% endif %}</span><a class="btn btn-doc" href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank">Abrir PDF</a></div>
+{% empty %}<p>Nenhum documento cadastrado.</p>{% endfor %}
+<hr style="margin:25px 0">
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+{{ form.as_p }}
+<div class="acoes"><a class="btn" href="{% url 'consultar' %}?protocolo={{ solicitacao.protocolo }}">Cancelar</a><button class="btn btn-primary" type="submit">Enviar Correção</button></div>
+</form>
+</div>
+{% endblock %}
