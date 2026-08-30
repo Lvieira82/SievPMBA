@@ -14,6 +14,7 @@ from .models import (
     Bairro,
     DocumentoSolicitacao,
     Municipio,
+    PerfilUsuario,
     Solicitacao,
     TipoDocumento,
     Unidade,
@@ -159,15 +160,12 @@ def nova_solicitacao(request):
         initial = {}
         bairro_id = request.GET.get("bairro")
 
-        if bairro_id:
-            bairro_valido = Bairro.objects.filter(
-                id=bairro_id,
-                municipio=municipio,
-                ativo=True,
-            ).exists()
-
-            if bairro_valido:
-                initial["bairro"] = bairro_id
+        if bairro_id and Bairro.objects.filter(
+            id=bairro_id,
+            municipio=municipio,
+            ativo=True,
+        ).exists():
+            initial["bairro"] = bairro_id
 
         form = SolicitacaoForm(initial=initial)
         form.fields.pop("origem", None)
@@ -175,54 +173,59 @@ def nova_solicitacao(request):
     return _render_nova(request, form, municipio)
 
 
-def _normalizar_documento(valor):
-    texto = unicodedata.normalize("NFKD", str(valor or ""))
-    texto = "".join(ch for ch in texto if not unicodedata.combining(ch))
-    return "".join(ch.lower() for ch in texto if ch.isalnum())
-
-
-def _obter_tipo_documento(nome):
-    """Localiza o tipo mesmo quando o formulário usa uma variação do nome cadastrado."""
-    nome = str(nome or "").strip()
+def _obter_tipo_documento(nome, criar=False):
+    """Resolve nomes antigos/códigos do formulário para TipoDocumento do banco."""
     if not nome:
         return None
 
-    tipo = TipoDocumento.objects.filter(nome=nome, ativo=True).first()
+    valor = str(nome).strip()
+    aliases = {
+        "BOMBEIRO": "Bombeiro",
+        "BOMBEIROS": "Bombeiro",
+        "SANITARIO": "Sanitário",
+        "SANITÁRIO": "Sanitário",
+        "MEIO_AMBIENTE": "Meio Ambiente",
+        "MEIO AMBIENTE": "Meio Ambiente",
+        "MP": "Ministério Público",
+        "TAC": "TAC",
+        "CREA": "CREA",
+        "CRM": "CRM",
+        "CRMV": "CRMV",
+        "CRO": "CRO",
+        "IBAMA": "IBAMA",
+        "INEMA": "INEMA",
+        "PREFEITURA": "Prefeitura",
+        "POLICIA_CIVIL": "Polícia Civil",
+        "EXERCITO": "Exército Brasileiro",
+        "MARINHA": "Marinha do Brasil",
+        "ANAC": "ANAC",
+        "DNIT": "DNIT",
+        "DERBA": "DERBA / SIT",
+        "OUTRO": "Outro",
+        "OUTRO DOCUMENTO": "Outro",
+        "OFICIO_COMANDANTE": "Ofício ao Comandante",
+        "OFÍCIO_COMANDANTE": "Ofício ao Comandante",
+    }
+    nome_banco = aliases.get(valor.upper(), valor)
+    tipo = TipoDocumento.objects.filter(nome__iexact=nome_banco, ativo=True).first()
+
     if tipo:
         return tipo
 
-    normalizado = _normalizar_documento(nome)
-    tipos = TipoDocumento.objects.filter(ativo=True)
+    if criar:
+        return TipoDocumento.objects.create(nome=nome_banco, ativo=True)
 
-    for candidato in tipos:
-        atual = _normalizar_documento(candidato.nome)
-        if atual == normalizado:
-            return candidato
-
-        if "bombeiro" in normalizado and "bombeiro" in atual:
-            return candidato
-        if "comandante" in normalizado and "comandante" in atual:
-            return candidato
-        if "sanitario" in normalizado and "sanitari" in atual:
-            return candidato
-        if "meioambiente" in normalizado and "meioambiente" in atual:
-            return candidato
-
-    return TipoDocumento.objects.create(nome=nome, ativo=True)
+    return None
 
 
 def _salvar_documentos(request, solicitacao):
-    """Salva o ofício e todos os documentos complementares no mesmo protocolo."""
-    tipos = request.POST.getlist("tipo_documento")
-    descricoes = request.POST.getlist("descricao_documento")
-
-    # O ofício ao comandante é um documento obrigatório e estava sendo
-    # recebido pelo navegador, mas não era persistido em DocumentoSolicitacao.
+    """Persiste TODOS os PDFs enviados na tabela DocumentoSolicitacao."""
     oficio = request.FILES.get("oficio_comandante")
+
     if oficio:
         try:
             validar_pdf_upload(oficio)
-            tipo = _obter_tipo_documento("Ofício ao Comandante")
+            tipo = _obter_tipo_documento("OFICIO_COMANDANTE", criar=True)
             DocumentoSolicitacao.objects.create(
                 solicitacao=solicitacao,
                 tipo_documento=tipo,
@@ -230,8 +233,10 @@ def _salvar_documentos(request, solicitacao):
                 arquivo=oficio,
             )
         except Exception as erro:
-            messages.error(request, f"Ofício ao Comandante rejeitado: {erro}")
+            messages.error(request, f"Ofício rejeitado: {erro}")
 
+    tipos = request.POST.getlist("tipo_documento")
+    descricoes = request.POST.getlist("descricao_documento")
     arquivos = request.FILES.getlist("documentos")
 
     for indice, arquivo in enumerate(arquivos):
@@ -246,20 +251,21 @@ def _salvar_documentos(request, solicitacao):
 
         tipo_nome = tipos[indice] if indice < len(tipos) else ""
         descricao = descricoes[indice] if indice < len(descricoes) else ""
+        tipo = _obter_tipo_documento(tipo_nome, criar=False)
 
-        if not tipo_nome:
-            tipo_nome = "Outro Documento"
-
-        try:
-            tipo_documento = _obter_tipo_documento(tipo_nome)
-            DocumentoSolicitacao.objects.create(
-                solicitacao=solicitacao,
-                tipo_documento=tipo_documento,
-                descricao=descricao,
-                arquivo=arquivo,
+        if not tipo:
+            messages.error(
+                request,
+                f"Tipo de documento não cadastrado: {tipo_nome or 'não informado'}.",
             )
-        except Exception as erro:
-            messages.error(request, f"Não foi possível salvar o documento: {erro}")
+            continue
+
+        DocumentoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            tipo_documento=tipo,
+            descricao=descricao.strip(),
+            arquivo=arquivo,
+        )
 
 
 def _enviar_email_recebimento(solicitacao):
@@ -309,9 +315,11 @@ def consultar_protocolo(request):
         solicitacao = (
             Solicitacao.objects
             .select_related("municipio", "unidade", "bairro", "tipo_evento")
+            .prefetch_related("documentos__tipo_documento")
             .filter(protocolo=protocolo)
             .first()
         )
+
         if not solicitacao:
             erro = "Protocolo não encontrado."
 
@@ -334,10 +342,18 @@ def consultar_protocolo(request):
 
 
 def corrigir_solicitacao(request, protocolo):
-    solicitacao = get_object_or_404(Solicitacao, protocolo=protocolo)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects
+        .select_related("municipio", "unidade", "bairro", "tipo_evento")
+        .prefetch_related("documentos__tipo_documento"),
+        protocolo=protocolo,
+    )
 
     if solicitacao.status != "CORRECAO":
-        messages.error(request, "Esta solicitação não está disponível para correção.")
+        messages.error(
+            request,
+            "Esta solicitação não está disponível para correção.",
+        )
         return redirect("consultar")
 
     if request.method == "POST":
@@ -369,6 +385,35 @@ def corrigir_solicitacao(request, protocolo):
         "solicitacoes/corrigir.html",
         {"form": form, "solicitacao": solicitacao},
     )
+
+
+def _solicitacoes_do_gestor(request, queryset):
+    """Aplica o escopo territorial definido no PerfilUsuario."""
+    if request.user.is_superuser:
+        return queryset
+
+    try:
+        perfil = request.user.perfil_siev
+    except PerfilUsuario.DoesNotExist:
+        return queryset.none()
+
+    if not perfil.ativo:
+        return queryset.none()
+
+    if perfil.perfil == "UNIDADE":
+        if not perfil.unidade_id:
+            return queryset.none()
+        return queryset.filter(unidade_id=perfil.unidade_id)
+
+    if perfil.perfil == "CPR":
+        if not perfil.cpr_id:
+            return queryset.none()
+        return queryset.filter(unidade__cpr_id=perfil.cpr_id)
+
+    if perfil.perfil == "COPPM":
+        return queryset.filter(unidade__cpr__coppm_id=perfil.cpr_id) if perfil.cpr_id else queryset.none()
+
+    return queryset.none()
 
 
 @login_required
@@ -442,7 +487,14 @@ def listar_pendentes_opo(request):
         Solicitacao.objects
         .filter(status="PENDENTE")
         .select_related("municipio", "unidade", "bairro")
+        .prefetch_related("documentos__tipo_documento")
         .order_by("data_evento", "hora_inicio")
     )
 
-    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes})
+    solicitacoes = _solicitacoes_do_gestor(request, solicitacoes)
+
+    return render(
+        request,
+        "gestao/aprovacoes.html",
+        {"solicitacoes": solicitacoes},
+    )
