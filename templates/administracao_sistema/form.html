@@ -4,9 +4,6 @@
 {% block title %}{% if novo %}Cadastrar Usuário{% else %}Editar Usuário{% endif %}{% endblock %}
 
 {% block content %}
-{% listar_cprs as lista_cprs %}
-{% listar_unidades as lista_unidades %}
-
 <style>
 .usuario-form-wrap{max-width:1050px;margin:30px auto}.usuario-card{background:#fff;border-radius:22px;padding:34px 38px;box-shadow:0 8px 25px rgba(0,0,0,.10)}
 .usuario-card h1{margin:0 0 8px;color:#907C64;font-size:30px}.usuario-card .subtitulo{margin-bottom:28px;color:#64748b}
@@ -16,51 +13,53 @@
 .campo-form input:focus,.campo-form select:focus,.campo-form textarea:focus{outline:none;border-color:#907C64;box-shadow:0 0 0 3px rgba(144,124,100,.14)}
 .campo-form input[type=checkbox]{width:18px;height:18px;accent-color:#907C64}.campo-form select:disabled,.campo-form input:disabled{background:#f1f5f9;color:#64748b}
 .ajuda{display:block;margin-top:5px;color:#64748b;font-size:13px}.erro-campo{margin-top:5px;color:#b91c1c;font-size:13px}.erros-gerais{margin-bottom:18px;padding:12px 15px;border-radius:9px;background:#fef2f2;color:#991b1b}
+.escopo-fixo{min-height:44px;padding:11px 12px;border:1px solid #cbd5e1;border-radius:9px;background:#f1f5f9;color:#475569;box-sizing:border-box}
 .acoes-form{margin-top:28px;display:flex;gap:10px}.btn-salvar{border:0;border-radius:9px;padding:12px 24px;background:#c9a43b;color:#111;font-weight:700;cursor:pointer}.btn-cancelar{display:inline-flex;align-items:center;padding:12px 20px;border-radius:9px;background:#6b7280;color:#fff;text-decoration:none}
 @media(max-width:800px){.usuario-grid{grid-template-columns:1fr}.campo-form.full{grid-column:auto}.usuario-card{padding:25px 20px}}
 </style>
 
 <div class="usuario-form-wrap"><div class="usuario-card">
 <h1>👤 {% if novo %}Cadastrar Usuário{% else %}Editar Usuário{% endif %}</h1>
-<div class="subtitulo">Defina o perfil institucional e o direcionamento territorial do usuário.</div>
+<div class="subtitulo">
+{% if scope.desenvolvedor %}
+Defina o perfil institucional e o direcionamento territorial do usuário.
+{% elif scope.perfil == 'COPPM' %}
+Você está cadastrando um Membro do COPPM. O usuário ficará vinculado exclusivamente ao COPPM.
+{% elif scope.perfil == 'CPR' %}
+Você está cadastrando um Membro do seu CPR. O direcionamento é definido automaticamente pelo sistema.
+{% else %}
+Você está cadastrando um Membro ou Operador da sua Unidade. O direcionamento é definido automaticamente pelo sistema.
+{% endif %}
+</div>
 
 <form method="post" id="usuario-form" novalidate>{% csrf_token %}
 {% if form.non_field_errors %}<div class="erros-gerais">{{ form.non_field_errors }}</div>{% endif %}
 <div class="usuario-grid">
 {% for field in form %}
-{% if field.name != 'cpr' and field.name != 'unidade' and field.name != 'cpf' and field.name != 'telefone' %}
+{% if field.name != 'cpr' and field.name != 'unidade' and field.name != 'cpf' and field.name != 'telefone' and field.name != 'perfil' %}
 <div class="campo-form {% if field.name == 'nome' or field.name == 'email' %}full{% endif %}">
 {% if not field.is_hidden %}<label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color:#b91c1c">*</span>{% endif %}</label>{% endif %}
 {{ field }}
-{% if field.name == 'perfil_acesso' %}<small class="ajuda">Membro participa da gestão do âmbito. Operador atua somente operacionalmente na Unidade.</small>{% endif %}
+{% if field.name == 'perfil_acesso' %}<small class="ajuda">{% if scope.perfil == 'UNIDADE' and not scope.desenvolvedor %}Membro atua na gestão da Unidade. Operador atua operacionalmente na Unidade.{% else %}Membro participa da gestão do âmbito.{% endif %}</small>{% endif %}
 {% for error in field.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}
 </div>
 {% endif %}
 {% endfor %}
 
-<div class="campo-form" id="campo-cpr"><label for="id_cpr">CPR</label>
-<select name="cpr" id="id_cpr"><option value="">Selecione o CPR</option>
-{% for item in lista_cprs %}<option value="{{ item.pk }}" {% if form.cpr.value|stringformat:'s' == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.sigla }}{% if item.nome and item.nome != item.sigla %} - {{ item.nome }}{% endif %}</option>{% endfor %}
-</select><small id="ajuda-cpr" class="ajuda">Selecione o CPR responsável pelo cadastro.</small>
-{% for error in form.cpr.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
-
-<div class="campo-form" id="campo-unidade"><label for="id_unidade">Unidade</label>
-<select name="unidade" id="id_unidade"><option value="">Selecione a Unidade</option>
-{% for item in lista_unidades %}<option value="{{ item.pk }}" data-cpr="{{ item.cpr_id }}" {% if form.unidade.value|stringformat:'s' == item.pk|stringformat:'s' %}selected{% endif %}>{{ item.sigla }}{% if item.nome and item.nome != item.sigla %} - {{ item.nome }}{% endif %}</option>{% endfor %}
-</select><small id="ajuda-unidade" class="ajuda">Selecione primeiro o CPR para visualizar as unidades subordinadas.</small>
-{% for error in form.unidade.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
+{% if scope.desenvolvedor %}
+<div class="campo-form"><label for="id_perfil">Âmbito</label>{{ form.perfil }}{% for error in form.perfil.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
+<div class="campo-form"><label for="id_cpr">CPR</label>{{ form.cpr }}{% for error in form.cpr.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
+<div class="campo-form"><label for="id_unidade">Unidade</label>{{ form.unidade }}{% for error in form.unidade.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}</div>
+{% else %}
+<div class="campo-form"><label>Âmbito</label><div class="escopo-fixo">{% if scope.perfil == 'COPPM' %}COPPM{% elif scope.perfil == 'CPR' %}CPR{% else %}Unidade{% endif %}</div></div>
+{% if scope.perfil == 'CPR' %}
+<div class="campo-form"><label>CPR</label><div class="escopo-fixo">{{ scope.cpr.sigla }}{% if scope.cpr.nome and scope.cpr.nome != scope.cpr.sigla %} - {{ scope.cpr.nome }}{% endif %}</div><small class="ajuda">Vínculo definido automaticamente pelo seu perfil de gestor.</small></div>
+{% elif scope.perfil == 'UNIDADE' %}
+<div class="campo-form"><label>CPR</label><div class="escopo-fixo">{{ scope.cpr.sigla }}{% if scope.cpr.nome and scope.cpr.nome != scope.cpr.sigla %} - {{ scope.cpr.nome }}{% endif %}</div></div>
+<div class="campo-form"><label>Unidade</label><div class="escopo-fixo">{{ scope.unidade.sigla }}{% if scope.unidade.nome and scope.unidade.nome != scope.unidade.sigla %} - {{ scope.unidade.nome }}{% endif %}</div><small class="ajuda">Vínculo definido automaticamente pelo seu perfil de gestor.</small></div>
+{% endif %}
+{% endif %}
 </div>
 <div class="acoes-form"><button type="submit" class="btn-salvar">Salvar Usuário</button><a href="{% url 'administracao_sistema' %}" class="btn-cancelar">Cancelar</a></div>
 </form></div></div>
-
-<script>
-(function(){
-const ambito=document.getElementById('id_perfil'),perfilAcesso=document.getElementById('id_perfil_acesso'),cpr=document.getElementById('id_cpr'),unidade=document.getElementById('id_unidade'),campoCpr=document.getElementById('campo-cpr'),campoUnidade=document.getElementById('campo-unidade'),ajudaCpr=document.getElementById('ajuda-cpr'),ajudaUnidade=document.getElementById('ajuda-unidade');
-if(!ambito||!cpr||!unidade)return;
-const unidadeInicial='{{ form.unidade.value|default_if_none:""|escapejs }}';
-function atualizarUnidades(preservar){const valor=cpr.value;let encontrou=false;Array.from(unidade.options).forEach(function(o,i){if(i===0)return;const ok=valor&&String(o.dataset.cpr)===String(valor);o.hidden=!ok;o.disabled=!ok;if(ok)encontrou=true;if(preservar&&String(o.value)===String(preservar)&&ok)o.selected=true;});if(!valor){unidade.value='';unidade.disabled=true;ajudaUnidade.textContent='Selecione primeiro o CPR para visualizar as unidades subordinadas.';}else{unidade.disabled=false;ajudaUnidade.textContent=encontrou?'Somente unidades subordinadas ao CPR selecionado são exibidas.':'Não há unidades cadastradas para este CPR.';}}
-function atualizarTela(){const valor=ambito.value,operador=perfilAcesso&&perfilAcesso.value==='OPERADOR';campoCpr.style.display='';if(valor==='UNIDADE'){campoUnidade.style.display='';ajudaCpr.textContent='Selecione o CPR ao qual a unidade pertence.';}else if(valor==='CPR'){campoUnidade.style.display=operador?'':'none';ajudaCpr.textContent='Selecione o CPR que ficará responsável por este cadastro.';}else{campoUnidade.style.display=operador?'':'none';ajudaCpr.textContent='Selecione o CPR quando o cadastro precisar de direcionamento territorial.';}atualizarUnidades(unidadeInicial);}
-cpr.addEventListener('change',function(){atualizarUnidades('');});ambito.addEventListener('change',function(){if(!ambito.disabled){cpr.value='';unidade.value='';}atualizarTela();});if(perfilAcesso)perfilAcesso.addEventListener('change',atualizarTela);if(unidadeInicial)unidade.value=unidadeInicial;atualizarTela();
-})();
-</script>
 {% endblock %}
