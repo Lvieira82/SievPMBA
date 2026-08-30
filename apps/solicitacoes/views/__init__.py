@@ -1,14 +1,14 @@
 """Exports públicos das views do SiEv."""
 
 from ..portal_views import (
-    agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
+    agenda_gestao, consultar_protocolo, lista_bairros,
     lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from .administracao import (
     aprovacoes, aprovar_solicitacao, backup, bairros, configuracoes, cprs,
     login_gestao, logout_gestao, municipios, obter_perfil_gestor,
-    painel_administracao, painel_gestao, solicitar_correcao_gestao,
+    painel_administracao, painel_gestao,
     tipos_documento, tipos_evento, transferir_solicitacao, unidades, usuarios,
 )
 from .analise import aprovar, detalhes, estatisticas, fila_analise, historico, indeferir, painel_analise, solicitar_correcao
@@ -28,11 +28,10 @@ from .gestao_usuarios import (
     usuarios_unidade_nova_lista as usuarios_unidade,
     usuarios_unidade_novo as cadastrar_usuario_unidade,
     usuarios_unidade_novo_editar as editar_usuario_unidade,
+    usuarios_unidade_novo_senha as trocar_senha_usuario,
     usuarios_unidade_novo_desativar as desativar_usuario_unidade,
     usuarios_unidade_novo_excluir as excluir_usuario_unidade,
 )
-
-from .administracao import trocar_senha_usuario
 
 # O fluxo abaixo é específico da conferência documental do operador.
 from .documentos_operador import (
@@ -41,3 +40,5 @@ from .documentos_operador import (
     documentos_solicitacao,
     gerar_opo,
 )
+
+from .correcoes import corrigir_solicitacao_publica, solicitar_correcao_gestao
