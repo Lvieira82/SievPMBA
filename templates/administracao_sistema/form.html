@@ -14,7 +14,7 @@
         <div class="campo-form" data-field="{{ field.name }}" {% if field.name == 'cpr' %}id="campo-cpr"{% elif field.name == 'unidade' %}id="campo-unidade"{% endif %} style="margin-bottom:14px">
           {% if not field.is_hidden %}<label for="{{ field.id_for_label }}" style="display:block;font-weight:bold;margin-bottom:5px">{{ field.label }}</label>{% endif %}
           {{ field }}
-          {% if field.name == 'perfil_acesso' %}<small style="display:block;margin-top:5px;color:#64748b">Membro recebe as permissões institucionais do âmbito. Operador possui somente acesso de visualização das OPOs e mapas de eventos.</small>{% endif %}
+          {% if field.name == 'perfil_acesso' %}<small style="display:block;margin-top:5px;color:#64748b">Membro participa da gestão do âmbito. Operador atua somente operacionalmente na Unidade.</small>{% endif %}
           {% if field.name == 'cpr' %}<small id="ajuda-cpr" style="display:block;margin-top:5px;color:#64748b">Selecione o CPR correspondente ao âmbito.</small>{% endif %}
           {% if field.name == 'unidade' %}<small id="ajuda-unidade" style="display:block;margin-top:5px;color:#64748b">Selecione primeiro o CPR para carregar somente as unidades subordinadas.</small>{% endif %}
           {% for error in field.errors %}<div style="color:#b91c1c;font-size:13px">{{ error }}</div>{% endfor %}
@@ -83,11 +83,18 @@
     const valor = ambito.value;
     const operador = perfilAcesso && perfilAcesso.value === 'OPERADOR';
 
-    if (campoCpr) campoCpr.style.display = valor === 'COPPM' ? 'none' : '';
-    if (campoUnidade) campoUnidade.style.display = (valor === 'UNIDADE' || (valor === 'CPR' && operador)) ? '' : 'none';
+    // COPPM também precisa enxergar a lista de CPRs.
+    if (campoCpr) campoCpr.style.display = '';
+
+    // Unidade aparece quando o âmbito é Unidade ou quando um operador
+    // precisa ser vinculado a uma unidade dentro do CPR selecionado.
+    if (campoUnidade) {
+      campoUnidade.style.display = (valor === 'UNIDADE' || (valor === 'CPR' && operador)) ? '' : 'none';
+    }
 
     if (valor === 'COPPM') {
-      if (ajudaCpr) ajudaCpr.textContent = 'COPPM não possui CPR ou unidade vinculados.';
+      if (ajudaCpr) ajudaCpr.textContent = 'Para Membro COPPM, CPR e Unidade são opcionais. Para outro âmbito, selecione o CPR correspondente.';
+      if (campoUnidade) campoUnidade.style.display = operador ? '' : 'none';
     } else if (valor === 'CPR') {
       if (ajudaCpr) ajudaCpr.textContent = 'Selecione o CPR que ficará responsável por este cadastro.';
     } else if (valor === 'UNIDADE') {
@@ -102,11 +109,22 @@
       atualizarCampos();
     });
     if (perfilAcesso) perfilAcesso.addEventListener('change', atualizarCampos);
-  } else if (perfilAcesso) {
-    perfilAcesso.addEventListener('change', function () {
+  } else {
+    if (perfilAcesso) perfilAcesso.addEventListener('change', function () {
       atualizarCampos();
-      if (ambito.value === 'CPR') preencherUnidades(cpr.value, '');
+      if (ambito.value === 'CPR' || (ambito.value === 'COPPM' && perfilAcesso.value === 'OPERADOR')) {
+        preencherUnidades(cpr.value, '');
+      }
     });
+
+    // COPPM escolhe livremente o âmbito; CPR/Unidade permanecem limitados pelo servidor.
+    if (!ambito.disabled) {
+      ambito.addEventListener('change', function () {
+        cpr.value = '';
+        limparSelect(unidade, 'Selecione primeiro o CPR');
+        atualizarCampos();
+      });
+    }
   }
 
   cpr.addEventListener('change', function () {
@@ -114,10 +132,11 @@
     if (ambito.value === 'CPR' && perfilAcesso && perfilAcesso.value !== 'OPERADOR') unidade.value = '';
   });
 
-  if (developer && cprInicial) {
+  if (cprInicial) {
     cpr.value = cprInicial;
     preencherUnidades(cpr.value, unidadeInicial);
   }
+
   atualizarCampos();
 })();
 </script>
