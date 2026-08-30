@@ -1,3 +1,6 @@
+import os
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
@@ -36,14 +39,18 @@ def _perfil_e_escopo(request):
 
 
 def _documentos_legados(solicitacao):
-    """Lê campos de arquivo antigos sem exigir alteração do banco."""
+    """Localiza documentos antigos e arquivos físicos já existentes no protocolo."""
     campos = [
         ("Ofício ao Comandante", "oficio_comandante"),
         ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
         ("Documento Sanitário", "documento_sanitario"),
         ("Documento de Meio Ambiente", "documento_meio_ambiente"),
     ]
+
     encontrados = []
+    caminhos = set()
+
+    # Compatibilidade com versões antigas que ainda possuíam campos FileField.
     for nome, campo in campos:
         arquivo = getattr(solicitacao, campo, None)
         if arquivo:
@@ -51,7 +58,59 @@ def _documentos_legados(solicitacao):
                 url = arquivo.url
             except Exception:
                 url = ""
-            encontrados.append({"nome": nome, "campo": campo, "arquivo": arquivo, "url": url})
+            nome_arquivo = getattr(arquivo, "name", "") or ""
+            caminhos.add(nome_arquivo)
+            encontrados.append({
+                "nome": nome,
+                "campo": campo,
+                "arquivo": arquivo,
+                "url": url,
+            })
+
+    # Recupera arquivos que continuam gravados em MEDIA_ROOT, mesmo quando
+    # a linha correspondente em DocumentoSolicitacao não existe mais no DB.
+    pasta = os.path.join(settings.MEDIA_ROOT, "protocolos", solicitacao.protocolo)
+
+    if os.path.isdir(pasta):
+        nomes_conhecidos = {
+            "oficio_comandante.pdf": "Ofício ao Comandante",
+            "oficio_bombeiro.pdf": "Ofício do Corpo de Bombeiros",
+            "documento_sanitario.pdf": "Documento Sanitário",
+            "documento_meio_ambiente.pdf": "Documento de Meio Ambiente",
+        }
+
+        for nome_arquivo in sorted(os.listdir(pasta)):
+            caminho = os.path.join(pasta, nome_arquivo)
+
+            if not os.path.isfile(caminho):
+                continue
+            if not nome_arquivo.lower().endswith(".pdf"):
+                continue
+            if nome_arquivo in caminhos:
+                continue
+
+            chave = nome_arquivo.lower()
+            nome_exibicao = nomes_conhecidos.get(
+                chave,
+                nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
+            )
+
+            relativo = os.path.join(
+                "protocolos",
+                solicitacao.protocolo,
+                nome_arquivo,
+            ).replace(os.sep, "/")
+
+            media_url = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
+            url = f"{media_url}/{relativo}"
+
+            encontrados.append({
+                "nome": nome_exibicao,
+                "campo": "arquivo_fisico",
+                "arquivo": nome_arquivo,
+                "url": url,
+            })
+
     return encontrados
 
 
@@ -63,6 +122,9 @@ def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
     nome = _normalizar(nome_tipo)
     for item in documentos_legados:
         campo = item["campo"]
+        arquivo = _normalizar(item.get("arquivo", ""))
+        nome_item = _normalizar(item.get("nome", ""))
+
         if campo == "oficio_comandante" and ("oficio" in nome and "comandante" in nome):
             return True
         if campo == "oficio_bombeiro" and "bombeiro" in nome:
@@ -71,11 +133,24 @@ def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
             return True
         if campo == "documento_meio_ambiente" and "meioambiente" in nome:
             return True
+
+        # Compatibilidade com arquivos físicos antigos.
+        if arquivo and _normalizar(nome_tipo) in {arquivo, nome_item}:
+            return True
+        if "bombeiro" in nome and "bombeiro" in arquivo:
+            return True
+        if "comandante" in nome and "comandante" in arquivo:
+            return True
+        if ("sanitario" in nome or "sanitaria" in nome) and "sanitari" in arquivo:
+            return True
+        if "meioambiente" in nome and "meioambiente" in arquivo:
+            return True
+
     return False
 
 
 def _documentacao(solicitacao):
-    """Calcula a situação documental sem alterar o banco de dados."""
+    """Calcula a situação documental sem perder anexos antigos."""
     documentos = list(
         DocumentoSolicitacao.objects
         .filter(solicitacao=solicitacao)
