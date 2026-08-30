@@ -8,7 +8,8 @@ from apps.solicitacoes.portal_views import (
     lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
-from apps.solicitacoes.views.administracao import painel_gestao, solicitar_correcao_gestao, transferir_solicitacao
+from apps.solicitacoes.views.administracao import painel_gestao, transferir_solicitacao
+from apps.solicitacoes.views.correcoes import solicitar_correcao_gestao
 from apps.solicitacoes.views.administracao_sistema import usuario_desativar, usuario_editar, usuario_excluir, usuario_novo, usuario_senha
 from apps.solicitacoes.views.acesso import esqueci_senha, login_gestao, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador
 from apps.solicitacoes.views.acesso_institucional import historico_gestao, proximos_eventos_gestao_restrito
@@ -73,7 +74,7 @@ urlpatterns = [
     path("gestao/equipe/eventos-do-dia/", eventos_dia_operacional, name="eventos_dia_operacional"),
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
-    path("gestao/pendentes-opo/", membro_ou_gestor(listar_pendentes_opo), name="listar_pendentes_opo"),
+    path("gestao/pendentes-opo/", membro_ou_gestor(aprovacoes), name="listar_pendentes_opo"),
     path("aprovacoes/", membro_ou_gestor(aprovacoes), name="aprovacoes"),
     path("aprovar/<int:id>/", membro_ou_gestor(aprovar_solicitacao), name="aprovar_solicitacao"),
     path("aprovacoes/transferir/<int:id>/", transferir_solicitacao, name="transferir_solicitacao"),
