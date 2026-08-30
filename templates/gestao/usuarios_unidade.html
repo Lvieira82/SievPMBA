@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <div><h2>Usuários da Gestão</h2><p class="text-muted mb-0">Criação, edição, desativação e exclusão conforme seu âmbito de acesso.</p></div>
+    <div><h2>Usuários da Gestão</h2><p class="text-muted mb-0">Criação, edição, alteração de senha, desativação e exclusão conforme seu âmbito de acesso.</p></div>
     <a href="{% url 'cadastrar_usuario_unidade' %}" class="btn btn-primary">+ Cadastrar Usuário</a>
   </div>
 
@@ -24,8 +24,9 @@
             <td>{{ item.cpr|default:"—" }}</td>
             <td>{{ item.unidade|default:"—" }}</td>
             <td>{% if item.ativo and item.usuario.is_active %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-secondary">Inativo</span>{% endif %}</td>
-            <td>
+            <td class="text-nowrap">
               {% if item.pode_editar %}<a class="btn btn-sm btn-outline-primary" href="{% url 'editar_usuario_unidade' item.id %}">Editar</a>{% endif %}
+              {% if item.pode_senha %}<a class="btn btn-sm btn-outline-secondary" href="{% url 'trocar_senha_usuario' item.id %}">Senha</a>{% endif %}
               {% if item.pode_desativar %}
               <form method="post" action="{% url 'desativar_usuario_unidade' item.id %}" class="d-inline" onsubmit="return confirm('Desativar este usuário?');">
                 {% csrf_token %}<button class="btn btn-sm btn-outline-warning">Desativar</button>
