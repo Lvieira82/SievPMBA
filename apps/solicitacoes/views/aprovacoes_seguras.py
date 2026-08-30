@@ -1,10 +1,13 @@
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
-from apps.solicitacoes.permissoes import pode_aprovar_solicitacao, pode_ver_solicitacao
+from apps.solicitacoes.permissoes import pode_aprovar_solicitacao
 from .operacional import gerar_opo as gerar_opo_original
 
 
@@ -16,58 +19,54 @@ def aprovacoes(request):
             messages.error(request, "Somente gestores podem acessar as aprovações.")
             return redirect("painel_gestao")
 
-    solicitacoes = Solicitacao.objects.filter(status="PENDENTE").select_related(
-        "municipio", "bairro", "unidade", "tipo_evento"
-    ).prefetch_related("documentos").order_by("data_evento", "hora_inicio")
+    solicitacoes = (
+        Solicitacao.objects.filter(status="PENDENTE")
+        .select_related("municipio", "bairro", "unidade", "tipo_evento", "usuario")
+        .prefetch_related("documentos__tipo_documento")
+        .order_by("data_evento", "hora_inicio")
+    )
 
     if not (request.user.is_superuser or request.user.is_staff):
         permitidas = [s.id for s in solicitacoes if pode_aprovar_solicitacao(request.user, s)]
         solicitacoes = solicitacoes.filter(id__in=permitidas)
 
-    return render(request, "gestao/aprovacoes.html", {
-        "solicitacoes": solicitacoes,
-        "pode_aprovar": True,
-    })
+    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes, "pode_aprovar": True})
 
 
 @login_required
 def aprovar_solicitacao(request, id):
     if request.method != "POST":
         return redirect("aprovacoes")
-
     solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=id)
-
     if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para aprovar esta solicitação.")
         return redirect("aprovacoes")
-
     if solicitacao.status != "PENDENTE":
         messages.error(request, "Esta solicitação não está pendente de aprovação.")
         return redirect("aprovacoes")
-
     if not solicitacao.documentos.exists():
         messages.error(request, "Não é possível aprovar: a solicitação ainda não possui documentos anexados.")
         return redirect("aprovacoes")
-
     solicitacao.status = "APROVADA"
     solicitacao.data_aprovacao = timezone.now()
     solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
     solicitacao.save(update_fields=["status", "data_aprovacao", "aprovado_por", "atualizado_em"])
-
     HistoricoSolicitacao.objects.create(
         solicitacao=solicitacao,
         usuario=request.user,
         status="APROVADA",
         observacao="Solicitação aprovada após conferência dos documentos anexados.",
     )
-
     messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. Gerando OPO...")
     return redirect("gerar_opo", id=id)
 
 
 @login_required
 def solicitar_correcao_gestao(request, id):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=id)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade", "municipio", "usuario"),
+        pk=id,
+    )
 
     if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para solicitar correção desta solicitação.")
@@ -78,10 +77,10 @@ def solicitar_correcao_gestao(request, id):
         return redirect("aprovacoes")
 
     if request.method == "POST":
-        motivo = request.POST.get("motivo_correcao", "").strip()
+        motivo = (request.POST.get("motivo_correcao") or request.POST.get("motivo") or "").strip()
         if not motivo:
             messages.error(request, "Informe o motivo da correção.")
-            return render(request, "solicitacoes/solicitar_correcao.html", {"solicitacao": solicitacao})
+            return render(request, "gestao/solicitar_correcao.html", {"solicitacao": solicitacao})
 
         solicitacao.status = "CORRECAO"
         solicitacao.motivo_correcao = motivo
@@ -92,10 +91,30 @@ def solicitar_correcao_gestao(request, id):
             status="CORRECAO",
             observacao=motivo,
         )
-        messages.success(request, "Solicitação enviada para correção.")
+
+        link = request.build_absolute_uri(
+            reverse("corrigir_solicitacao", kwargs={"protocolo": solicitacao.protocolo})
+        )
+        destinatario = solicitacao.email or (solicitacao.usuario.email if solicitacao.usuario else "")
+        if destinatario:
+            mensagem = f"""Olá, {solicitacao.solicitante}!\n\nSua solicitação de evento foi devolvida para correção.\n\nPROTOCOLO: {solicitacao.protocolo}\nEVENTO: {solicitacao.nome_evento}\n\nMOTIVO DA CORREÇÃO:\n{motivo}\n\nPara corrigir, abra o link abaixo:\n{link}\n\nDepois de enviar a correção, o protocolo retornará para análise.\n\nPMBA - Sistema de Informações de Eventos (SiEv).\n"""
+            try:
+                send_mail(
+                    subject=f"Correção necessária - Protocolo {solicitacao.protocolo}",
+                    message=mensagem,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[destinatario],
+                    fail_silently=False,
+                )
+                messages.success(request, "Solicitação enviada para correção e e-mail encaminhado ao solicitante.")
+            except Exception:
+                messages.warning(request, "A solicitação foi enviada para correção, mas o e-mail não pôde ser enviado. Verifique a configuração de e-mail.")
+        else:
+            messages.warning(request, "A solicitação foi enviada para correção, mas não possui e-mail cadastrado.")
+
         return redirect("aprovacoes")
 
-    return render(request, "solicitacoes/solicitar_correcao.html", {"solicitacao": solicitacao})
+    return render(request, "gestao/solicitar_correcao.html", {"solicitacao": solicitacao})
 
 
 @login_required
