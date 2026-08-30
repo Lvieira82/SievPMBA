@@ -4,12 +4,12 @@ from django.urls import path
 from django.views.static import serve
 
 from apps.solicitacoes.portal_views import (
-    agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
+    agenda_gestao, consultar_protocolo, lista_bairros,
     lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
 from apps.solicitacoes.views.administracao import painel_gestao, transferir_solicitacao
-from apps.solicitacoes.views.correcoes import solicitar_correcao_gestao
+from apps.solicitacoes.views.correcoes import corrigir_solicitacao_publica, solicitar_correcao_gestao
 from apps.solicitacoes.views.administracao_sistema import usuario_desativar, usuario_editar, usuario_excluir, usuario_novo, usuario_senha
 from apps.solicitacoes.views.acesso import esqueci_senha, login_gestao, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador
 from apps.solicitacoes.views.acesso_institucional import historico_gestao, proximos_eventos_gestao_restrito
@@ -40,7 +40,7 @@ urlpatterns = [
     path("portal/entrar/", selecionar_unidade, name="selecionar_unidade"),
     path("nova/", nova_solicitacao, name="nova_solicitacao"),
     path("consultar/", consultar_protocolo, name="consultar"),
-    path("corrigir/<str:protocolo>/", corrigir_solicitacao, name="corrigir_solicitacao"),
+    path("corrigir/<str:protocolo>/", corrigir_solicitacao_publica, name="corrigir_solicitacao"),
     path("api/municipios/", lista_municipios, name="lista_municipios"),
     path("api/municipios/<int:municipio_id>/bairros/", lista_bairros, name="lista_bairros"),
     path("api/unidades/<int:cpr_id>/", listar_unidades, name="listar_unidades"),
