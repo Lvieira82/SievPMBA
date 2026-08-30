@@ -39,7 +39,6 @@ def _perfil_e_escopo(request):
 
 
 def _documentos_legados(solicitacao):
-    """Recupera campos antigos e PDFs físicos que já pertencem ao protocolo."""
     campos = [
         ("Ofício ao Comandante", "oficio_comandante"),
         ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
@@ -59,12 +58,7 @@ def _documentos_legados(solicitacao):
                 url = ""
             nome_arquivo = getattr(arquivo, "name", "") or ""
             caminhos.add(nome_arquivo)
-            encontrados.append({
-                "nome": nome,
-                "campo": campo,
-                "arquivo": arquivo,
-                "url": url,
-            })
+            encontrados.append({"nome": nome, "campo": campo, "arquivo": arquivo, "url": url})
 
     pasta = os.path.join(settings.MEDIA_ROOT, "protocolos", solicitacao.protocolo)
 
@@ -75,11 +69,8 @@ def _documentos_legados(solicitacao):
             "documento_sanitario.pdf": "Documento Sanitário",
             "documento_meio_ambiente.pdf": "Documento de Meio Ambiente",
         }
-
         media_url = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
 
-        # Algumas versões antigas gravaram documentos diretamente na pasta
-        # do protocolo; outras criaram subpastas. Recuperamos os dois casos.
         for raiz, _, arquivos in os.walk(pasta):
             for nome_arquivo in sorted(arquivos):
                 if not nome_arquivo.lower().endswith(".pdf"):
@@ -96,14 +87,11 @@ def _documentos_legados(solicitacao):
                     chave,
                     nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
                 )
-
-                url = f"{media_url}/{relativo}"
-
                 encontrados.append({
                     "nome": nome_exibicao,
                     "campo": "arquivo_fisico",
                     "arquivo": nome_arquivo,
-                    "url": url,
+                    "url": f"{media_url}/{relativo}",
                 })
                 caminhos.add(relativo)
                 caminhos.add(nome_arquivo)
@@ -130,7 +118,6 @@ def _legado_satisfaz_tipo(nome_tipo, documentos_legados):
             return True
         if campo == "documento_meio_ambiente" and "meioambiente" in nome:
             return True
-
         if arquivo and _normalizar(nome_tipo) in {arquivo, nome_item}:
             return True
         if "bombeiro" in nome and "bombeiro" in arquivo:
@@ -174,20 +161,18 @@ def _documentacao(solicitacao):
         and not _legado_satisfaz_tipo(item.tipo_documento.nome, documentos_legados)
     ]
 
-    ok = bool(documentos or documentos_legados) and not faltantes
-
     return {
         "documentos": documentos,
         "documentos_legados": documentos_legados,
         "obrigatorios": obrigatorios,
         "faltantes": faltantes,
-        "ok": ok,
+        "ok": bool(documentos or documentos_legados) and not faltantes,
     }
 
 
 def _anexar_status_documental(solicitacao):
+    """Adiciona somente atributos comuns; nunca sobrescreve o reverse manager documentos."""
     status = _documentacao(solicitacao)
-    solicitacao.documentos = status["documentos"]
     solicitacao.documentos_legados = status["documentos_legados"]
     solicitacao.documentos_obrigatorios = status["obrigatorios"]
     solicitacao.documentos_faltantes = status["faltantes"]
@@ -204,8 +189,7 @@ def aprovacoes(request):
         return redirect("login_gestao")
 
     solicitacoes = (
-        escopo
-        .filter(status="PENDENTE")
+        escopo.filter(status="PENDENTE")
         .select_related("unidade", "municipio", "bairro", "tipo_evento", "usuario")
         .order_by("data_evento", "hora_inicio")
     )
@@ -213,11 +197,7 @@ def aprovacoes(request):
     for solicitacao in solicitacoes:
         _anexar_status_documental(solicitacao)
 
-    return render(
-        request,
-        "gestao/aprovacoes.html",
-        {"solicitacoes": solicitacoes, "perfil": perfil},
-    )
+    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes, "perfil": perfil})
 
 
 @login_required
