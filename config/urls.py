@@ -8,8 +8,8 @@ from apps.solicitacoes.portal_views import (
     lista_municipios, listar_unidades, listar_pendentes_opo, nova_solicitacao,
     portal, proximos_eventos_gestao, selecionar_unidade,
 )
-from apps.solicitacoes.views.administracao import painel_gestao, solicitar_correcao_gestao, transferir_solicitacao, trocar_senha_usuario
-from apps.solicitacoes.views.administracao_sistema import administracao_sistema, usuario_desativar, usuario_editar, usuario_excluir, usuario_novo, usuario_senha
+from apps.solicitacoes.views.administracao import painel_gestao, solicitar_correcao_gestao, transferir_solicitacao
+from apps.solicitacoes.views.administracao_sistema import usuario_desativar, usuario_editar, usuario_excluir, usuario_novo, usuario_senha
 from apps.solicitacoes.views.acesso import esqueci_senha, login_gestao, logout_gestao, redefinir_senha, trocar_senha_primeiro_acesso, verificar_novo_navegador
 from apps.solicitacoes.views.acesso_institucional import historico_gestao, proximos_eventos_gestao_restrito
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
@@ -24,6 +24,7 @@ from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bai
 from apps.solicitacoes.views.equipe_unidade import cadastrar_equipe_unidade, equipe_unidade, eventos_dia_operacional
 from apps.solicitacoes.access_control import membro_ou_gestor
 from apps.solicitacoes.views.gestao_usuarios import (
+    usuarios_unidade_nova_lista as administracao_sistema,
     usuarios_unidade_nova_lista as usuarios_unidade,
     usuarios_unidade_novo as cadastrar_usuario_unidade,
     usuarios_unidade_novo_editar as editar_usuario_unidade,
