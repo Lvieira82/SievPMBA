@@ -26,7 +26,7 @@ def _pode_ver_alvo(request_user, alvo):
     if _desenvolvedor(request_user):
         return True
     acesso = _acesso(request_user)
-    if not acesso or alvo.usuario_id == request_user.id:
+    if not acesso:
         return False
     if acesso.funcao not in {"GESTOR", "MEMBRO"}:
         return False
@@ -35,9 +35,18 @@ def _pode_ver_alvo(request_user, alvo):
     if acesso.perfil == "CPR":
         if alvo.perfil == "CPR":
             return alvo.cpr_id == acesso.cpr_id
-        return bool(alvo.perfil in {"UNIDADE", "OPERADOR"} and alvo.unidade_id and Unidade.objects.filter(pk=alvo.unidade_id, cpr_id=acesso.cpr_id, ativo=True).exists())
+        return bool(
+            alvo.perfil in {"UNIDADE", "OPERADOR"}
+            and alvo.unidade_id
+            and Unidade.objects.filter(
+                pk=alvo.unidade_id, cpr_id=acesso.cpr_id, ativo=True
+            ).exists()
+        )
     if acesso.perfil == "UNIDADE":
-        return bool(alvo.perfil in {"UNIDADE", "OPERADOR"} and alvo.unidade_id == acesso.unidade_id)
+        return bool(
+            alvo.perfil in {"UNIDADE", "OPERADOR"}
+            and alvo.unidade_id == acesso.unidade_id
+        )
     return False
 
 
@@ -61,8 +70,6 @@ def _pode_criar(request_user, perfil, funcao, cpr=None, unidade=None):
 
     if funcao not in {"GESTOR", "MEMBRO"}:
         return False
-    if acesso.funcao == "MEMBRO" and funcao != "MEMBRO":
-        return False
 
     if acesso.perfil == "COPPM":
         return perfil in {"COPPM", "CPR", "UNIDADE"}
@@ -79,16 +86,28 @@ def _pode_criar(request_user, perfil, funcao, cpr=None, unidade=None):
 
 def _escopo_cadastro(user):
     if _desenvolvedor(user):
-        return CPR.objects.filter(ativo=True).order_by("sigla"), Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla")
+        return (
+            CPR.objects.filter(ativo=True).order_by("sigla"),
+            Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        )
     acesso = _acesso(user)
     if not acesso:
         return CPR.objects.none(), Unidade.objects.none()
     if acesso.perfil == "COPPM":
-        return CPR.objects.filter(ativo=True).order_by("sigla"), Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla")
+        return (
+            CPR.objects.filter(ativo=True).order_by("sigla"),
+            Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        )
     if acesso.perfil == "CPR":
-        return CPR.objects.filter(id=acesso.cpr_id, ativo=True), Unidade.objects.filter(cpr_id=acesso.cpr_id, ativo=True).order_by("sigla")
+        return (
+            CPR.objects.filter(id=acesso.cpr_id, ativo=True),
+            Unidade.objects.filter(cpr_id=acesso.cpr_id, ativo=True).order_by("sigla"),
+        )
     if acesso.perfil == "UNIDADE":
-        return CPR.objects.filter(id=acesso.unidade.cpr_id, ativo=True), Unidade.objects.filter(id=acesso.unidade_id, ativo=True)
+        return (
+            CPR.objects.filter(id=acesso.unidade.cpr_id, ativo=True),
+            Unidade.objects.filter(id=acesso.unidade_id, ativo=True),
+        )
     return CPR.objects.none(), Unidade.objects.none()
 
 
@@ -116,7 +135,13 @@ def _rotulo_perfil(acesso):
 
 def _form_context(request, form_data=None, erro=None):
     cprs, unidades = _escopo_cadastro(request.user)
-    return {"form_data": form_data or {}, "cprs": cprs, "unidades": unidades, "desenvolvedor": _desenvolvedor(request.user), "erro": erro}
+    return {
+        "form_data": form_data or {},
+        "cprs": cprs,
+        "unidades": unidades,
+        "desenvolvedor": _desenvolvedor(request.user),
+        "erro": erro,
+    }
 
 
 @login_required
@@ -208,8 +233,13 @@ def usuarios_unidade_novo(request):
                     "ativo": True,
                 },
             )
-
-            MatriculaAutorizada.objects.create(matricula=matricula, nome=nome, posto=posto, unidade=unidade, ativo=True)
+            MatriculaAutorizada.objects.create(
+                matricula=matricula,
+                nome=nome,
+                posto=posto,
+                unidade=unidade,
+                ativo=True,
+            )
 
         messages.success(request, "Usuário cadastrado com sucesso.")
         return redirect("usuarios_unidade")
@@ -232,7 +262,11 @@ def usuarios_unidade_nova_lista(request):
         item.pode_excluir = item.pode_editar
         item.pode_desativar = item.pode_editar and item.ativo
 
-    return render(request, "gestao/usuarios_unidade.html", {"usuarios": usuarios, "perfil": acesso, "desenvolvedor": _desenvolvedor(request.user)})
+    return render(
+        request,
+        "gestao/usuarios_unidade.html",
+        {"usuarios": usuarios, "perfil": acesso, "desenvolvedor": _desenvolvedor(request.user)},
+    )
 
 
 @login_required
@@ -271,11 +305,14 @@ def usuarios_unidade_novo_editar(request, id):
         alvo.matricula = matricula
         alvo.save(update_fields=["matricula", "atualizado_em"])
         MatriculaAutorizada.objects.filter(matricula=antiga_matricula).update(matricula=matricula, nome=nome)
-
         messages.success(request, "Usuário atualizado com sucesso.")
         return redirect("usuarios_unidade")
 
-    return render(request, "gestao/editar_usuario.html", {"perfil": _acesso(request.user), "acesso": alvo, "usuario": alvo.usuario, "perfil_usuario": getattr(alvo.usuario, "perfil_siev", None)})
+    return render(
+        request,
+        "gestao/editar_usuario.html",
+        {"perfil": _acesso(request.user), "acesso": alvo, "usuario": alvo.usuario, "perfil_usuario": getattr(alvo.usuario, "perfil_siev", None)},
+    )
 
 
 @login_required
@@ -313,9 +350,6 @@ def usuarios_unidade_novo_desativar(request, id):
         messages.error(request, "Você não possui permissão para administrar usuários.")
         return redirect("painel_gestao")
     alvo = get_object_or_404(AcessoInstitucional, id=id)
-    if alvo.usuario_id == request.user.id:
-        messages.error(request, "Você não pode desativar seu próprio usuário.")
-        return redirect("usuarios_unidade")
     if not _pode_ver_alvo(request.user, alvo):
         messages.error(request, "Você não possui acesso a este usuário.")
         return redirect("usuarios_unidade")
@@ -335,9 +369,6 @@ def usuarios_unidade_novo_excluir(request, id):
         messages.error(request, "Você não possui permissão para administrar usuários.")
         return redirect("painel_gestao")
     alvo = get_object_or_404(AcessoInstitucional, id=id)
-    if alvo.usuario_id == request.user.id:
-        messages.error(request, "Você não pode excluir seu próprio usuário.")
-        return redirect("usuarios_unidade")
     if not _pode_ver_alvo(request.user, alvo):
         messages.error(request, "Você não possui acesso a este usuário.")
         return redirect("usuarios_unidade")
