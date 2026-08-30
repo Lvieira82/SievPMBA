@@ -1,122 +1,46 @@
 {% extends "base.html" %}
-
-{% block title %}
-Usuários da Gestão
-{% endblock %}
-
+{% block title %}Usuários da Gestão{% endblock %}
 {% block content %}
-
 <div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h2>Usuários da Gestão</h2><p class="text-muted mb-0">Criação, edição, desativação e exclusão conforme seu âmbito de acesso.</p></div>
+    <a href="{% url 'cadastrar_usuario_unidade' %}" class="btn btn-primary">+ Cadastrar Usuário</a>
+  </div>
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
 
-        <div>
-            {% if unidade %}
-                <h2>Usuários da Unidade</h2>
-                <p class="text-muted mb-0">{{ unidade }}</p>
-            {% elif perfil and perfil.cpr %}
-                <h2>Usuários do CPR</h2>
-                <p class="text-muted mb-0">{{ perfil.cpr }}</p>
-            {% else %}
-                <h2>Usuários da Gestão</h2>
-            {% endif %}
-        </div>
-
-        <a
-            href="{% url 'cadastrar_usuario_unidade' %}"
-            class="btn btn-primary"
-        >
-            + Cadastrar Usuário
-        </a>
-
-    </div>
-
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">
-                {{ message }}
-            </div>
+  <div class="card shadow-sm"><div class="card-body">
+    {% if usuarios %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Nome</th><th>Usuário</th><th>Matrícula</th><th>Perfil</th><th>CPR</th><th>Unidade</th><th>Status</th><th>Ações</th></tr></thead>
+        <tbody>
+        {% for item in usuarios %}
+          <tr>
+            <td>{{ item.usuario.get_full_name|default:item.usuario.username }}</td>
+            <td>{{ item.usuario.username }}</td>
+            <td>{{ item.matricula|default:"—" }}</td>
+            <td>{{ item.rotulo_perfil }}</td>
+            <td>{{ item.cpr|default:"—" }}</td>
+            <td>{{ item.unidade|default:"—" }}</td>
+            <td>{% if item.ativo and item.usuario.is_active %}<span class="badge bg-success">Ativo</span>{% else %}<span class="badge bg-secondary">Inativo</span>{% endif %}</td>
+            <td>
+              {% if item.pode_editar %}<a class="btn btn-sm btn-outline-primary" href="{% url 'editar_usuario_unidade' item.id %}">Editar</a>{% endif %}
+              {% if item.pode_desativar %}
+              <form method="post" action="{% url 'desativar_usuario_unidade' item.id %}" class="d-inline" onsubmit="return confirm('Desativar este usuário?');">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-warning">Desativar</button>
+              </form>{% endif %}
+              {% if item.pode_excluir %}
+              <form method="post" action="{% url 'excluir_usuario_unidade' item.id %}" class="d-inline" onsubmit="return confirm('Excluir definitivamente este usuário?');">
+                {% csrf_token %}<button class="btn btn-sm btn-outline-danger">Excluir</button>
+              </form>{% endif %}
+            </td>
+          </tr>
         {% endfor %}
-    {% endif %}
-
-    <div class="card shadow-sm">
-
-        <div class="card-body">
-
-            {% if usuarios %}
-
-                <div class="table-responsive">
-
-                    <table class="table table-hover align-middle">
-
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Usuário</th>
-                                <th>Matrícula</th>
-                                <th>Perfil</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-
-                            {% for perfil_usuario in usuarios %}
-
-                            <tr>
-
-                                <td>
-                                    {{ perfil_usuario.usuario.get_full_name }}
-                                </td>
-
-                                <td>
-                                    {{ perfil_usuario.usuario.username }}
-                                </td>
-
-                                <td>
-                                    {{ perfil_usuario.matricula|default:"—" }}
-                                </td>
-
-                                <td>
-                                    {{ perfil_usuario.get_perfil_display }}
-                                </td>
-
-                                <td>
-                                    {% if perfil_usuario.ativo %}
-                                        <span class="badge bg-success">Ativo</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Inativo</span>
-                                    {% endif %}
-                                </td>
-
-                            </tr>
-
-                            {% endfor %}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-            {% else %}
-
-                <div class="alert alert-info mb-0">
-                    {% if unidade %}
-                        Ainda não existem usuários cadastrados nesta Unidade.
-                    {% elif perfil and perfil.cpr %}
-                        Ainda não existem usuários cadastrados neste CPR.
-                    {% else %}
-                        Ainda não existem usuários cadastrados.
-                    {% endif %}
-                </div>
-
-            {% endif %}
-
-        </div>
-
+        </tbody>
+      </table>
     </div>
-
+    {% else %}<div class="alert alert-info mb-0">Ainda não existem usuários no seu âmbito.</div>{% endif %}
+  </div></div>
 </div>
-
 {% endblock %}
