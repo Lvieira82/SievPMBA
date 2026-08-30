@@ -7,6 +7,7 @@ class AcessoInstitucional(models.Model):
         ("COPPM", "COPPM"),
         ("CPR", "CPR"),
         ("UNIDADE", "Unidade"),
+        ("OPERADOR", "Operador"),
     ]
     FUNCOES = [
         ("GESTOR", "Gestor"),
@@ -19,8 +20,8 @@ class AcessoInstitucional(models.Model):
         related_name="acesso_institucional",
     )
     matricula = models.CharField(max_length=30, unique=True)
-    cpf = models.CharField(max_length=14, unique=True)
-    telefone = models.CharField(max_length=25)
+    cpf = models.CharField(max_length=14, unique=True, null=True, blank=True)
+    telefone = models.CharField(max_length=25, blank=True)
     perfil = models.CharField(max_length=20, choices=PERFIS)
     funcao = models.CharField(max_length=10, choices=FUNCOES, default="MEMBRO")
     cpr = models.ForeignKey(
