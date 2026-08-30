@@ -28,7 +28,7 @@
 {% if form.non_field_errors %}<div class="erros-gerais">{{ form.non_field_errors }}</div>{% endif %}
 <div class="usuario-grid">
 {% for field in form %}
-{% if field.name != 'cpr' and field.name != 'unidade' %}
+{% if field.name != 'cpr' and field.name != 'unidade' and field.name != 'cpf' and field.name != 'telefone' %}
 <div class="campo-form {% if field.name == 'nome' or field.name == 'email' %}full{% endif %}">
 {% if not field.is_hidden %}<label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span style="color:#b91c1c">*</span>{% endif %}</label>{% endif %}
 {{ field }}
