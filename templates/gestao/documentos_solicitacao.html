@@ -8,13 +8,11 @@
 .lista{margin:10px 0 25px}.item{border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0;overflow:auto}.item a{float:right;color:#907C64;font-weight:bold;text-decoration:none}
 .status{font-size:12px;font-weight:bold;padding:5px 8px;border-radius:999px;margin-left:8px}.presente{background:#dcfce7;color:#166534}
 .btn{display:inline-block;padding:11px 17px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:5px 5px 0 0;border:0;cursor:pointer}.voltar{background:#6b7280}.corrigir{background:#d97706}.gerar{background:#198754}.transferir{background:#2563eb}.btn:disabled{opacity:.55;cursor:not-allowed}
-.observacao{color:#6b7280;font-size:14px}
-.acoes{margin-top:25px;display:flex;flex-wrap:wrap;gap:4px}
+.observacao{color:#6b7280;font-size:14px}.acoes{margin-top:25px;display:flex;flex-wrap:wrap;gap:4px}
 </style>
 
 <div class="doc-card">
     <h1>📁 Conferência de Documentos da Solicitação</h1>
-
     <div class="identificacao">
         <div><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</div>
         <div><strong>Evento:</strong> {{ solicitacao.nome_evento }}</div>
@@ -23,18 +21,11 @@
     </div>
 
     {% if documentacao_ok %}
-        <div class="aviso ok">
-            <strong>✓ Documentação conferida.</strong><br>
-            Os documentos necessários estão anexados. A solicitação está apta para aprovação e liberação da OPO.
-        </div>
+        <div class="aviso ok"><strong>✓ Documentação conferida.</strong><br>Os documentos necessários estão anexados. A solicitação está apta para aprovação e liberação da OPO.</div>
     {% else %}
         <div class="aviso pendente">
             <strong>⚠ Documentação pendente.</strong><br>
-            {% if documentos_faltantes %}
-                Documento(s) obrigatório(s) ausente(s): <strong>{{ documentos_faltantes|join:", " }}</strong>.
-            {% else %}
-                Nenhum documento foi anexado à solicitação.
-            {% endif %}
+            {% if documentos_faltantes %}Documento(s) obrigatório(s) ausente(s): <strong>{{ documentos_faltantes|join:", " }}</strong>.{% else %}Nenhum documento foi anexado à solicitação.{% endif %}
             <div class="observacao" style="margin-top:8px">A correção deve ser solicitada pelo operador nesta etapa. O solicitante não executa nenhuma ação nesta tela.</div>
         </div>
     {% endif %}
@@ -42,45 +33,27 @@
     <h3>Documentos obrigatórios para esta unidade</h3>
     <div class="lista">
         {% for item in documentos_obrigatorios %}
-            <div class="item">
-                <strong>{{ item.tipo_documento.nome }}</strong>
-                {% if item.tipo_documento.nome not in documentos_faltantes %}
-                    <span class="status presente">Presente</span>
-                {% else %}
-                    <span class="status">Ausente</span>
-                {% endif %}
-            </div>
-        {% empty %}
-            <p class="observacao">Não há tipos de documento obrigatório configurados para esta unidade.</p>
-        {% endfor %}
+            <div class="item"><strong>{{ item.tipo_documento.nome }}</strong>{% if item.tipo_documento.nome not in documentos_faltantes %}<span class="status presente">Presente</span>{% else %}<span class="status">Ausente</span>{% endif %}</div>
+        {% empty %}<p class="observacao">Não há tipos de documento obrigatório configurados para esta unidade.</p>{% endfor %}
     </div>
 
     <h3>Documentos anexados pelo solicitante</h3>
     <div class="lista">
         {% for documento in documentos %}
             <div class="item">
-                <strong>{{ documento.tipo_documento.nome }}</strong>
-                <span class="status presente">Anexado</span>
+                <strong>{{ documento.tipo_documento.nome }}</strong><span class="status presente">Anexado</span>
                 {% if documento.descricao %}<div>{{ documento.descricao }}</div>{% endif %}
                 {% if documento.arquivo %}<div class="observacao">{{ documento.arquivo.name }}</div>{% endif %}
                 <a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank">Abrir PDF</a>
             </div>
         {% empty %}
-            {% if not documentos_legados %}
-                <p class="observacao">Nenhum documento registrado na tabela de documentos.</p>
-            {% endif %}
+            {% if not documentos_legados %}<p class="observacao">Nenhum documento registrado na tabela de documentos.</p>{% endif %}
         {% endfor %}
-
         {% for item in documentos_legados %}
             <div class="item">
-                <strong>{{ item.nome }}</strong>
-                <span class="status presente">Anexado</span>
-                <div class="observacao">
-                    {% if item.arquivo.name %}{{ item.arquivo.name }}{% else %}{{ item.arquivo }}{% endif %}
-                </div>
-                {% if item.url %}
-                    <a href="{{ item.url }}" target="_blank">Abrir PDF</a>
-                {% endif %}
+                <strong>{{ item.nome }}</strong><span class="status presente">Anexado</span>
+                <div class="observacao">{% if item.arquivo.name %}{{ item.arquivo.name }}{% else %}{{ item.arquivo }}{% endif %}</div>
+                {% if item.url %}<a href="{{ item.url }}" target="_blank">Abrir PDF</a>{% endif %}
             </div>
         {% endfor %}
     </div>
@@ -89,13 +62,9 @@
         {% if solicitacao.status == 'PENDENTE' %}
             {% if documentacao_ok %}
                 <form method="post" action="{% url 'aprovar_solicitacao' solicitacao.id %}" style="display:inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn gerar">✔ Gerar OPO</button>
+                    {% csrf_token %}<button type="submit" class="btn gerar">✔ Gerar OPO</button>
                 </form>
-            {% else %}
-                <button type="button" class="btn gerar" disabled title="A OPO será liberada após a conferência dos documentos.">✔ Gerar OPO</button>
-            {% endif %}
-
+            {% else %}<button type="button" class="btn gerar" disabled>✔ Gerar OPO</button>{% endif %}
             <a href="{% url 'transferir_solicitacao' solicitacao.id %}" class="btn transferir">⇄ Transferir</a>
             <a href="{% url 'solicitar_correcao' solicitacao.id %}" class="btn corrigir">✏️ Corrigir</a>
         {% elif solicitacao.status == 'APROVADA' or solicitacao.status == 'CONCLUIDA' %}
@@ -104,8 +73,7 @@
         {% elif solicitacao.status == 'CORRECAO' %}
             <a href="{% url 'transferir_solicitacao' solicitacao.id %}" class="btn transferir">⇄ Transferir</a>
         {% endif %}
-
-        <a href="{% url 'aprovacoes' %}" class="btn voltar">← Voltar para aprovações</a>
+        <a href="{% url 'listar_pendentes_opo' %}" class="btn voltar">← Voltar para pendências</a>
     </div>
 </div>
 {% endblock %}
