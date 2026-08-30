@@ -5,16 +5,7 @@
 {% block content %}
 <style>
 .correcao-card{max-width:900px;margin:40px auto;background:#fff;padding:35px 40px;border-radius:18px;box-shadow:0 8px 25px rgba(0,0,0,.10)}
-.correcao-card h1{color:#806f59;margin-top:0;margin-bottom:8px}
-.subtitulo{color:#777;margin-bottom:25px}
-.protocolo{background:#f7f5f2;border-left:5px solid #806f59;padding:18px 20px;border-radius:10px;margin-bottom:28px;line-height:1.8}
-.protocolo strong{color:#806f59}
-label{display:block;font-weight:600;color:#4d463f;margin-bottom:8px}
-textarea{width:100%;min-height:190px;resize:vertical;border:1px solid #d5cec6;border-radius:10px;padding:14px 16px;font-size:15px;box-sizing:border-box}
-textarea:focus{outline:none;border-color:#806f59;box-shadow:0 0 0 3px rgba(128,111,89,.15)}
-.acoes{margin-top:22px;display:flex;gap:8px;flex-wrap:wrap}
-.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;font-weight:bold;text-decoration:none;cursor:pointer}
-.enviar{background:#d97706;color:#fff}.voltar{background:#6b7280;color:#fff}
+.correcao-card h1{color:#806f59;margin-top:0;margin-bottom:8px}.subtitulo{color:#777;margin-bottom:25px}.protocolo{background:#f7f5f2;border-left:5px solid #806f59;padding:18px 20px;border-radius:10px;margin-bottom:28px;line-height:1.8}.protocolo strong{color:#806f59}label{display:block;font-weight:600;color:#4d463f;margin-bottom:8px}textarea{width:100%;min-height:190px;resize:vertical;border:1px solid #d5cec6;border-radius:10px;padding:14px 16px;font-size:15px;box-sizing:border-box}textarea:focus{outline:none;border-color:#806f59;box-shadow:0 0 0 3px rgba(128,111,89,.15)}.acoes{margin-top:22px;display:flex;gap:8px;flex-wrap:wrap}.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;font-weight:bold;text-decoration:none;cursor:pointer}.enviar{background:#d97706;color:#fff}.voltar{background:#6b7280;color:#fff}
 </style>
 
 <div class="correcao-card">
@@ -31,11 +22,10 @@ textarea:focus{outline:none;border-color:#806f59;box-shadow:0 0 0 3px rgba(128,1
     <form method="post">
         {% csrf_token %}
         <label for="motivo_correcao">Motivo da correção *</label>
-        <textarea id="motivo_correcao" name="motivo_correcao" required placeholder="Descreva as pendências que o solicitante deve corrigir..."></textarea>
-
+        <textarea id="motivo_correcao" name="motivo_correcao" required placeholder="Descreva as pendências que o solicitante deve corrigir...">{{ request.POST.motivo_correcao }}</textarea>
         <div class="acoes">
             <button type="submit" class="btn enviar">Enviar para correção</button>
-            <a href="{% url 'aprovacoes' %}" class="btn voltar">Cancelar</a>
+            <a href="{% url 'listar_pendentes_opo' %}" class="btn voltar">← Voltar para pendências</a>
         </div>
     </form>
 </div>
