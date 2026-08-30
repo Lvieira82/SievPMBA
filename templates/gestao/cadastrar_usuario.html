@@ -22,27 +22,28 @@
 
         <div class="col-md-4">
           <label class="form-label">Perfil *</label>
-          <select name="perfil" id="id_perfil" class="form-select" required>
-            <option value="">Selecione</option>
-            <option value="COPPM">Membro</option>
-            <option value="CPR">Membro</option>
-            <option value="UNIDADE">Membro</option>
-            <option value="OPERADOR">Operador</option>
+          <select name="perfil_acesso" id="id_perfil_acesso" class="form-select" required>
+            <option value="MEMBRO" {% if form_data.perfil_acesso == 'MEMBRO' or not form_data.perfil_acesso %}selected{% endif %}>Membro</option>
+            <option value="OPERADOR" {% if form_data.perfil_acesso == 'OPERADOR' %}selected{% endif %}>Operador</option>
           </select>
-          <div class="form-text">Membro usa o âmbito selecionado. Operador atua somente na Unidade.</div>
+          <div class="form-text">Membro participa da gestão do âmbito. Operador atua somente na Unidade.</div>
         </div>
 
+        {% if desenvolvedor %}
         <div class="col-md-4" id="bloco_funcao">
           <label class="form-label">Função *</label>
           <select name="funcao" id="id_funcao" class="form-select">
-            <option value="MEMBRO">Membro</option>
-            <option value="GESTOR">Gestor</option>
+            <option value="MEMBRO" {% if form_data.funcao == 'MEMBRO' %}selected{% endif %}>Membro</option>
+            <option value="GESTOR" {% if form_data.funcao == 'GESTOR' %}selected{% endif %}>Gestor</option>
           </select>
         </div>
+        {% else %}
+        <input type="hidden" name="funcao" value="MEMBRO">
+        {% endif %}
 
         <div class="col-md-4" id="bloco_ambito">
           <label class="form-label">Âmbito *</label>
-          <select id="id_ambito" class="form-select">
+          <select name="perfil" id="id_perfil" class="form-select" required>
             <option value="COPPM">COPPM</option>
             <option value="CPR">CPR</option>
             <option value="UNIDADE">Unidade</option>
@@ -74,27 +75,31 @@
 </div>
 <script>
 (function(){
-  const perfil=document.getElementById('id_perfil');
+  const perfilAcesso=document.getElementById('id_perfil_acesso');
+  const ambito=document.getElementById('id_perfil');
   const funcao=document.getElementById('id_funcao');
-  const ambito=document.getElementById('id_ambito');
   const cpr=document.getElementById('bloco_cpr');
   const unidade=document.getElementById('bloco_unidade');
-  const funcaoBox=document.getElementById('bloco_funcao');
+
   function atualiza(){
-    const p=perfil.value;
+    const operador=perfilAcesso.value==='OPERADOR';
     const a=ambito.value;
-    const operador=p==='OPERADOR';
-    funcaoBox.style.display=operador?'none':'';
-    if(operador) funcao.value='MEMBRO';
-    const mostraCpr=!operador && a==='CPR';
-    const mostraUnidade=operador || (!operador && a==='UNIDADE');
-    cpr.style.display=mostraCpr?'':'none';
-    unidade.style.display=mostraUnidade?'':'none';
-    if(!mostraCpr) document.getElementById('id_cpr').value='';
-    if(!mostraUnidade) document.getElementById('id_unidade').value='';
-    if(operador) ambito.value='UNIDADE';
+
+    if (funcao && operador) funcao.value='MEMBRO';
+
+    ambito.disabled=false;
+    if (operador) ambito.value='UNIDADE';
+
+    cpr.style.display=(operador || a==='UNIDADE' || a==='COPPM')?'none':'';
+    unidade.style.display=(operador || a==='UNIDADE')?'':'none';
+
+    if (operador || a!=='CPR') document.getElementById('id_cpr').value='';
+    if (!operador && a!=='UNIDADE') document.getElementById('id_unidade').value='';
   }
-  perfil.addEventListener('change',atualiza); ambito.addEventListener('change',atualiza); atualiza();
+
+  perfilAcesso.addEventListener('change',atualiza);
+  ambito.addEventListener('change',atualiza);
+  atualiza();
 })();
 </script>
 {% endblock %}
