@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Editar Usuário{% endblock %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4"><h2>Editar Usuário</h2><a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">← Voltar</a></div>
+  {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}
+  <div class="card shadow-sm"><div class="card-body p-4">
+    <form method="post">{% csrf_token %}
+      <div class="row g-3">
+        <div class="col-md-6"><label class="form-label">Nome completo *</label><input name="nome" value="{{ usuario.get_full_name }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">Matrícula *</label><input name="matricula" value="{{ acesso.matricula }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">Usuário *</label><input name="username" value="{{ usuario.username }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label">E-mail</label><input type="email" name="email" value="{{ usuario.email }}" class="form-control"></div>
+        <div class="col-md-6"><label class="form-label">Perfil</label><input value="{% if acesso.perfil == 'OPERADOR' %}Operador{% else %}Membro{% endif %}" class="form-control" disabled></div>
+        <div class="col-md-6"><label class="form-label">Acesso atual</label><input value="{{ acesso.get_funcao_display }} {{ acesso.get_perfil_display }}{% if acesso.unidade %} - {{ acesso.unidade }}{% elif acesso.cpr %} - {{ acesso.cpr }}{% endif %}" class="form-control" disabled></div>
+      </div>
+      <div class="mt-4"><button class="btn btn-primary" type="submit">Salvar alterações</button> <a href="{% url 'usuarios_unidade' %}" class="btn btn-secondary">Cancelar</a></div>
+    </form>
+  </div></div>
+</div>
+{% endblock %}
