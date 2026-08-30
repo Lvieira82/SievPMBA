@@ -5,7 +5,9 @@ from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
+from apps.solicitacoes.forms import CorrecaoSolicitacaoForm
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
+from apps.solicitacoes.portal_views import _salvar_documentos
 
 
 def _escopo_gestor(request):
@@ -52,9 +54,6 @@ def solicitar_correcao_gestao(request, id):
                 {"solicitacao": solicitacao},
             )
 
-        # A versão atual do SiEv não possui mais o campo motivo_correcao
-        # em Solicitacao. O motivo fica no histórico, preservando a lógica
-        # utilizada no fluxo institucional sem alterar a estrutura atual.
         solicitacao.status = "CORRECAO"
         solicitacao.save(update_fields=["status", "atualizado_em"])
 
@@ -124,4 +123,114 @@ SiEv - Sistema Inteligente de Eventos
         request,
         "solicitacoes/solicitar_correcao.html",
         {"solicitacao": solicitacao},
+    )
+
+
+
+def corrigir_solicitacao_publica(request, protocolo):
+    solicitacao = get_object_or_404(
+        Solicitacao,
+        protocolo=protocolo,
+    )
+
+    if solicitacao.status != "CORRECAO":
+        messages.error(
+            request,
+            "Esta solicitação não está disponível para correção.",
+        )
+        return redirect(f"{reverse('consultar')}?protocolo={solicitacao.protocolo}")
+
+    if request.method == "POST":
+        form = CorrecaoSolicitacaoForm(
+            request.POST,
+            request.FILES,
+            instance=solicitacao,
+        )
+
+        if form.is_valid():
+            protocolo_original = solicitacao.protocolo
+            data_original = solicitacao.data_evento
+            unidade_original = solicitacao.unidade
+            municipio_original = solicitacao.municipio
+            bairro_original = solicitacao.bairro
+            tipo_evento_original = solicitacao.tipo_evento
+            usuario_original = solicitacao.usuario
+            origem_original = solicitacao.origem
+
+            obj = form.save(commit=False)
+            obj.protocolo = protocolo_original
+            obj.data_evento = data_original
+            obj.unidade = unidade_original
+            obj.municipio = municipio_original
+            obj.bairro = bairro_original
+            obj.tipo_evento = tipo_evento_original
+            obj.usuario = usuario_original
+            obj.origem = origem_original
+            obj.status = "PENDENTE"
+            obj.save()
+
+            _salvar_documentos(request, obj)
+
+            HistoricoSolicitacao.objects.create(
+                solicitacao=obj,
+                usuario=None,
+                status="PENDENTE",
+                status_anterior="CORRECAO",
+                status_novo="PENDENTE",
+                acao="CORREÇÃO REENVIADA",
+                observacao="Solicitação corrigida e reenviada pelo solicitante.",
+            )
+
+            link_consulta = request.build_absolute_uri(
+                f"{reverse('consultar')}?protocolo={obj.protocolo}"
+            )
+
+            mensagem = f"""Olá, {obj.solicitante}!
+
+Sua solicitação foi corrigida e reenviada para análise.
+
+PROTOCOLO:
+{obj.protocolo}
+
+EVENTO:
+{obj.nome_evento}
+
+DATA:
+{obj.data_evento.strftime('%d/%m/%Y')}
+
+STATUS:
+Aguardando nova análise
+
+Acompanhe a solicitação pelo link:
+{link_consulta}
+
+Atenciosamente,
+
+Seção de Planejamento Operacional
+SiEv - Sistema Inteligente de Eventos
+"""
+
+            try:
+                send_mail(
+                    subject="Solicitação corrigida e reenviada - SiEv",
+                    message=mensagem,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[obj.email],
+                    fail_silently=False,
+                )
+            except Exception as erro:
+                print("ERRO AO ENVIAR EMAIL DE REENVIO:", repr(erro))
+
+            messages.success(
+                request,
+                "Correções enviadas com sucesso. Sua solicitação será analisada novamente.",
+            )
+            return redirect(f"{reverse('consultar')}?protocolo={obj.protocolo}")
+    else:
+        form = CorrecaoSolicitacaoForm(instance=solicitacao)
+
+    return render(
+        request,
+        "solicitacoes/corrigir.html",
+        {"form": form, "solicitacao": solicitacao},
     )
