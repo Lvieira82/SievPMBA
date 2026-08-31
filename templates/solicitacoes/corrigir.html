@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corrigir Solicitação - SiEv</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f1f3f5;
+            color: #172033;
+        }
+        .topo {
+            background: #111;
+            color: #fff;
+            padding: 18px 24px;
+            text-align: center;
+            border-bottom: 4px solid #c9a227;
+        }
+        .topo h1 { margin: 0 0 5px; font-size: 25px; }
+        .topo p { margin: 0; color: #ddd; font-size: 14px; }
+        .container {
+            width: min(980px, calc(100% - 30px));
+            margin: 30px auto 50px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 5px 22px rgba(0,0,0,.10);
+            padding: 28px;
+        }
+        .titulo {
+            margin: 0 0 8px;
+            font-size: 28px;
+            color: #123b63;
+        }
+        .subtitulo { margin: 0 0 22px; color: #667085; }
+        .protocolo {
+            background: #f8f1d8;
+            border-left: 5px solid #c9a227;
+            padding: 14px 16px;
+            margin-bottom: 24px;
+            border-radius: 7px;
+        }
+        .protocolo strong { color: #123b63; }
+        .alerta {
+            background: #fff4e5;
+            border: 1px solid #f0c36d;
+            color: #7a4b00;
+            padding: 13px 15px;
+            border-radius: 7px;
+            margin-bottom: 22px;
+        }
+        .erros {
+            background: #fdecec;
+            border: 1px solid #e4a0a0;
+            color: #8a1f1f;
+            padding: 14px 16px;
+            border-radius: 7px;
+            margin-bottom: 22px;
+        }
+        .campo { margin-bottom: 17px; }
+        label {
+            display: block;
+            font-weight: 700;
+            margin-bottom: 7px;
+            color: #344054;
+        }
+        input, select, textarea {
+            width: 100%;
+            border: 1px solid #c9ced6;
+            border-radius: 6px;
+            padding: 11px 12px;
+            font-size: 15px;
+            background: #fff;
+        }
+        textarea { min-height: 110px; resize: vertical; }
+        input:disabled, select:disabled {
+            background: #eef1f4;
+            color: #667085;
+        }
+        .ajuda { font-size: 12px; color: #667085; margin-top: 5px; }
+        .secao {
+            margin: 28px 0 18px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+            color: #123b63;
+            font-size: 20px;
+        }
+        .documentos {
+            background: #f8fafc;
+            border: 1px dashed #b7c1cc;
+            border-radius: 9px;
+            padding: 18px;
+            margin-top: 12px;
+        }
+        .documento { margin-bottom: 18px; }
+        .documento:last-child { margin-bottom: 0; }
+        .botoes {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 28px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            border: 0;
+            border-radius: 7px;
+            padding: 12px 20px;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-enviar { background: #123b63; color: #fff; }
+        .btn-voltar { background: #6c757d; color: #fff; }
+        .erro-campo { color: #a61b1b; font-size: 13px; margin-top: 5px; }
+        footer {
+            text-align: center;
+            background: #1c1c1c;
+            color: #ddd;
+            padding: 18px;
+            font-size: 12px;
+        }
+        @media (max-width: 650px) {
+            .card { padding: 20px; }
+            .titulo { font-size: 23px; }
+            .botoes { flex-direction: column; }
+            .btn { text-align: center; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <header class="topo">
+        <h1>Sistema Inteligente de Eventos</h1>
+        <p>SiEv - Correção de Solicitação de Policiamento</p>
+    </header>
+
+    <main class="container">
+        <section class="card">
+            <h2 class="titulo">Corrigir solicitação</h2>
+            <p class="subtitulo">Revise as informações solicitadas pela unidade responsável e reenvie a solicitação para nova análise.</p>
+
+            <div class="protocolo">
+                <strong>Protocolo:</strong> {{ solicitacao.protocolo }}<br>
+                <strong>Evento:</strong> {{ solicitacao.nome_evento }}<br>
+                <strong>Status:</strong> Correção solicitada
+            </div>
+
+            <div class="alerta">
+                A data, o município, a unidade responsável e o tipo do evento são mantidos pela administração e não podem ser alterados nesta etapa.
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="erros">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+
+                <h3 class="secao">Dados da solicitação</h3>
+
+                {% for field in form %}
+                    {% if field.name != 'data_evento' and field.name != 'municipio' and field.name != 'unidade' and field.name != 'bairro' and field.name != 'tipo_evento' and field.name != 'origem' %}
+                        <div class="campo">
+                            {{ field.label_tag }}
+                            {{ field }}
+                            {% if field.help_text %}<div class="ajuda">{{ field.help_text }}</div>{% endif %}
+                            {% for error in field.errors %}<div class="erro-campo">{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+
+                <h3 class="secao">Documentos</h3>
+                <div class="documentos">
+                    <div class="documento">
+                        <label for="id_oficio_comandante">Ofício ao Comandante da Unidade (PDF)</label>
+                        <input type="file" id="id_oficio_comandante" name="oficio_comandante" accept="application/pdf,.pdf">
+                        <div class="ajuda">Se for necessário substituir ou complementar o ofício, selecione o novo PDF.</div>
+                    </div>
+
+                    <div class="documento">
+                        <label for="id_documento_complementar">Documento complementar (PDF)</label>
+                        <input type="file" id="id_documento_complementar" name="documentos" accept="application/pdf,.pdf" multiple>
+                        <div class="ajuda">Você pode anexar um ou mais documentos complementares. O tipo e a descrição poderão ser informados abaixo.</div>
+                    </div>
+
+                    <div class="documento">
+                        <label for="id_tipo_documento">Tipo do documento complementar</label>
+                        <input type="text" id="id_tipo_documento" name="tipo_documento" placeholder="Ex.: Bombeiro, Sanitário, Prefeitura...">
+                    </div>
+
+                    <div class="documento">
+                        <label for="id_descricao_documento">Descrição</label>
+                        <input type="text" id="id_descricao_documento" name="descricao_documento" placeholder="Descrição do documento">
+                    </div>
+                </div>
+
+                <div class="botoes">
+                    <a class="btn btn-voltar" href="{% url 'consultar' %}?protocolo={{ solicitacao.protocolo }}">Voltar</a>
+                    <button class="btn btn-enviar" type="submit">Corrigir e reenviar</button>
+                </div>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>
+        © 2026
+    </footer>
+</body>
+</html>
