@@ -1,7 +1,9 @@
 """Consultas operacionais da Gestão respeitando o escopo institucional."""
 
+import os
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
@@ -46,7 +48,7 @@ def _anexos_no_escopo(user):
 
 
 def _documentos_legados(solicitacao):
-    """Mantém visíveis os arquivos dos campos antigos da solicitação."""
+    """Retorna os anexos antigos e arquivos físicos do protocolo, exceto a OPO."""
     campos = [
         ("Ofício ao Comandante", "oficio_comandante"),
         ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
@@ -75,6 +77,40 @@ def _documentos_legados(solicitacao):
             "arquivo": arquivo,
             "url": url,
         })
+
+    pasta = os.path.join(settings.MEDIA_ROOT, "protocolos", solicitacao.protocolo)
+    media_url = getattr(settings, "MEDIA_URL", "/media/").rstrip("/")
+
+    if os.path.isdir(pasta):
+        for raiz, _, arquivos in os.walk(pasta):
+            # A OPO já aparece separadamente; não repetir os arquivos dessa pasta.
+            if os.path.basename(raiz).lower() == "opo":
+                continue
+
+            for nome_arquivo in sorted(arquivos):
+                if not nome_arquivo.lower().endswith((".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png")):
+                    continue
+
+                caminho = os.path.join(raiz, nome_arquivo)
+                relativo = os.path.relpath(caminho, settings.MEDIA_ROOT).replace(os.sep, "/")
+                chave = relativo.lower()
+
+                # Não repetir arquivos já vinculados pelos campos antigos.
+                nomes_existentes = {
+                    str(item.get("arquivo", "")).lower()
+                    for item in encontrados
+                    if item.get("arquivo")
+                }
+                if chave in vistos or relativo.lower() in nomes_existentes or nome_arquivo.lower() in nomes_existentes:
+                    continue
+
+                encontrados.append({
+                    "nome": nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
+                    "campo": "arquivo_fisico",
+                    "arquivo": nome_arquivo,
+                    "url": f"{media_url}/{relativo}",
+                })
+                vistos.add(chave)
 
     return encontrados
 
