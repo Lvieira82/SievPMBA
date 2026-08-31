@@ -47,8 +47,13 @@ def _anexos_no_escopo(user):
     )
 
 
-def _documentos_legados(solicitacao):
-    """Retorna os anexos antigos e arquivos físicos do protocolo, exceto a OPO."""
+def _chave_arquivo(valor):
+    """Normaliza um caminho/nome para comparação de arquivos sem duplicidade."""
+    return os.path.basename(str(valor or "")).strip().lower()
+
+
+def _documentos_legados(solicitacao, arquivos_documentos=None):
+    """Retorna anexos legados e arquivos físicos, sem repetir o mesmo arquivo."""
     campos = [
         ("Ofício ao Comandante", "oficio_comandante"),
         ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
@@ -56,7 +61,7 @@ def _documentos_legados(solicitacao):
         ("Documento de Meio Ambiente", "documento_meio_ambiente"),
     ]
     encontrados = []
-    vistos = set()
+    vistos = set(arquivos_documentos or [])
 
     for nome, campo in campos:
         arquivo = getattr(solicitacao, campo, None)
@@ -67,7 +72,7 @@ def _documentos_legados(solicitacao):
         except Exception:
             url = ""
         nome_arquivo = getattr(arquivo, "name", "") or ""
-        chave = nome_arquivo or campo
+        chave = _chave_arquivo(nome_arquivo) or campo
         if chave in vistos:
             continue
         vistos.add(chave)
@@ -83,7 +88,7 @@ def _documentos_legados(solicitacao):
 
     if os.path.isdir(pasta):
         for raiz, _, arquivos in os.walk(pasta):
-            # A OPO já aparece separadamente; não repetir os arquivos dessa pasta.
+            # A OPO já aparece separadamente; não repetir arquivos dessa pasta.
             if os.path.basename(raiz).lower() == "opo":
                 continue
 
@@ -91,18 +96,15 @@ def _documentos_legados(solicitacao):
                 if not nome_arquivo.lower().endswith((".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png")):
                     continue
 
-                caminho = os.path.join(raiz, nome_arquivo)
-                relativo = os.path.relpath(caminho, settings.MEDIA_ROOT).replace(os.sep, "/")
-                chave = relativo.lower()
-
-                # Não repetir arquivos já vinculados pelos campos antigos.
-                nomes_existentes = {
-                    str(item.get("arquivo", "")).lower()
-                    for item in encontrados
-                    if item.get("arquivo")
-                }
-                if chave in vistos or relativo.lower() in nomes_existentes or nome_arquivo.lower() in nomes_existentes:
+                chave = _chave_arquivo(nome_arquivo)
+                if chave in vistos:
                     continue
+
+                caminho = os.path.join(raiz, nome_arquivo)
+                relativo = os.path.relpath(
+                    caminho,
+                    settings.MEDIA_ROOT,
+                ).replace(os.sep, "/")
 
                 encontrados.append({
                     "nome": nome_arquivo.replace("_", " ").rsplit(".", 1)[0].title(),
@@ -116,12 +118,29 @@ def _documentos_legados(solicitacao):
 
 
 def _documentos_por_solicitacao(solicitacao):
-    documentos = list(
+    documentos_brutos = list(
         DocumentoSolicitacao.objects.filter(solicitacao=solicitacao)
         .select_related("tipo_documento")
         .order_by("tipo_documento__nome", "id")
     )
-    return documentos, _documentos_legados(solicitacao)
+
+    # A mesma mídia pode aparecer no registro novo e no campo legado.
+    # Mantemos apenas uma representação por arquivo físico.
+    documentos = []
+    vistos_documentos = set()
+    for documento in documentos_brutos:
+        chave = _chave_arquivo(getattr(documento.arquivo, "name", ""))
+        if chave and chave in vistos_documentos:
+            continue
+        if chave:
+            vistos_documentos.add(chave)
+        documentos.append(documento)
+
+    documentos_legados = _documentos_legados(
+        solicitacao,
+        arquivos_documentos=vistos_documentos,
+    )
+    return documentos, documentos_legados
 
 
 @login_required
