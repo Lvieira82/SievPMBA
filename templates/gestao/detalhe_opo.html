@@ -6,8 +6,8 @@
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p><p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p><p><strong>Bairro/Distrito:</strong> {{ solicitacao.bairro.nome|default:'Não informado' }}</p><p><strong>Unidade:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p><p><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }} — {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}</p>
 <hr><h3>Arquivo da OPO</h3>
 {% for anexo in anexos %}
-    {% if forloop.first %}
-        <p><a href="{{ anexo.arquivo.url }}" target="_blank">📄 Abrir OPO gerada pelo SiEv</a></p>
+    {% if forloop.first and anexo.arquivo %}
+        <p><a href="{{ anexo.arquivo.url }}?v={{ anexo.criado_em|date:'U' }}" target="_blank" rel="noopener">📄 Abrir OPO gerada pelo SiEv</a></p>
     {% endif %}
 {% empty %}
     <p>Nenhuma OPO arquivada.</p>
