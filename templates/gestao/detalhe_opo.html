@@ -3,10 +3,12 @@
 {% block content %}
 <div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
 <h1 style="color:#907C64">📄 OPO {{ solicitacao.protocolo }}</h1>
-<p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p><p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p><p><strong>Bairro/Distrito:</strong> {{ solicitacao.bairro.nome|default:'Não informado' }}</p><p><strong>Unidade:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p><p><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }} — {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}</p>
-<hr><h3>Arquivos da OPO</h3>
-{% for anexo in anexos %}<p><a href="{{ anexo.arquivo.url }}" target="_blank">📄 {{ anexo.descricao|default:'OPO' }}</a></p>{% empty %}<p>Nenhuma OPO arquivada.</p>{% endfor %}
-{% if not anexos and solicitacao.status == 'APROVADA' %}<a href="{% url 'gerar_opo' solicitacao.id %}" style="background:#907C64;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">Gerar OPO</a>{% endif %}
+<p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
+<p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p>
+<p><strong>Bairro/Distrito:</strong> {{ solicitacao.bairro.nome|default:'Não informado' }}</p>
+<p><strong>Unidade:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p>
+<p><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }} — {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}</p>
+<hr>
 <p style="margin-top:25px"><a href="{% url 'opos_geradas' %}">← Voltar para OPOs geradas</a></p>
 </div></div>
 {% endblock %}
