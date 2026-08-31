@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>.painel{max-width:1200px;margin:30px auto}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px}.card{background:#fff;padding:24px;border-radius:16px;box-shadow:0 5px 18px #0001;text-decoration:none;color:#111}.card h2{color:#907C64}</style>
+<div class="painel"><h1>⚙️ {{ titulo_painel|default:'Painel de Gestão' }}</h1><div class="cards">
+{% if request.user.is_superuser %}<a class="card" href="{% url 'administracao_sistema' %}"><h2>⚙️ Administração</h2><p>Gestores institucionais.</p></a>
+{% elif nivel == 'CPR' or nivel == 'COPPM' %}<a class="card" href="{% url 'analise_unidades' %}"><h2>📊 Análise</h2></a><a class="card" href="{% url 'usuarios_unidade' %}"><h2>⚙️ Administração</h2></a><a class="card" href="{% url 'historico_gestao' %}"><h2>📚 Histórico</h2></a><a class="card" href="{% url 'opos_geradas' %}"><h2>🗂️ OPOs Geradas</h2><p>OPOs do seu âmbito.</p></a><a class="card" href="{% url 'mapa_eventos' %}"><h2>🗺️ Mapa de Eventos</h2><p>Eventos das unidades subordinadas.</p></a><a class="card" href="{% url 'proximos_eventos_gestao_restrito' %}"><h2>📅 Próximos Eventos</h2></a>
+{% else %}<a class="card" href="{% url 'listar_pendentes_opo' %}"><h2>📁 Informações</h2></a><a class="card" href="{% url 'equipe_unidade' %}"><h2>⚙️ Administração</h2></a><a class="card" href="{% url 'opos_geradas' %}"><h2>🗂️ Documentação</h2></a><a class="card" href="{% url 'mapa_eventos' %}"><h2>🗺️ Mapa de Eventos</h2></a><a class="card" href="{% url 'dashboard_operacional' %}"><h2>📈 Dashboard</h2></a>{% endif %}<a class="card" href="{% url 'logout_gestao' %}"><h2>🚪 Sair</h2></a></div></div>
+{% endblock %}
