@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Alterar Senha{% endblock %}
+
+{% block content %}
+<style>
+.senha-container{max-width:600px;margin:50px auto}.senha-card{background:#fff;border-radius:16px;padding:35px;box-shadow:0 5px 20px rgba(0,0,0,.12)}.senha-card h2{margin-top:0;color:#222;text-align:center}.usuario-info{background:#f1f1f1;border-radius:10px;padding:15px;margin:25px 0}.form-group{margin-bottom:20px}.form-group label{display:block;font-weight:bold;margin-bottom:7px}.form-group input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #bbb;border-radius:8px;font-size:15px}.botoes{display:flex;justify-content:center;gap:12px;margin-top:25px}.btn-salvar{background:#198754;color:#fff;border:0;padding:11px 22px;border-radius:7px;cursor:pointer;font-weight:bold}.btn-cancelar{background:#6c757d;color:#fff;padding:11px 22px;border-radius:7px;text-decoration:none}.aviso{background:#fff3cd;border:1px solid #ffe69c;color:#664d03;padding:12px;border-radius:8px;margin-bottom:20px}
+</style>
+<div class="senha-container">
+  <div class="senha-card">
+    <h2>🔐 Alterar Senha</h2>
+    <div class="usuario-info">
+      <div><strong>Usuário:</strong> {{ perfil_usuario.usuario.username }}</div>
+      {% if perfil_usuario.nome %}<div style="margin-top:6px"><strong>Nome:</strong> {{ perfil_usuario.nome }}</div>{% endif %}
+    </div>
+    <div class="aviso">Informe a nova senha e confirme novamente antes de salvar.</div>
+    {% if messages %}{% for message in messages %}<div style="padding:12px;margin-bottom:15px;border-radius:8px;background:#d1e7dd;color:#0f5132">{{ message }}</div>{% endfor %}{% endif %}
+    <form method="POST">
+      {% csrf_token %}
+      <div class="form-group"><label for="senha">Nova senha</label><input type="password" id="senha" name="senha" required autocomplete="new-password" placeholder="Digite a nova senha"></div>
+      <div class="form-group"><label for="senha_confirmacao">Confirmar nova senha</label><input type="password" id="senha_confirmacao" name="senha_confirmacao" required autocomplete="new-password" placeholder="Digite novamente a senha"></div>
+      <div class="botoes"><button type="submit" class="btn-salvar">Salvar Nova Senha</button><a href="{% url 'usuarios_unidade' %}" class="btn-cancelar">Cancelar</a></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
