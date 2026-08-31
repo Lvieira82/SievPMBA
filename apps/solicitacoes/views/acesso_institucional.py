@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -100,9 +100,16 @@ def proximos_eventos_gestao_restrito(request):
     if not _exigir_perfil(request):
         return redirect("login_gestao")
 
+    hoje = timezone.localdate()
+    limite_semana = hoje + timedelta(days=7)
+
     eventos = (
         _escopo_solicitacoes(request)
-        .filter(status__in=["APROVADA", "CORRECAO"], data_evento__gte=timezone.localdate())
+        .filter(
+            status__in=["APROVADA", "CORRECAO"],
+            data_evento__gte=hoje,
+            data_evento__lt=limite_semana,
+        )
         .select_related("municipio", "unidade", "bairro")
         .order_by("data_evento", "hora_inicio")
     )
