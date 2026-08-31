@@ -9,10 +9,8 @@ from django.utils import timezone
 
 from apps.solicitacoes.acesso_regras import escopo_usuario
 from apps.solicitacoes.models import AnexoOPO, Solicitacao
-from apps.solicitacoes.views.operacional import (
-    detalhe_opo as _detalhe_opo,
-    gerar_opo as _gerar_opo,
-)
+from apps.solicitacoes.views.operacional import detalhe_opo as _detalhe_opo
+from apps.solicitacoes.views.opo_geracao import gerar_opo as _gerar_opo
 
 
 def _solicitacoes_no_escopo(user, queryset=None):
