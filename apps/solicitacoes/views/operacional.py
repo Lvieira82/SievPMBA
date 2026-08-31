@@ -17,7 +17,6 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
 from django.template.loader import render_to_string
-from weasyprint import HTML
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
 from apps.solicitacoes.models import (
@@ -221,6 +220,8 @@ def detalhe_opo(request, id):
 
 def _gerar_pdf_opo(request, solicitacao):
     """Gera a OPO no padrão visual do SIEV95.3 a partir do template HTML."""
+    from weasyprint import HTML
+
     html = render_to_string(
         "solicitacoes/opo_pdf.html",
         {
@@ -339,7 +340,12 @@ def importar_matriculas_painel(request):
 
                 obj, criado = MatriculaAutorizada.objects.update_or_create(
                     matricula=matricula,
-                    defaults={"nome": nome, "posto": posto, "unidade": unidade, "ativo": True},
+                    defaults={
+                        "nome": nome,
+                        "posto": posto,
+                        "unidade": unidade,
+                        "ativo": True,
+                    },
                 )
                 if criado:
                     inseridos += 1
@@ -347,104 +353,10 @@ def importar_matriculas_painel(request):
                     atualizados += 1
 
             workbook.close()
-            messages.success(request, f"Importação concluída: {inseridos} novas e {atualizados} atualizadas.")
+            messages.success(request, f"Importação concluída: {inseridos} inseridos e {atualizados} atualizados.")
         except Exception as exc:
-            messages.error(request, f"Não foi possível importar a planilha: {exc}")
+            messages.error(request, f"Erro ao importar planilha: {exc}")
 
         return redirect("importar_matriculas_painel")
 
-    total = MatriculaAutorizada.objects.filter(ativo=True).count()
-    return render(request, "gestao/importar_matriculas.html", {"total_matriculas": total})
-
-
-@login_required
-def verificar_autenticidade(request, protocolo):
-    solicitacao = get_object_or_404(Solicitacao, protocolo=protocolo)
-    return render(request, "gestao/verificar_autenticidade.html", {"solicitacao": solicitacao})
-
-
-@login_required
-def alterar_status(request, id, status):
-    solicitacao = get_object_or_404(Solicitacao, pk=id)
-    permitidos = {"PENDENTE", "EM_ANALISE", "CORRECAO", "APROVADA", "REJEITADA", "CONCLUIDA"}
-    if status not in permitidos:
-        messages.error(request, "Status inválido.")
-        return redirect("painel_gestao")
-
-    solicitacao.status = status
-    if status in {"APROVADA", "REJEITADA", "CONCLUIDA"}:
-        solicitacao.data_aprovacao = timezone.now()
-    solicitacao.save()
-
-    HistoricoSolicitacao.objects.create(
-        solicitacao=solicitacao,
-        usuario=request.user,
-        acao=f"STATUS: {status}",
-        observacao="Alteração realizada pelo painel institucional.",
-    )
-    messages.success(request, "Status atualizado.")
-    return redirect("painel_gestao")
-
-
-@login_required
-def mapa_eventos(request):
-    eventos = (
-        Solicitacao.objects
-        .filter(data_evento__gte=timezone.localdate())
-        .select_related("municipio", "bairro", "unidade")
-        .order_by("data_evento", "hora_inicio")
-    )
-    return render(request, "gestao/mapa_eventos.html", {"eventos": eventos})
-
-
-@login_required
-def gerar_mapa_eventos_pdf(request):
-    eventos = Solicitacao.objects.filter(data_evento__gte=timezone.localdate()).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
-    response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = 'inline; filename="mapa_eventos.pdf"'
-    doc = SimpleDocTemplate(response, pagesize=A4)
-    styles = getSampleStyleSheet()
-    rows = [["Data", "Hora", "Evento", "Município", "Unidade"]]
-    for evento in eventos:
-        rows.append([
-            evento.data_evento.strftime("%d/%m/%Y"),
-            evento.hora_inicio.strftime("%H:%M"),
-            evento.nome_evento,
-            evento.municipio.nome,
-            evento.unidade.sigla if evento.unidade else "-",
-        ])
-    table = Table(rows, repeatRows=1)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#907C64")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.grey),
-        ("FONTSIZE", (0, 0), (-1, -1), 8),
-    ]))
-    doc.build([Paragraph("MAPA DE EVENTOS - SiEv", styles["Title"]), Spacer(1, 12), table])
-    return response
-
-
-@login_required
-def importar_municipios(request):
-    if request.method != "POST":
-        return render(request, "gestao/importar_municipios.html")
-
-    arquivo = request.FILES.get("arquivo")
-    if not arquivo or arquivo.size > 5 * 1024 * 1024:
-        messages.error(request, "Selecione um CSV de até 5 MB.")
-        return redirect("importar_municipios")
-
-    try:
-        texto = arquivo.read().decode("utf-8-sig")
-        leitor = csv.DictReader(io.StringIO(texto))
-        total = 0
-        for linha in leitor:
-            nome = (linha.get("municipio") or linha.get("Município") or linha.get("nome") or "").strip()
-            if nome:
-                Municipio.objects.get_or_create(nome=nome, defaults={"ativo": True})
-                total += 1
-        messages.success(request, f"{total} municípios processados.")
-    except Exception as exc:
-        messages.error(request, f"Importação não realizada: {exc}")
-
-    return redirect("importar_municipios")
+    return render(request, "gestao/importar_matriculas.html")
