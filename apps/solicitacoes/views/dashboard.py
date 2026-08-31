@@ -11,14 +11,22 @@ from apps.solicitacoes.models import Solicitacao
 @login_required
 def dashboard(request):
     hoje = timezone.localdate()
-    proximos_30 = hoje + timedelta(days=30)
+    limite_semana = hoje + timedelta(days=7)
+    eventos = (
+        Solicitacao.objects
+        .filter(data_evento__gte=hoje, data_evento__lt=limite_semana)
+        .select_related("municipio", "unidade", "bairro")
+        .order_by("data_evento", "hora_inicio")
+    )
+
     context = {
         "eventos_hoje": Solicitacao.objects.filter(data_evento=hoje).count(),
-        "eventos_futuros": Solicitacao.objects.filter(data_evento__range=[hoje, proximos_30]).count(),
+        "eventos_futuros": eventos.count(),
         "pendentes": Solicitacao.objects.filter(status__in=["PENDENTE", "EM_ANALISE"]).count(),
         "correcao": Solicitacao.objects.filter(status="CORRECAO").count(),
         "aprovadas": Solicitacao.objects.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
         "indeferidas": Solicitacao.objects.filter(status="REJEITADA").count(),
+        "eventos": eventos,
     }
     return render(request, "dashboard/index.html", context)
 
@@ -31,7 +39,14 @@ def eventos_hoje(request):
 
 @login_required
 def proximos_eventos_gestao(request):
-    eventos = Solicitacao.objects.filter(data_evento__gte=timezone.localdate()).order_by("data_evento", "hora_inicio")
+    hoje = timezone.localdate()
+    limite_semana = hoje + timedelta(days=7)
+    eventos = (
+        Solicitacao.objects
+        .filter(data_evento__gte=hoje, data_evento__lt=limite_semana)
+        .select_related("municipio", "unidade", "bairro")
+        .order_by("data_evento", "hora_inicio")
+    )
     return render(request, "dashboard/proximos.html", {"eventos": eventos})
 
 
