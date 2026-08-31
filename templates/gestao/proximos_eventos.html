@@ -46,6 +46,11 @@
     margin-bottom: 8px;
 }
 
+.evento-territorio {
+    color: #555;
+    margin-bottom: 8px;
+}
+
 .protocolo {
     font-size: 14px;
     color: #444;
@@ -124,6 +129,28 @@
 
             </div>
 
+            <div class="evento-territorio">
+
+                🏙️
+                <strong>Cidade:</strong>
+                {% if evento.municipio %}
+                    {{ evento.municipio.nome }}
+                {% else %}
+                    Não informada
+                {% endif %}
+
+                <br>
+
+                🛡️
+                <strong>Unidade responsável:</strong>
+                {% if evento.unidade %}
+                    {{ evento.unidade.sigla }}
+                {% else %}
+                    Não informada
+                {% endif %}
+
+            </div>
+
 
             <div>
 
@@ -138,7 +165,7 @@
                 </span>
 
 
-                {% if evento.status == "APROVADO" %}
+                {% if evento.status == "APROVADO" or evento.status == "APROVADA" %}
 
                     <span class="status status-aprovado">
                         ✓ APROVADO
