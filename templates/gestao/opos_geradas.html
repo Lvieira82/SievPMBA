@@ -7,16 +7,18 @@
 </style>
 <div class="opo-wrap"><div class="opo-card">
 <h1>📁 OPOs Geradas</h1>
-<p class="sub">Documentos arquivados pelo SiEv e vinculados aos respectivos protocolos.</p>
+<p class="sub">Documentos operacionais gerados pelo SiEv e vinculados aos respectivos protocolos.</p>
 {% for protocolo in protocolos %}
 <div class="opo-item">
   <div class="opo-head"><strong>Protocolo {{ protocolo.codigo }}</strong><span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span></div>
   <div class="meta">{{ protocolo.solicitacao.nome_evento }} · {{ protocolo.solicitacao.municipio.nome }} · {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}</div>
-  {% for arquivo in protocolo.arquivos %}
-    {% if forloop.first %}
-      <a class="btn" href="{{ arquivo.arquivo.url }}" target="_blank">📄 OPO gerada pelo SiEv</a>
+
+  {% with arquivo=protocolo.arquivos.0 %}
+    {% if arquivo and arquivo.arquivo %}
+      <a class="btn" href="{{ arquivo.arquivo.url }}" target="_blank" rel="noopener">📄 Abrir OPO gerada pelo SiEv</a>
     {% endif %}
-  {% endfor %}
+  {% endwith %}
+
   <a class="btn" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
   <a class="btn" href="{% url 'validar_matricula_opo_publica' protocolo.solicitacao.id %}">👮 Consulta policial</a>
 </div>
