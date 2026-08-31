@@ -9,13 +9,12 @@ from .operacional import (
     importar_matriculas_painel,
     importar_municipios,
     validar_matricula_opo_publica,
-    verificar_autenticidade,
     abrir_documento_solicitacao,
 )
+from .opo_geracao import gerar_opo, verificar_autenticidade
 from .escopo_operacional import (
     detalhe_opo,
     gerar_mapa_eventos_pdf,
-    gerar_opo,
     mapa_eventos,
     opos_geradas,
 )
