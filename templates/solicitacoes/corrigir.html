@@ -1,4 +1,3 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -7,127 +6,43 @@
     <title>Corrigir Solicitação - SiEv</title>
     <style>
         * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: #f1f3f5;
-            color: #172033;
-        }
-        .topo {
-            background: #111;
-            color: #fff;
-            padding: 18px 24px;
-            text-align: center;
-            border-bottom: 4px solid #c9a227;
-        }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f1f3f5; color: #172033; }
+        .topo { background: #111; color: #fff; padding: 18px 24px; text-align: center; border-bottom: 4px solid #c9a227; }
         .topo h1 { margin: 0 0 5px; font-size: 25px; }
         .topo p { margin: 0; color: #ddd; font-size: 14px; }
-        .container {
-            width: min(980px, calc(100% - 30px));
-            margin: 30px auto 50px;
-        }
-        .card {
-            background: #fff;
-            border-radius: 14px;
-            box-shadow: 0 5px 22px rgba(0,0,0,.10);
-            padding: 28px;
-        }
-        .titulo {
-            margin: 0 0 8px;
-            font-size: 28px;
-            color: #123b63;
-        }
+        .container { width: min(980px, calc(100% - 30px)); margin: 30px auto 50px; }
+        .card { background: #fff; border-radius: 14px; box-shadow: 0 5px 22px rgba(0,0,0,.10); padding: 28px; }
+        .titulo { margin: 0 0 8px; font-size: 28px; color: #123b63; }
         .subtitulo { margin: 0 0 22px; color: #667085; }
-        .protocolo {
-            background: #f8f1d8;
-            border-left: 5px solid #c9a227;
-            padding: 14px 16px;
-            margin-bottom: 24px;
-            border-radius: 7px;
-        }
+        .protocolo { background: #f8f1d8; border-left: 5px solid #c9a227; padding: 14px 16px; margin-bottom: 24px; border-radius: 7px; line-height: 1.7; }
         .protocolo strong { color: #123b63; }
-        .alerta {
-            background: #fff4e5;
-            border: 1px solid #f0c36d;
-            color: #7a4b00;
-            padding: 13px 15px;
-            border-radius: 7px;
-            margin-bottom: 22px;
-        }
-        .erros {
-            background: #fdecec;
-            border: 1px solid #e4a0a0;
-            color: #8a1f1f;
-            padding: 14px 16px;
-            border-radius: 7px;
-            margin-bottom: 22px;
-        }
+        .alerta { background: #fff4e5; border: 1px solid #f0c36d; color: #7a4b00; padding: 13px 15px; border-radius: 7px; margin-bottom: 22px; }
+        .erros { background: #fdecec; border: 1px solid #e4a0a0; color: #8a1f1f; padding: 14px 16px; border-radius: 7px; margin-bottom: 22px; }
         .campo { margin-bottom: 17px; }
-        label {
-            display: block;
-            font-weight: 700;
-            margin-bottom: 7px;
-            color: #344054;
-        }
-        input, select, textarea {
-            width: 100%;
-            border: 1px solid #c9ced6;
-            border-radius: 6px;
-            padding: 11px 12px;
-            font-size: 15px;
-            background: #fff;
-        }
+        label { display: block; font-weight: 700; margin-bottom: 7px; color: #344054; }
+        input, select, textarea { width: 100%; border: 1px solid #c9ced6; border-radius: 6px; padding: 11px 12px; font-size: 15px; background: #fff; }
         textarea { min-height: 110px; resize: vertical; }
-        input:disabled, select:disabled {
-            background: #eef1f4;
-            color: #667085;
-        }
         .ajuda { font-size: 12px; color: #667085; margin-top: 5px; }
-        .secao {
-            margin: 28px 0 18px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-            color: #123b63;
-            font-size: 20px;
-        }
-        .documentos {
-            background: #f8fafc;
-            border: 1px dashed #b7c1cc;
-            border-radius: 9px;
-            padding: 18px;
-            margin-top: 12px;
-        }
-        .documento { margin-bottom: 18px; }
+        .secao { margin: 28px 0 18px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb; color: #123b63; font-size: 20px; }
+        .documentos { background: #f8fafc; border: 1px dashed #b7c1cc; border-radius: 9px; padding: 18px; }
+        .documento { background: #fff; border: 1px solid #e0e5ea; border-radius: 8px; padding: 15px; margin-bottom: 14px; }
         .documento:last-child { margin-bottom: 0; }
-        .botoes {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 28px;
-            flex-wrap: wrap;
-        }
-        .btn {
-            border: 0;
-            border-radius: 7px;
-            padding: 12px 20px;
-            font-weight: 700;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-        }
+        .linha-documento { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-remover { margin-top: 10px; background: #dc3545; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-weight: 700; }
+        .btn-adicionar { margin-top: 12px; background: #fff; color: #123b63; border: 1px solid #123b63; border-radius: 6px; padding: 9px 14px; cursor: pointer; font-weight: 700; }
+        .botoes { display: flex; gap: 12px; justify-content: flex-end; margin-top: 28px; flex-wrap: wrap; }
+        .btn { border: 0; border-radius: 7px; padding: 12px 20px; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; }
         .btn-enviar { background: #123b63; color: #fff; }
         .btn-voltar { background: #6c757d; color: #fff; }
         .erro-campo { color: #a61b1b; font-size: 13px; margin-top: 5px; }
-        footer {
-            text-align: center;
-            background: #1c1c1c;
-            color: #ddd;
-            padding: 18px;
-            font-size: 12px;
-        }
+        .existentes { margin-bottom: 20px; }
+        .existentes ul { margin: 8px 0 0; padding-left: 20px; }
+        .existentes a { color: #123b63; }
+        footer { text-align: center; background: #1c1c1c; color: #ddd; padding: 18px; font-size: 12px; }
         @media (max-width: 650px) {
             .card { padding: 20px; }
             .titulo { font-size: 23px; }
+            .linha-documento { grid-template-columns: 1fr; }
             .botoes { flex-direction: column; }
             .btn { text-align: center; width: 100%; }
         }
@@ -154,6 +69,23 @@
                 A data, o município, a unidade responsável e o tipo do evento são mantidos pela administração e não podem ser alterados nesta etapa.
             </div>
 
+            {% if solicitacao.documentos.all %}
+                <div class="existentes">
+                    <h3 class="secao">Documentos já anexados</h3>
+                    <ul>
+                        {% for documento in solicitacao.documentos.all %}
+                            <li>
+                                {{ documento.tipo_documento }}
+                                {% if documento.descricao %} - {{ documento.descricao }}{% endif %}
+                                — <a href="{{ documento.arquivo.url }}" target="_blank" rel="noopener">Visualizar PDF</a>
+                            </li>
+                        {% empty %}
+                            <li>Nenhum documento anexado.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+
             {% if form.non_field_errors %}
                 <div class="erros">{{ form.non_field_errors }}</div>
             {% endif %}
@@ -174,29 +106,32 @@
                     {% endif %}
                 {% endfor %}
 
-                <h3 class="secao">Documentos</h3>
-                <div class="documentos">
+                <h3 class="secao">Novos documentos</h3>
+                <div class="documentos" id="lista-documentos">
                     <div class="documento">
-                        <label for="id_oficio_comandante">Ofício ao Comandante da Unidade (PDF)</label>
-                        <input type="file" id="id_oficio_comandante" name="oficio_comandante" accept="application/pdf,.pdf">
-                        <div class="ajuda">Se for necessário substituir ou complementar o ofício, selecione o novo PDF.</div>
+                        <label>Ofício ao Comandante da Unidade (PDF)</label>
+                        <input type="file" name="oficio_comandante" accept="application/pdf,.pdf">
+                        <div class="ajuda">Anexe somente se o ofício precisar ser substituído ou complementado.</div>
                     </div>
 
-                    <div class="documento">
-                        <label for="id_documento_complementar">Documento complementar (PDF)</label>
-                        <input type="file" id="id_documento_complementar" name="documentos" accept="application/pdf,.pdf" multiple>
-                        <div class="ajuda">Você pode anexar um ou mais documentos complementares. O tipo e a descrição poderão ser informados abaixo.</div>
+                    <div class="documento documento-complementar">
+                        <div class="linha-documento">
+                            <div>
+                                <label>Tipo do documento</label>
+                                <input type="text" name="tipo_documento" placeholder="Ex.: Bombeiro, Sanitário, Prefeitura...">
+                            </div>
+                            <div>
+                                <label>Descrição</label>
+                                <input type="text" name="descricao_documento" placeholder="Descrição do documento">
+                            </div>
+                        </div>
+                        <div style="margin-top:12px;">
+                            <label>Arquivo (PDF)</label>
+                            <input type="file" name="documentos" accept="application/pdf,.pdf">
+                        </div>
                     </div>
 
-                    <div class="documento">
-                        <label for="id_tipo_documento">Tipo do documento complementar</label>
-                        <input type="text" id="id_tipo_documento" name="tipo_documento" placeholder="Ex.: Bombeiro, Sanitário, Prefeitura...">
-                    </div>
-
-                    <div class="documento">
-                        <label for="id_descricao_documento">Descrição</label>
-                        <input type="text" id="id_descricao_documento" name="descricao_documento" placeholder="Descrição do documento">
-                    </div>
+                    <button type="button" class="btn-adicionar" onclick="adicionarDocumento()">+ Adicionar outro documento</button>
                 </div>
 
                 <div class="botoes">
@@ -211,5 +146,32 @@
         Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>
         © 2026
     </footer>
+
+    <script>
+        function adicionarDocumento() {
+            const lista = document.getElementById('lista-documentos');
+            const botao = lista.querySelector('.btn-adicionar');
+            const div = document.createElement('div');
+            div.className = 'documento documento-complementar';
+            div.innerHTML = `
+                <div class="linha-documento">
+                    <div>
+                        <label>Tipo do documento</label>
+                        <input type="text" name="tipo_documento" placeholder="Ex.: Bombeiro, Sanitário, Prefeitura...">
+                    </div>
+                    <div>
+                        <label>Descrição</label>
+                        <input type="text" name="descricao_documento" placeholder="Descrição do documento">
+                    </div>
+                </div>
+                <div style="margin-top:12px;">
+                    <label>Arquivo (PDF)</label>
+                    <input type="file" name="documentos" accept="application/pdf,.pdf">
+                </div>
+                <button type="button" class="btn-remover" onclick="this.parentElement.remove()">Remover</button>
+            `;
+            lista.insertBefore(div, botao);
+        }
+    </script>
 </body>
 </html>
