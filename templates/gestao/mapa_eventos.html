@@ -203,7 +203,7 @@
             Nova Informação
         </a>
 
-        <a href="{% url 'consultar_protocolo' %}">
+        <a href="{% url 'consultar' %}">
             Consultar
         </a>
 
@@ -294,6 +294,8 @@
                         <th>Hora</th>
                         <th>Evento</th>
                         <th>Local</th>
+                        <th>Cidade</th>
+                        <th>Unidade responsável</th>
                         <th>Solicitante</th>
                         <th>Protocolo</th>
                         <th>Status</th>
@@ -324,6 +326,22 @@
                             </td>
 
                             <td>
+                                {% if evento.municipio %}
+                                    {{ evento.municipio.nome }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
+                                {% if evento.unidade %}
+                                    {{ evento.unidade.sigla }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+
+                            <td>
                                 {{ evento.solicitante }}
                             </td>
 
@@ -333,7 +351,7 @@
 
                             <td>
 
-                                {% if evento.status == "APROVADO" %}
+                                {% if evento.status == "APROVADA" or evento.status == "APROVADO" %}
 
                                     <span class="status status-aprovado">
                                         APROVADO
@@ -360,10 +378,10 @@
                         <tr>
 
                             <td
-                                colspan="7"
+                                colspan="9"
                                 class="sem-eventos"
                             >
-                                Selecione um período para visualizar os eventos.
+                                Nenhum evento encontrado no período e no âmbito institucional do usuário.
                             </td>
 
                         </tr>
