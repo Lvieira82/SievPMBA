@@ -13,7 +13,9 @@
   <div class="opo-head"><strong>Protocolo {{ protocolo.codigo }}</strong><span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span></div>
   <div class="meta">{{ protocolo.solicitacao.nome_evento }} · {{ protocolo.solicitacao.municipio.nome }} · {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}</div>
   {% for arquivo in protocolo.arquivos %}
-    <a class="btn" href="{{ arquivo.arquivo.url }}" target="_blank">📄 OPO gerada pelo SiEv</a>
+    {% if forloop.first %}
+      <a class="btn" href="{{ arquivo.arquivo.url }}" target="_blank">📄 OPO gerada pelo SiEv</a>
+    {% endif %}
   {% endfor %}
   <a class="btn" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
   <a class="btn" href="{% url 'validar_matricula_opo_publica' protocolo.solicitacao.id %}">👮 Consulta policial</a>
