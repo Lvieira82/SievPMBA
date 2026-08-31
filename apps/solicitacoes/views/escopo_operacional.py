@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 
 from apps.solicitacoes.acesso_regras import escopo_usuario
-from apps.solicitacoes.models import AnexoOPO, Solicitacao
+from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao
 from apps.solicitacoes.views.operacional import detalhe_opo as _detalhe_opo
 from apps.solicitacoes.views.opo_geracao import gerar_opo as _gerar_opo
 
@@ -45,6 +45,49 @@ def _anexos_no_escopo(user):
     )
 
 
+def _documentos_legados(solicitacao):
+    """Mantém visíveis os arquivos dos campos antigos da solicitação."""
+    campos = [
+        ("Ofício ao Comandante", "oficio_comandante"),
+        ("Ofício do Corpo de Bombeiros", "oficio_bombeiro"),
+        ("Documento Sanitário", "documento_sanitario"),
+        ("Documento de Meio Ambiente", "documento_meio_ambiente"),
+    ]
+    encontrados = []
+    vistos = set()
+
+    for nome, campo in campos:
+        arquivo = getattr(solicitacao, campo, None)
+        if not arquivo:
+            continue
+        try:
+            url = arquivo.url
+        except Exception:
+            url = ""
+        nome_arquivo = getattr(arquivo, "name", "") or ""
+        chave = nome_arquivo or campo
+        if chave in vistos:
+            continue
+        vistos.add(chave)
+        encontrados.append({
+            "nome": nome,
+            "campo": campo,
+            "arquivo": arquivo,
+            "url": url,
+        })
+
+    return encontrados
+
+
+def _documentos_por_solicitacao(solicitacao):
+    documentos = list(
+        DocumentoSolicitacao.objects.filter(solicitacao=solicitacao)
+        .select_related("tipo_documento")
+        .order_by("tipo_documento__nome", "id")
+    )
+    return documentos, _documentos_legados(solicitacao)
+
+
 @login_required
 def opos_geradas(request):
     anexos = _anexos_no_escopo(request.user).order_by("-criado_em")
@@ -52,11 +95,15 @@ def opos_geradas(request):
 
     for anexo in anexos:
         codigo = anexo.solicitacao.protocolo
-        agrupados.setdefault(codigo, {
-            "codigo": codigo,
-            "solicitacao": anexo.solicitacao,
-            "arquivos": [],
-        })
+        if codigo not in agrupados:
+            documentos, documentos_legados = _documentos_por_solicitacao(anexo.solicitacao)
+            agrupados[codigo] = {
+                "codigo": codigo,
+                "solicitacao": anexo.solicitacao,
+                "arquivos": [],
+                "documentos": documentos,
+                "documentos_legados": documentos_legados,
+            }
         agrupados[codigo]["arquivos"].append(anexo)
 
     return render(
