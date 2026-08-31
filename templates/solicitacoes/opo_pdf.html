@@ -11,9 +11,7 @@
     margin:16mm 18mm 14mm 18mm;
 }
 
-*{
-    box-sizing:border-box;
-}
+*{box-sizing:border-box;}
 
 body{
     margin:0;
@@ -86,6 +84,7 @@ body{
 .rotulo{
     width:140px;
     font-weight:bold;
+    flex-shrink:0;
 }
 
 .valor{
@@ -105,35 +104,16 @@ body{
     margin:0 0 7px 0;
     line-height:1.35;
 }
-.campo-observacao {
-    font-weight: bold;
+
+.campo-observacao{
+    font-weight:bold;
+    margin-top:10px;
 }
+
 .rodape{
     margin-top:20px;
     text-align:center;
     font-size:11px;
-}
-
-.qrcode{
-    margin-top:12px;
-    text-align:center;
-}
-
-.qrcode img{
-    width:90px;
-    height:auto;
-}
-
-.autenticidade{
-    margin-top:6px;
-    text-align:center;
-    font-size:10px;
-}
-
-.url{
-    color:#1e3a8a;
-    font-size:9px;
-    word-break:break-all;
 }
 
 .btn-print{
@@ -151,14 +131,8 @@ body{
 }
 
 @media print{
-    .btn-print{
-        display:none;
-    }
-
-    body{
-        margin:0;
-    }
-
+    .btn-print{display:none;}
+    body{margin:0;}
     .folha{
         margin:0;
         padding:0;
@@ -178,20 +152,22 @@ body{
 <div class="folha">
 
     <div class="logo-central">
-        {% load static %}
-            <img src="{% static 'logos/logo_pmba.png' %}">
+        <img src="{% static 'logos/logo_pmba.png' %}" alt="Polícia Militar da Bahia">
     </div>
 
     <div class="cabecalho">
         <h1>POLÍCIA MILITAR DA BAHIA</h1>
         <h2>COMANDO DE OPERAÇÕES POLICIAIS MILITARES</h2>
-        <h3>95ª CIPM - CATU</h3>
+        <h3>
+            {{ solicitacao.unidade.sigla|default:solicitacao.unidade.nome|default:"UNIDADE NÃO DEFINIDA" }}
+            {% if solicitacao.municipio %}
+                - {{ solicitacao.municipio.nome }}
+            {% endif %}
+        </h3>
     </div>
 
     <div class="numero">
-        OPO Nº {{ solicitacao.numero_opo|default:solicitacao.protocolo }}
-        -
-        {{ data_geracao|date:"d \d\e F \d\e Y" }}
+        OPO Nº {{ solicitacao.protocolo }} - {{ data_geracao|date:"d/m/Y" }}
     </div>
 
     <div class="intro">
@@ -222,7 +198,10 @@ body{
 
     <div class="linha-info">
         <div class="rotulo">EFETIVO:</div>
-        <div class="valor">{{ solicitacao.efetivo_opo }}</div>
+        <div class="valor">
+            01 (uma) Guarnição a critério do Coordenador de Área.
+            Modalidade: Patrulhamento. Processo: Motorizado.
+        </div>
     </div>
 
     <div class="linha-info">
@@ -246,28 +225,16 @@ body{
 
         <p>¤ Constar o desenvolvimento desta OPO no relatório de serviço.</p>
 
-        {% if solicitacao.observacao %}
+        {% if solicitacao.observacoes %}
             <div class="campo-observacao">
-                <strong>
-                    OBSERVAÇÃO: {{ solicitacao.observacao|linebreaksbr }}
-                </strong>
+                OBSERVAÇÃO DA SOLICITAÇÃO:<br>
+                {{ solicitacao.observacoes|linebreaksbr }}
             </div>
         {% endif %}
     </div>
 
     <div class="rodape">
-        Ordem de policiamento gerada por
-        <strong>{{ solicitacao.comandante_opo }}</strong>
-    </div>
-
-   {% if qr_base64 %}
-    <div class="qrcode">
-        <img src="{{ qr_base64|safe }}" alt="QR Code">
-    </div>
-    {% endif %}
-    <div class="autenticidade">
-        Verifique a autenticidade deste documento escaneando o QR Code ou acessando:<br>
-        <span class="url">{{ url_verificacao }}</span>
+        Ordem de policiamento gerada pelo SiEv.
     </div>
 
 </div>
