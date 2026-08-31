@@ -16,6 +16,8 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib import colors
+from django.template.loader import render_to_string
+from weasyprint import HTML
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
 from apps.solicitacoes.models import (
@@ -117,7 +119,7 @@ def lancamento_manual(request):
                 solicitacao=obj,
                 usuario=request.user,
                 acao="LANÇAMENTO MANUAL",
-                detalhes="Solicitação criada/atualizada pelo módulo de lançamento manual.",
+                observacao="Solicitação criada/atualizada pelo módulo de lançamento manual.",
             )
 
             messages.success(request, f"Informação salva com o protocolo {obj.protocolo}.")
@@ -217,42 +219,20 @@ def detalhe_opo(request, id):
     return render(request, "gestao/detalhe_opo.html", {"solicitacao": solicitacao, "anexos": anexos})
 
 
-def _gerar_pdf_opo(solicitacao):
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=35, leftMargin=35, topMargin=35, bottomMargin=35)
-    styles = getSampleStyleSheet()
-    story = [
-        Paragraph("POLÍCIA MILITAR DA BAHIA", styles["Title"]),
-        Paragraph("ORDEM DE POLICIAMENTO - OPO", styles["Heading2"]),
-        Spacer(1, 14),
-    ]
-    dados = [
-        ["Protocolo", solicitacao.protocolo],
-        ["Evento", solicitacao.nome_evento],
-        ["Solicitante", solicitacao.solicitante],
-        ["Município", solicitacao.municipio.nome],
-        ["Bairro/Distrito", solicitacao.bairro.nome if solicitacao.bairro else "Não informado"],
-        ["Unidade", solicitacao.unidade.nome if solicitacao.unidade else "Não definida"],
-        ["Local", solicitacao.local],
-        ["Data", solicitacao.data_evento.strftime("%d/%m/%Y")],
-        ["Horário", f"{solicitacao.hora_inicio:%H:%M} às {solicitacao.hora_fim:%H:%M}"],
-        ["Público estimado", str(solicitacao.publico_estimado or 0)],
-        ["Origem", solicitacao.get_origem_display()],
-    ]
-    tabela = Table(dados, colWidths=[125, 390])
-    tabela.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#907C64")),
-        ("TEXTCOLOR", (0, 0), (0, -1), colors.white),
-        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ("PADDING", (0, 0), (-1, -1), 7),
-    ]))
-    story.append(tabela)
-    story.append(Spacer(1, 18))
-    story.append(Paragraph("Documento gerado pelo SiEv para fins de emprego operacional.", styles["Normal"]))
-    doc.build(story)
-    return buffer.getvalue()
+def _gerar_pdf_opo(request, solicitacao):
+    """Gera a OPO no padrão visual do SIEV95.3 a partir do template HTML."""
+    html = render_to_string(
+        "solicitacoes/opo_pdf.html",
+        {
+            "solicitacao": solicitacao,
+            "data_geracao": timezone.now(),
+        },
+        request=request,
+    )
+    return HTML(
+        string=html,
+        base_url=request.build_absolute_uri("/"),
+    ).write_pdf()
 
 
 @login_required
@@ -263,7 +243,7 @@ def gerar_opo(request, id):
         messages.error(request, "A OPO somente pode ser gerada após a aprovação da solicitação.")
         return redirect("listar_pendentes_opo")
 
-    conteudo = _gerar_pdf_opo(solicitacao)
+    conteudo = _gerar_pdf_opo(request, solicitacao)
     nome = f"OPO_{solicitacao.protocolo}.pdf"
     anexo = AnexoOPO(solicitacao=solicitacao, descricao="OPO gerada pelo SiEv")
     anexo.arquivo.save(nome, ContentFile(conteudo), save=True)
@@ -272,7 +252,7 @@ def gerar_opo(request, id):
         solicitacao=solicitacao,
         usuario=request.user,
         acao="OPO GERADA",
-        detalhes=f"Arquivo {nome} gerado pelo sistema.",
+        observacao=f"Arquivo {nome} gerado pelo sistema.",
     )
 
     messages.success(request, "OPO gerada e arquivada no protocolo.")
@@ -400,7 +380,7 @@ def alterar_status(request, id, status):
         solicitacao=solicitacao,
         usuario=request.user,
         acao=f"STATUS: {status}",
-        detalhes="Alteração realizada pelo painel institucional.",
+        observacao="Alteração realizada pelo painel institucional.",
     )
     messages.success(request, "Status atualizado.")
     return redirect("painel_gestao")
