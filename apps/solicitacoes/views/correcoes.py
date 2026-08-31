@@ -10,6 +10,25 @@ from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
 from apps.solicitacoes.portal_views import _salvar_documentos
 
 
+CAMPOS_NAO_EDITAVEIS_CORRECAO = {
+    "data_evento",
+    "municipio",
+    "unidade",
+    "bairro",
+    "tipo_evento",
+    "origem",
+    "publico_estimado",
+}
+
+
+def _preparar_form_correcao(*args, **kwargs):
+    """Mantém no formulário apenas os campos que o solicitante pode corrigir."""
+    form = CorrecaoSolicitacaoForm(*args, **kwargs)
+    for nome in CAMPOS_NAO_EDITAVEIS_CORRECAO:
+        form.fields.pop(nome, None)
+    return form
+
+
 def _escopo_gestor(request):
     if request.user.is_superuser or request.user.is_staff:
         return Solicitacao.objects.all()
@@ -126,7 +145,6 @@ SiEv - Sistema Inteligente de Eventos
     )
 
 
-
 def corrigir_solicitacao_publica(request, protocolo):
     solicitacao = get_object_or_404(
         Solicitacao,
@@ -141,7 +159,7 @@ def corrigir_solicitacao_publica(request, protocolo):
         return redirect(f"{reverse('consultar')}?protocolo={solicitacao.protocolo}")
 
     if request.method == "POST":
-        form = CorrecaoSolicitacaoForm(
+        form = _preparar_form_correcao(
             request.POST,
             request.FILES,
             instance=solicitacao,
@@ -227,7 +245,7 @@ SiEv - Sistema Inteligente de Eventos
             )
             return redirect(f"{reverse('consultar')}?protocolo={obj.protocolo}")
     else:
-        form = CorrecaoSolicitacaoForm(instance=solicitacao)
+        form = _preparar_form_correcao(instance=solicitacao)
 
     return render(
         request,
