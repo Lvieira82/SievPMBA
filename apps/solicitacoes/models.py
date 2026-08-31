@@ -21,7 +21,7 @@ def upload_comandante(instance, filename):
 
 
 def pasta_opo(instance, filename):
-    protocolo = instance.protocolo or "SEM_PROTOCOLO"
+    protocolo = instance.solicitacao.protocolo if instance.solicitacao_id else "SEM_PROTOCOLO"
     return os.path.join("protocolos", protocolo, "opo", filename)
 
 
