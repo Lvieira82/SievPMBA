@@ -6,6 +6,7 @@ from xml.sax.saxutils import escape
 import qrcode
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -178,7 +179,7 @@ def gerar_opo(request, id):
     conteudo = _gerar_pdf_opo(request, solicitacao)
     nome = f"OPO_{solicitacao.protocolo}.pdf"
     anexo = AnexoOPO(solicitacao=solicitacao, descricao="OPO gerada pelo SiEv")
-    anexo.arquivo.save(nome, io.BytesIO(conteudo), save=True)
+    anexo.arquivo.save(nome, ContentFile(conteudo), save=True)
 
     HistoricoSolicitacao.objects.create(
         solicitacao=solicitacao,
