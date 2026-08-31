@@ -4,6 +4,7 @@
 <style>
 .opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-back{background:#6b7280}.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}
+.documentacao{margin-top:18px;padding-top:16px;border-top:1px solid #e5e7eb}.documentacao h3{color:#907C64;margin:0 0 10px;font-size:18px}.documentos-lista{display:flex;flex-wrap:wrap;gap:8px}.documento{display:inline-flex;align-items:center;gap:6px;background:#907C64;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:700}.documento:hover{background:#111827;color:#fff}.sem-documentos{color:#6b7280;font-size:14px}
 </style>
 <div class="opo-wrap"><div class="opo-card">
 <h1>📁 OPOs Geradas</h1>
@@ -21,6 +22,31 @@
 
   <a class="btn" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
   <a class="btn" href="{% url 'validar_matricula_opo_publica' protocolo.solicitacao.id %}">👮 Consulta policial</a>
+
+  <div class="documentacao">
+    <h3>📎 Documentação anexada</h3>
+    <div class="documentos-lista">
+      {% for documento in protocolo.documentos %}
+        {% if documento.arquivo %}
+          <a class="documento" href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener">
+            📄 {{ documento.tipo_documento.nome }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% for documento in protocolo.documentos_legados %}
+        {% if documento.url %}
+          <a class="documento" href="{{ documento.url }}" target="_blank" rel="noopener">
+            📄 {{ documento.nome }}
+          </a>
+        {% endif %}
+      {% endfor %}
+
+      {% if not protocolo.documentos and not protocolo.documentos_legados %}
+        <span class="sem-documentos">Nenhum documento anexado encontrado.</span>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% empty %}<div class="empty">Nenhuma OPO foi gerada até o momento.</div>{% endfor %}
 <a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
