@@ -16,7 +16,7 @@
 
   {% with arquivo=protocolo.arquivos.0 %}
     {% if arquivo and arquivo.arquivo %}
-      <a class="btn" href="{{ arquivo.arquivo.url }}" target="_blank" rel="noopener">📄 Abrir OPO gerada pelo SiEv</a>
+      <a class="btn" href="{{ arquivo.arquivo.url }}?v={{ arquivo.criado_em|date:'U' }}" target="_blank" rel="noopener">📄 Abrir OPO gerada pelo SiEv</a>
     {% endif %}
   {% endwith %}
 
