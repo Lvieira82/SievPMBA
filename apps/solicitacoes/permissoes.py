@@ -43,7 +43,7 @@ def eh_membro(user):
 
 def eh_operador(user):
     a = acesso_do_usuario(user)
-    return bool(a and a.ativo and a.perfil == "OPERADOR")
+    return bool(a and a.ativo and a.perfil == "OPERADOR" and a.unidade_id)
 
 
 def pode_administrar_usuarios(user):
@@ -53,9 +53,11 @@ def pode_administrar_usuarios(user):
     return bool(
         a and a.ativo and user.is_active and
         (
-            (a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"})
-            or
-            (a.funcao == "MEMBRO" and a.perfil in {"CPR", "UNIDADE"})
+            a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"}
+        )
+        or
+        (
+            a.funcao == "MEMBRO" and a.perfil == "UNIDADE"
         )
     )
 
@@ -121,18 +123,25 @@ def pode_administrar_usuario(user, usuario_alvo):
     if not a or not a.ativo or not user.is_active or not alvo or not alvo.ativo:
         return False
 
-    if a.perfil == "COPPM" and a.funcao in {"GESTOR", "MEMBRO"}:
-        return alvo.perfil in {"COPPM", "CPR", "UNIDADE", "OPERADOR"}
+    # Gestores só administram usuários do próprio perfil e escopo.
+    if a.funcao == "GESTOR":
+        if a.perfil == "COPPM":
+            return alvo.perfil == "COPPM"
 
-    if a.perfil == "CPR" and a.funcao in {"GESTOR", "MEMBRO"}:
-        if alvo.perfil == "CPR":
-            return alvo.cpr_id == a.cpr_id
-        if alvo.perfil in {"UNIDADE", "OPERADOR"}:
-            return bool(alvo.unidade_id and Unidade.objects.filter(pk=alvo.unidade_id, cpr_id=a.cpr_id, ativo=True).exists())
+        if a.perfil == "CPR":
+            return alvo.perfil == "CPR" and alvo.cpr_id == a.cpr_id
+
+        if a.perfil == "UNIDADE":
+            return alvo.perfil == "UNIDADE" and alvo.unidade_id == a.unidade_id
+
         return False
 
-    if a.perfil == "UNIDADE" and a.funcao in {"GESTOR", "MEMBRO"}:
-        return bool(alvo.unidade_id and alvo.unidade_id == a.unidade_id)
+    # Somente membro de Unidade pode cadastrar/administrar Operadores
+    # e apenas dentro da própria Unidade.
+    if a.funcao == "MEMBRO" and a.perfil == "UNIDADE":
+        return alvo.perfil == "OPERADOR" and bool(
+            a.unidade_id and alvo.unidade_id == a.unidade_id
+        )
 
     return False
 
