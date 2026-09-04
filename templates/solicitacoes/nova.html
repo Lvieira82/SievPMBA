@@ -217,7 +217,6 @@ textarea{
 
     </div>
 
-   
     {% if form.errors %}
     <div class="erro">
 
@@ -244,132 +243,104 @@ textarea{
     <div id="areaFormulario">
 
         <form method="post" enctype="multipart/form-data">
-            
+
             {% csrf_token %}
-            
+
             {% if solicitacao %}
                 <input type="hidden" name="correcao" value="1">
             {% endif %}
-
-            {% csrf_token %}
 
             <div class="grid">
 
                 <div>
                     <label>Nome do Responsável *</label>
                     {{ form.solicitante }}
-
                     {% if form.solicitante.errors %}
-                        <div class="erro-campo">
-                            {{ form.solicitante.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.solicitante.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>CPF *</label>
                     {{ form.cpf }}
-
                     {% if form.cpf.errors %}
-                        <div class="erro-campo">
-                            {{ form.cpf.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.cpf.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>Telefone *</label>
                     {{ form.telefone }}
-
                     {% if form.telefone.errors %}
-                        <div class="erro-campo">
-                            {{ form.telefone.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.telefone.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>E-mail *</label>
                     {{ form.email }}
-
                     {% if form.email.errors %}
-                        <div class="erro-campo">
-                            {{ form.email.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.email.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="full">
                     <label>Nome do Evento *</label>
                     {{ form.nome_evento }}
-
                     {% if form.nome_evento.errors %}
-                        <div class="erro-campo">
-                            {{ form.nome_evento.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.nome_evento.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="full">
                     <label>Local do Evento *</label>
                     {{ form.local }}
-
                     {% if form.local.errors %}
-                        <div class="erro-campo">
-                            {{ form.local.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.local.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>Data do Evento *</label>
                     {{ form.data_evento }}
-
                     {% if form.data_evento.errors %}
-                        <div class="erro-campo">
-                            {{ form.data_evento.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.data_evento.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>Hora Início *</label>
                     {{ form.hora_inicio }}
-
                     {% if form.hora_inicio.errors %}
-                        <div class="erro-campo">
-                            {{ form.hora_inicio.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.hora_inicio.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div>
                     <label>Hora Fim *</label>
                     {{ form.hora_fim }}
-
                     {% if form.hora_fim.errors %}
-                        <div class="erro-campo">
-                            {{ form.hora_fim.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.hora_fim.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="full">
                     <label>Observações</label>
                     {{ form.observacoes }}
-
                     {% if form.observacoes.errors %}
-                        <div class="erro-campo">
-                            {{ form.observacoes.errors.0 }}
-                        </div>
+                        <div class="erro-campo">{{ form.observacoes.errors.0 }}</div>
                     {% endif %}
                 </div>
 
                 <div class="upload-box full">
+                    <label>Ofício ao Comandante da Unidade (PDF) *</label>
 
-                    <label>
-                        Ofício ao Comandante da Unidade (PDF) *
-                    </label>
+                    <!--
+                        O input abaixo é o único campo de arquivo do ofício.
+                        Não renderizar {{ form.oficio_comandante }} aqui evita
+                        dois inputs obrigatórios com o mesmo name, situação que
+                        fazia o navegador bloquear o POST antes de chegar ao Django.
+                    -->
                     <input
                         type="file"
                         name="oficio_comandante"
@@ -377,385 +348,181 @@ textarea{
                         accept=".pdf"
                         required
                     >
-                    {{ form.oficio_comandante }}
 
                     {% if form.oficio_comandante.errors %}
-
                         <div class="erro-campo">
-
                             {{ form.oficio_comandante.errors.0 }}
-
                         </div>
-
                     {% endif %}
-
                 </div>
 
                 <div class="upload-box full">
-
-                    <label>
-                        Documentos Complementares (Opcional)
-                    </label>
+                    <label>Documentos Complementares (Opcional)</label>
 
                     <div id="lista-documentos">
-
                         <div class="documento-item">
-
                             <div class="grid">
-
                                 <div>
-
                                     <label>Tipo do Documento</label>
-
-                                    <select
-                                        name="tipo_documento"
-                                        class="form-control tipo-documento">
-
-                                        <option value="">
-                                            Selecione...
-                                        </option>
-
-                                        <option value="Bombeiro">
-                                            Bombeiro
-                                        </option>
-
-                                        <option value="Meio Ambiente">
-                                            Meio Ambiente
-                                        </option>
-
-                                        <option value="Sanitário">
-                                            Vigilância Sanitária
-                                        </option>
-
-                                        <option value="MP">
-                                            Ministério Público
-                                        </option>
-
-                                        <option value="TAC">
-                                            TAC
-                                        </option>
-
-                                        <option value="Outro">
-                                            Outro
-                                        </option>
-
+                                    <select name="tipo_documento" class="form-control tipo-documento">
+                                        <option value="">Selecione...</option>
+                                        <option value="Bombeiro">Bombeiro</option>
+                                        <option value="Meio Ambiente">Meio Ambiente</option>
+                                        <option value="Sanitário">Vigilância Sanitária</option>
+                                        <option value="MP">Ministério Público</option>
+                                        <option value="TAC">TAC</option>
+                                        <option value="Outro">Outro</option>
                                     </select>
-
                                 </div>
 
                                 <div class="descricao-outro" style="display:none">
-
-                                    <label>
-                                        Descreva o documento
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="descricao_documento"
-                                        class="form-control">
-
+                                    <label>Descreva o documento</label>
+                                    <input type="text" name="descricao_documento" class="form-control">
                                 </div>
-
                             </div>
 
                             <br>
 
                             <label>Arquivo (PDF)</label>
-
                             <input
                                 type="file"
                                 name="documentos"
                                 accept=".pdf"
-                                class="form-control">
-
+                                class="form-control"
+                            >
                         </div>
-
                     </div>
 
                     <br>
 
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary"
-                        id="btnAdicionarDocumento">
-
+                    <button type="button" class="btn btn-outline-primary" id="btnAdicionarDocumento">
                         + Adicionar outro documento
-
                     </button>
-
                 </div>
+
+            </div>
+
             <div class="btn-area">
+                <a href="javascript:history.back()" class="btn-back">← Voltar</a>
 
-                <a
-                    href="javascript:history.back()"
-                    class="btn-back"
-                >
-                    ← Voltar
-                </a>
-
-                <button
-                    type="submit"
-                    class="btn-submit"
-                >
+                <button type="submit" class="btn-submit">
                     {% if solicitacao %}
                         Salvar Correções
                     {% else %}
                         Enviar Informação
                     {% endif %}
                 </button>
-
             </div>
 
         </form>
 
+    </div>
+
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
 
 <script>
-
 $(function(){
-
     $("#id_telefone").mask("(00) 00000-0000");
     $("#id_cpf").mask("000.000.000-00");
-
 });
 
 const aceite = document.getElementById("aceite_termos");
 const formulario = document.getElementById("areaFormulario");
 
 function atualizarFormulario(){
-
     if(aceite.checked){
-
         formulario.style.opacity="1";
         formulario.style.pointerEvents="auto";
-
     }else{
-
         formulario.style.opacity=".45";
         formulario.style.pointerEvents="none";
-
     }
-
 }
 
 aceite.addEventListener("change", atualizarFormulario);
-
 atualizarFormulario();
-
-
 
 /* =====================================================
    DOCUMENTOS COMPLEMENTARES
 ===================================================== */
 
 function criarDocumento(){
-
 return `
-
 <div class="documento-item border rounded p-3 mb-3">
+    <label class="mb-2">Tipo do Documento</label>
 
-    <label class="mb-2">
-        Tipo do Documento
-    </label>
-
-    <select
-        name="tipo_documento"
-        class="form-select tipo-documento">
-
-        <option value="">
-            Selecione...
-        </option>
-
-        <option value="BOMBEIRO">
-            Corpo de Bombeiros
-        </option>
-
-        <option value="SANITARIO">
-            Vigilância Sanitária
-        </option>
-
-        <option value="MEIO_AMBIENTE">
-            Meio Ambiente
-        </option>
-
-        <option value="MP">
-            Ministério Público
-        </option>
-
-        <option value="TAC">
-            TAC
-        </option>
-
-        <option value="CREA">
-            CREA
-        </option>
-
-        <option value="CRM">
-            CRM
-        </option>
-
-        <option value="CRMV">
-            CRMV
-        </option>
-
-        <option value="CRO">
-            CRO
-        </option>
-
-        <option value="IBAMA">
-            IBAMA
-        </option>
-
-        <option value="INEMA">
-            INEMA
-        </option>
-
-        <option value="PREFEITURA">
-            Prefeitura
-        </option>
-
-        <option value="POLICIA_CIVIL">
-            Polícia Civil
-        </option>
-
-        <option value="EXERCITO">
-            Exército Brasileiro
-        </option>
-
-        <option value="MARINHA">
-            Marinha do Brasil
-        </option>
-
-        <option value="ANAC">
-            ANAC
-        </option>
-
-        <option value="DNIT">
-            DNIT
-        </option>
-
-        <option value="DERBA">
-            DERBA / SIT
-        </option>
-
-        <option value="OUTRO">
-            Outro Documento
-        </option>
-
+    <select name="tipo_documento" class="form-select tipo-documento">
+        <option value="">Selecione...</option>
+        <option value="BOMBEIRO">Corpo de Bombeiros</option>
+        <option value="SANITARIO">Vigilância Sanitária</option>
+        <option value="MEIO_AMBIENTE">Meio Ambiente</option>
+        <option value="MP">Ministério Público</option>
+        <option value="TAC">TAC</option>
+        <option value="CREA">CREA</option>
+        <option value="CRM">CRM</option>
+        <option value="CRMV">CRMV</option>
+        <option value="CRO">CRO</option>
+        <option value="IBAMA">IBAMA</option>
+        <option value="INEMA">INEMA</option>
+        <option value="PREFEITURA">Prefeitura</option>
+        <option value="POLICIA_CIVIL">Polícia Civil</option>
+        <option value="EXERCITO">Exército Brasileiro</option>
+        <option value="MARINHA">Marinha do Brasil</option>
+        <option value="ANAC">ANAC</option>
+        <option value="DNIT">DNIT</option>
+        <option value="DERBA">DERBA / SIT</option>
+        <option value="OUTRO">Outro Documento</option>
     </select>
 
-    <div
-        class="descricao-outro mt-3"
-        style="display:none;">
-
-        <label>
-            Descrição
-        </label>
-
-        <input
-            type="text"
-            class="form-control"
-            name="descricao_documento">
-
+    <div class="descricao-outro mt-3" style="display:none;">
+        <label>Descrição</label>
+        <input type="text" class="form-control" name="descricao_documento">
     </div>
 
     <div class="mt-3">
-
-        <label>
-            Arquivo (PDF)
-        </label>
-
-        <input
-            type="file"
-            name="documentos"
-            class="form-control"
-            accept=".pdf">
-
+        <label>Arquivo (PDF)</label>
+        <input type="file" name="documentos" class="form-control" accept=".pdf">
     </div>
 
-    <button
-        type="button"
-        class="btn btn-danger btn-sm mt-3 remover-documento">
-
+    <button type="button" class="btn btn-danger btn-sm mt-3 remover-documento">
         Remover
-
     </button>
-
 </div>
-
 `;
-
 }
 
-
 /* Adicionar documento */
-
-document
-.getElementById("btnAdicionarDocumento")
-.addEventListener("click",function(){
-
-    document
-    .getElementById("lista-documentos")
-    .insertAdjacentHTML(
-        "beforeend",
-        criarDocumento()
-    );
-
-});
-
-
-/* Mostrar descrição quando escolher OUTRO */
-
-document.addEventListener(
-"change",
-function(e){
-
-    if(!e.target.classList.contains("tipo-documento"))
-        return;
-
-    const bloco =
-    e.target.closest(".documento-item");
-
-    const descricao =
-    bloco.querySelector(".descricao-outro");
-
-    if(e.target.value=="OUTRO"){
-
-        descricao.style.display="block";
-
-    }else{
-
-        descricao.style.display="none";
-
+document.addEventListener("click", function(event){
+    if(event.target.id === "btnAdicionarDocumento"){
+        document.getElementById("lista-documentos").insertAdjacentHTML("beforeend", criarDocumento());
     }
 
-});
-
-
-/* Remover documento */
-
-document.addEventListener(
-"click",
-function(e){
-
-    if(
-        e.target.classList.contains(
-        "remover-documento"
-        )
-    ){
-
-        e.target
-        .closest(".documento-item")
-        .remove();
-
+    if(event.target.classList.contains("remover-documento")){
+        const item = event.target.closest(".documento-item");
+        if(item){
+            item.remove();
+        }
     }
-
 });
 
+/* Mostrar descrição quando OUTRO for selecionado */
+document.addEventListener("change", function(event){
+    if(event.target.classList.contains("tipo-documento")){
+        const item = event.target.closest(".documento-item");
+        if(!item) return;
+
+        const descricao = item.querySelector(".descricao-outro");
+        if(!descricao) return;
+
+        descricao.style.display =
+            event.target.value === "OUTRO" || event.target.value === "Outro"
+                ? "block"
+                : "none";
+    }
+});
 </script>
 
 {% endblock %}
