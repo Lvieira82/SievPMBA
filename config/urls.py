@@ -1,7 +1,10 @@
+import os
+
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path
 from django.views.static import serve
+from django.contrib.staticfiles.views import serve as serve_static
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -128,6 +131,14 @@ urlpatterns = [
     path("protocolo/<int:pk>/cancelar/", cancelar_protocolo, name="cancelar_protocolo"),
     path("protocolo/estatisticas/", estatisticas_protocolo, name="estatisticas_protocolo"),
 ]
+
+# O runserver não serve arquivos estáticos quando DEBUG=False.
+# Mantemos o comportamento de produção no Render e, localmente,
+# servimos os arquivos diretamente pelo finder do Django.
+if os.environ.get("RENDER") != "true":
+    urlpatterns += [
+        path("static/<path:path>", serve_static),
+    ]
 
 if settings.DEBUG:
     urlpatterns += [path("media/<path:path>", serve, {"document_root": settings.MEDIA_ROOT})]
