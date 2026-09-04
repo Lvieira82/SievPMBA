@@ -154,8 +154,7 @@ textarea{
 }
 
 #areaFormulario{
-    opacity:.45;
-    pointer-events:none;
+    display:none;
     transition:.3s;
 }
 
@@ -335,12 +334,6 @@ textarea{
                 <div class="upload-box full">
                     <label>Ofício ao Comandante da Unidade (PDF) *</label>
 
-                    <!--
-                        O input abaixo é o único campo de arquivo do ofício.
-                        Não renderizar {{ form.oficio_comandante }} aqui evita
-                        dois inputs obrigatórios com o mesmo name, situação que
-                        fazia o navegador bloquear o POST antes de chegar ao Django.
-                    -->
                     <input
                         type="file"
                         name="oficio_comandante"
@@ -434,11 +427,11 @@ const formulario = document.getElementById("areaFormulario");
 
 function atualizarFormulario(){
     if(aceite.checked){
-        formulario.style.opacity="1";
-        formulario.style.pointerEvents="auto";
+        formulario.style.display="block";
+        formulario.setAttribute("aria-hidden", "false");
     }else{
-        formulario.style.opacity=".45";
-        formulario.style.pointerEvents="none";
+        formulario.style.display="none";
+        formulario.setAttribute("aria-hidden", "true");
     }
 }
 
