@@ -6,4 +6,12 @@ class SolicitacoesConfig(AppConfig):
     name = "apps.solicitacoes"
 
     def ready(self):
-        from . import models_acesso  # noqa: F401
+
+        from django.conf import settings
+
+        if settings.DEBUG:
+            return
+
+        from .scheduler import iniciar_scheduler
+
+        iniciar_scheduler()
