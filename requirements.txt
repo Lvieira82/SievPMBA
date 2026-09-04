@@ -47,3 +47,4 @@ zopfli==0.4.2
 PyMuPDF==1.26.4
 dateparser==1.2.2
 pytesseract==0.3.13
+APScheduler==3.11.0
