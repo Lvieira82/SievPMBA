@@ -41,8 +41,6 @@ class SolicitacaoMultiplasForm(SolicitacaoForm):
         )
 
     def clean(self):
-        # O OCR ocorre somente depois que os dados e arquivos já foram
-        # guardados temporariamente, respeitando a arquitetura do novo fluxo.
         return forms.ModelForm.clean(self)
 
 
@@ -170,11 +168,7 @@ def _criar_solicitacao(dados, data_evento, hora_inicio, hora_fim, usuario, arqui
                 tipo_documento=tipo,
                 descricao=item.get("descricao", ""),
             )
-            documento.arquivo.save(
-                "documento.pdf",
-                File(arquivo),
-                save=True,
-            )
+            documento.arquivo.save("documento.pdf", File(arquivo), save=True)
 
     solicitacao.save()
     return solicitacao
@@ -184,6 +178,9 @@ def _enviar_email_recebimento(solicitacoes):
     if not solicitacoes:
         return
     primeira = solicitacoes[0]
+    if not primeira.email:
+        raise ValueError("A solicitação não possui e-mail para confirmação.")
+
     linhas = [
         f"Olá, {primeira.solicitante}!",
         "",
@@ -206,16 +203,14 @@ def _enviar_email_recebimento(solicitacoes):
         "",
         "PMBA - Uma força a serviço do cidadão.",
     ])
-    try:
-        send_mail(
-            "Solicitações de Evento Recebidas",
-            "\n".join(linhas),
-            settings.DEFAULT_FROM_EMAIL,
-            [primeira.email],
-            fail_silently=True,
-        )
-    except Exception as erro:
-        print("ERRO AO ENVIAR EMAIL DAS MÚLTIPLAS DATAS:", repr(erro))
+
+    send_mail(
+        "Solicitações de Evento Recebidas",
+        "\n".join(linhas),
+        settings.DEFAULT_FROM_EMAIL,
+        [primeira.email],
+        fail_silently=False,
+    )
 
 
 def _render_form(request, form, municipio):
@@ -243,8 +238,7 @@ def nova_solicitacao(request):
     form = SolicitacaoMultiplasForm(request.POST, request.FILES)
     if "origem" in form.fields:
         form.fields.pop("origem")
-    if not _configurar_form_territorial(form, municipio):
-        pass
+    _configurar_form_territorial(form, municipio)
 
     if not form.is_valid():
         return _render_form(request, form, municipio)
@@ -311,7 +305,10 @@ def nova_solicitacao(request):
                     usuario,
                     arquivos,
                 )
-            _enviar_email_recebimento([solicitacao])
+                _enviar_email_recebimento([solicitacao])
+        except Exception as erro:
+            form.add_error(None, "A solicitação não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
+            return _render_form(request, form, municipio)
         finally:
             _limpar_arquivos_temporarios(arquivos)
             _limpar_sessao(request)
@@ -402,7 +399,7 @@ def confirmar_multiplas(request):
         with transaction.atomic():
             for data, inicio, fim in escolhidas:
                 solicitacoes.append(_criar_solicitacao(dados, data, inicio, fim, usuario, arquivos))
-        _enviar_email_recebimento(solicitacoes)
+            _enviar_email_recebimento(solicitacoes)
     except Exception as erro:
         print("ERRO AO MATERIALIZAR SOLICITAÇÕES:", repr(erro))
         _limpar_arquivos_temporarios(arquivos)
@@ -412,7 +409,7 @@ def confirmar_multiplas(request):
             "data_x": data_x,
             "hora_inicio_x": dados.get("hora_inicio", ""),
             "hora_fim_x": dados.get("hora_fim", ""),
-            "erros": ["Não foi possível concluir a criação das solicitações. Tente novamente."],
+            "erros": ["Não foi possível concluir a criação das solicitações porque o e-mail de confirmação não foi enviado. Tente novamente."],
         })
     finally:
         _limpar_arquivos_temporarios(arquivos)
