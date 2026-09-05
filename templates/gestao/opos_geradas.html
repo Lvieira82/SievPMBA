@@ -1,68 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}OPOs Geradas{% endblock %}
 {% block content %}
-<style>
-.opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
-.opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-back{background:#6b7280}.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}
-.bloco-documentos{margin-top:15px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700;white-space:nowrap}.btn-documento:hover{background:#111827;color:#fff}.sem-documento{color:#6b7280}
-@media (max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}}
-</style>
-
-<div class="opo-wrap">
-    <div class="opo-card">
-        <h1>📁 OPOs Geradas</h1>
-        <p class="sub">Documentos arquivados pelo SIEV e vinculados aos respectivos protocolos.</p>
-
-        {% for protocolo in protocolos %}
-        <div class="opo-item">
-            <div class="opo-head">
-                <strong>Protocolo {{ protocolo.codigo }}</strong>
-                <span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span>
-            </div>
-
-            <div class="meta">
-                {{ protocolo.solicitacao.nome_evento }} ·
-                {{ protocolo.solicitacao.municipio.nome }} ·
-                {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}
-            </div>
-
-            <div class="bloco-documentos">
-                <span class="titulo-documentos">📎 Ofício obrigatório</span>
-
-                {% if protocolo.solicitacao.oficio_comandante %}
-                    <a href="{% url 'abrir_documento_solicitacao' protocolo.solicitacao.id 'oficio_comandante' %}"
-                       target="_blank"
-                       rel="noopener"
-                       class="btn-documento">
-                        📄 Ofício do Comandante
-                    </a>
-                {% else %}
-                    <span class="sem-documento">Ofício do Comandante não encontrado.</span>
-                {% endif %}
-            </div>
-
-            <div class="bloco-documentos">
-                <span class="titulo-documentos">📑 OPO gerada</span>
-
-                {% for arquivo in protocolo.arquivos %}
-                    {% if arquivo.arquivo %}
-                        <a class="btn"
-                           href="{{ arquivo.arquivo.url }}?v={{ arquivo.criado_em|date:'U' }}"
-                           target="_blank"
-                           rel="noopener">
-                            📄 {{ arquivo.descricao|default:'OPO' }}
-                        </a>
-                    {% endif %}
-                {% empty %}
-                    <span class="sem-documento">Nenhum PDF de OPO encontrado.</span>
-                {% endfor %}
-            </div>
-        </div>
-        {% empty %}
-            <div class="empty">Nenhuma OPO foi gerada até o momento.</div>
-        {% endfor %}
-
-        <a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
-    </div>
-</div>
+<style>.opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}.opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-apoio{background:#2563eb}.btn-back{background:#6b7280}.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700;white-space:nowrap}.btn-documento:hover{background:#111827;color:#fff}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}}</style>
+<div class="opo-wrap"><div class="opo-card"><h1>📁 OPOs Geradas</h1><p class="sub">Documentos arquivados pelo SIEV e vinculados aos respectivos protocolos.</p>
+{% for protocolo in protocolos %}<div class="opo-item"><div class="opo-head"><strong>Protocolo {{ protocolo.codigo }}</strong><span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span></div><div class="meta">{{ protocolo.solicitacao.nome_evento }} · {{ protocolo.solicitacao.municipio.nome }} · {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}</div>
+<div class="bloco-documentos"><span class="titulo-documentos">📎 Ofício obrigatório</span>{% if protocolo.solicitacao.oficio_comandante %}<a href="{% url 'abrir_documento_solicitacao' protocolo.solicitacao.id 'oficio_comandante' %}" target="_blank" rel="noopener" class="btn-documento">📄 Ofício do Comandante</a>{% else %}<span class="sem-documento">Ofício do Comandante não encontrado.</span>{% endif %}</div>
+<div class="bloco-documentos"><span class="titulo-documentos">📑 OPO gerada</span>{% for arquivo in protocolo.arquivos %}{% if arquivo.arquivo %}<a class="btn" href="{{ arquivo.arquivo.url }}?v={{ arquivo.criado_em|date:'U' }}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>{% endif %}{% empty %}<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>{% endfor %}</div>
+{% if pode_apoio %}<div class="acoes-op"><a class="btn btn-apoio" href="{% url 'enviar_apoio' protocolo.solicitacao.id %}">🤝 Apoio — enviar para unidade especializada</a></div>{% endif %}
+</div>{% empty %}<div class="empty">Nenhuma OPO foi gerada até o momento.</div>{% endfor %}<a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a></div></div>
 {% endblock %}
