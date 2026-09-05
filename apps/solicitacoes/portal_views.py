@@ -108,10 +108,16 @@ def nova_solicitacao(request):
                     solicitacao.unidade = unidade
                     solicitacao.origem = "EXTERNA"
                     solicitacao.status = "PENDENTE"
-                    solicitacao.save()
-                    _salvar_documentos(request, solicitacao)
-                    _enviar_email_recebimento(solicitacao)
-                    return render(request, "solicitacoes/sucesso.html", {"protocolo": solicitacao.protocolo})
+                    try:
+                        solicitacao.save()
+                        _salvar_documentos(request, solicitacao)
+                        _enviar_email_recebimento(solicitacao)
+                    except Exception as erro:
+                        if solicitacao.pk:
+                            solicitacao.delete()
+                        form.add_error(None, "A solicitação não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
+                    else:
+                        return render(request, "solicitacoes/sucesso.html", {"protocolo": solicitacao.protocolo})
     else:
         initial = {}
         bairro_id = request.GET.get("bairro")
@@ -144,12 +150,27 @@ def _salvar_documentos(request, solicitacao):
 
 def _enviar_email_recebimento(solicitacao):
     if not solicitacao.email:
-        return
-    mensagem = f"""Olá, {solicitacao.solicitante}!\n\nSua solicitação foi recebida com sucesso.\n\nPROTOCOLO: {solicitacao.protocolo}\nEVENTO: {solicitacao.nome_evento}\nDATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}\nSTATUS: {solicitacao.get_status_display()}\n\nGuarde este protocolo para futuras consultas.\n\nPMBA - Uma força a serviço do cidadão.\n"""
-    try:
-        send_mail("Solicitação de Evento Recebida", mensagem, settings.DEFAULT_FROM_EMAIL, [solicitacao.email], fail_silently=True)
-    except Exception:
-        pass
+        raise ValueError("A solicitação não possui e-mail para confirmação.")
+    mensagem = f"""Olá, {solicitacao.solicitante}!
+
+Sua solicitação foi recebida com sucesso.
+
+PROTOCOLO: {solicitacao.protocolo}
+EVENTO: {solicitacao.nome_evento}
+DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
+STATUS: {solicitacao.get_status_display()}
+
+Guarde este protocolo para futuras consultas.
+
+PMBA - Uma força a serviço do cidadão.
+"""
+    send_mail(
+        "Solicitação de Evento Recebida",
+        mensagem,
+        settings.DEFAULT_FROM_EMAIL,
+        [solicitacao.email],
+        fail_silently=False,
+    )
 
 
 def consultar_protocolo(request):
@@ -183,22 +204,26 @@ def corrigir_solicitacao(request, protocolo):
             obj.motivo_correcao = ""
             obj.save()
 
-            # Os documentos anteriores permanecem no banco. Novos PDFs enviados
-            # nesta correção também são gravados como DocumentoSolicitacao.
             _salvar_documentos(request, obj)
 
             if obj.email:
-                mensagem = f"""Olá, {obj.solicitante}!\n\nRecebemos a correção da sua solicitação {obj.protocolo}.\n\nEla retornou para análise da equipe responsável.\n\nVocê pode acompanhar pelo protocolo: {obj.protocolo}\n\nPMBA - Sistema de Informações de Eventos (SiEv).\n"""
-                try:
-                    send_mail(
-                        f"Correção recebida - Protocolo {obj.protocolo}",
-                        mensagem,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [obj.email],
-                        fail_silently=True,
-                    )
-                except Exception:
-                    pass
+                mensagem = f"""Olá, {obj.solicitante}!
+
+Recebemos a correção da sua solicitação {obj.protocolo}.
+
+Ela retornou para análise da equipe responsável.
+
+Você pode acompanhar pelo protocolo: {obj.protocolo}
+
+PMBA - Sistema de Informações de Eventos (SiEvPM).
+"""
+                send_mail(
+                    f"Correção recebida - Protocolo {obj.protocolo}",
+                    mensagem,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [obj.email],
+                    fail_silently=False,
+                )
 
             messages.success(request, "Correções enviadas com sucesso. Sua solicitação retornou para análise.")
             return redirect(f"{reverse('consultar')}?protocolo={obj.protocolo}")
