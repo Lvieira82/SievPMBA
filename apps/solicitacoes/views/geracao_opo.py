@@ -15,7 +15,7 @@ from apps.solicitacoes.models import AnexoOPO, HistoricoSolicitacao, Solicitacao
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
-def _pdf_opo(solicitacao, evento_extra=False):
+def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=38, leftMargin=38, topMargin=38, bottomMargin=38)
     styles = getSampleStyleSheet()
@@ -30,6 +30,8 @@ def _pdf_opo(solicitacao, evento_extra=False):
     observacoes = solicitacao.observacoes or ""
     if not observacoes:
         observacoes = "O organizador do evento está ciente de que caso haja perturbação do sossego, aglomeração ou outro tipo de infração, a guarnição adotará as medidas cabíveis."
+    if unidade_executor:
+        observacoes = f"OPO de apoio da {unidade_executor.sigla}. " + observacoes
 
     dados = [
         ["EVENTO:", solicitacao.nome_evento],
@@ -41,6 +43,9 @@ def _pdf_opo(solicitacao, evento_extra=False):
         ["SOLICITANTE:", f"{solicitacao.solicitante} ({solicitacao.telefone})"],
         ["OBSERVAÇÕES:", observacoes],
     ]
+    if unidade_executor:
+        dados.insert(6, ["UNIDADE EXECUTORA:", unidade_executor.nome])
+
     tabela = Table([[Paragraph(str(a), normal), Paragraph(str(b), normal)] for a, b in dados], colWidths=[145, 370])
     tabela.setStyle(TableStyle([
         ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
@@ -58,6 +63,9 @@ def _pdf_opo(solicitacao, evento_extra=False):
     story.append(Paragraph("<b>SiEv – Sistema Integrado de Eventos</b>", normal))
     story.append(Spacer(1, 14))
     story.append(Paragraph(f"Protocolo: {solicitacao.protocolo}", normal))
+    if unidade_executor:
+        story.append(Spacer(1, 5))
+        story.append(Paragraph(f"Unidade executora: {unidade_executor.sigla}", normal))
     doc.build(story)
     return buffer.getvalue()
 
@@ -91,7 +99,7 @@ def gerar_opo_com_evento_extra(request, id):
         solicitacao=solicitacao,
         usuario=request.user,
         acao="OPO GERADA",
-        detalhes=f"Arquivo {nome} gerado. Evento extra: {'SIM' if evento_extra else 'NÃO'}.",
+        observacao=f"Arquivo {nome} gerado. Evento extra: {'SIM' if evento_extra else 'NÃO'}.",
     )
     messages.success(request, f"OPO {solicitacao.protocolo} gerada com sucesso.")
     return redirect("detalhe_opo", id=id)
