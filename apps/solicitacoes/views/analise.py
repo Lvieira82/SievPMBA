@@ -5,20 +5,20 @@ from django.utils import timezone
 from django.db.models import Count
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, TransferenciaSolicitacao, Unidade
-from apps.solicitacoes.permissoes import escopo_unidades, pode_ver_solicitacao
+from apps.solicitacoes.permissoes import escopo_unidades, pode_ver_solicitacao, pode_ver_ranking
 
 
 def _unidades_permitidas(request):
     return escopo_unidades(request.user)
 
 
+def _sem_acesso(request):
+    messages.error(request, "A análise e o ranking estão disponíveis para gestores de COPPM, CPR e Unidade.")
+    return redirect("painel_gestao")
+
+
 def _inicio_atendimento(solicitacao, unidade):
-    transferencia = (
-        TransferenciaSolicitacao.objects.filter(
-            solicitacao=solicitacao,
-            unidade_destino=unidade,
-        ).order_by("-criado_em").first()
-    )
+    transferencia = TransferenciaSolicitacao.objects.filter(solicitacao=solicitacao, unidade_destino=unidade).order_by("-criado_em").first()
     return transferencia.criado_em if transferencia else solicitacao.criado_em
 
 
@@ -38,6 +38,8 @@ def _tempo_horas(solicitacao, unidade):
 
 @login_required
 def analise_unidades(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
     unidades = _unidades_permitidas(request).order_by("nome")
     unidade_id = request.GET.get("unidade")
     origem = request.GET.get("origem")
@@ -90,6 +92,8 @@ def painel_analise(request):
 
 @login_required
 def fila_analise(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
     unidades = _unidades_permitidas(request)
     solicitacoes = Solicitacao.objects.filter(unidade__in=unidades, status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]).select_related("municipio", "bairro", "unidade").order_by("criado_em")
     return render(request, "analise/fila.html", {"solicitacoes": solicitacoes})
@@ -176,6 +180,8 @@ def historico(request, pk):
 
 @login_required
 def estatisticas(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
     unidades = _unidades_permitidas(request)
     dados = Solicitacao.objects.filter(unidade__in=unidades).values("status").annotate(total=Count("id")).order_by("status")
     return render(request, "analise/estatisticas.html", {"dados": dados, "total": sum(item["total"] for item in dados)})
