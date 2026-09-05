@@ -54,7 +54,6 @@ from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
 )
-from apps.solicitacoes.models import Solicitacao
 from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor
 
 
@@ -116,6 +115,8 @@ urlpatterns = [
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
     path("documentos/<int:id>/", documentos_solicitacao_seguro, name="documentos_solicitacao"),
     path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao"),
+    path("documento/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao_direto"),
+    path("documentos/arquivo/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_arquivo"),
     path("gestao/lancamento-manual/", lancamento_manual, name="lancamento_manual"),
     path("gestao/mapa-eventos/", mapa_eventos_seguro, name="mapa_eventos"),
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf_seguro, name="gerar_mapa_eventos_pdf"),
