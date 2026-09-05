@@ -70,7 +70,9 @@ def abrir_documento_solicitacao_seguro(request, id, tipo):
         raise Http404("O arquivo não está disponível no armazenamento do SiEv.")
     except OSError:
         raise Http404("Não foi possível abrir o arquivo PDF.")
-    return FileResponse(arquivo, content_type="application/pdf")
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = "inline"
+    return resposta
 
 
 @login_required
