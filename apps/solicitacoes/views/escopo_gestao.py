@@ -8,14 +8,9 @@ from django.core.files.storage import default_storage
 from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
 from apps.solicitacoes.permissoes import (
-    eh_desenvolvedor,
-    eh_gestor,
-    eh_operador,
-    pode_gerar_opo,
-    pode_ver_solicitacao,
-    pode_ver_documentacao_solicitacao,
-    pode_ver_mapa_eventos,
-    escopo_unidades,
+    eh_desenvolvedor, eh_gestor, eh_operador, pode_gerar_opo,
+    pode_ver_solicitacao, pode_ver_documentacao_solicitacao,
+    pode_ver_mapa_eventos, escopo_unidades,
 )
 from .operacional import gerar_mapa_eventos_pdf as mapa_pdf_original
 from .geracao_opo import gerar_opo_com_evento_extra
@@ -30,7 +25,6 @@ def documentos_solicitacao_seguro(request, id):
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
-
     docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
     if request.method == "POST":
@@ -80,9 +74,7 @@ def opos_geradas_seguro(request):
     if eh_operador(request.user):
         messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
         return redirect("eventos_dia")
-    anexos = AnexoOPO.objects.select_related(
-        "solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro"
-    ).filter(solicitacao__unidade__in=escopo_unidades(request.user)).order_by("-criado_em")
+    anexos = AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro").filter(solicitacao__unidade__in=escopo_unidades(request.user)).order_by("-criado_em")
     grupos = {}
     for a in anexos:
         grupos.setdefault(a.solicitacao.protocolo, {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": []})["arquivos"].append(a)
@@ -98,7 +90,10 @@ def detalhe_opo_seguro(request, id):
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a esta OPO.")
         return redirect("painel_gestao")
-    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": AnexoOPO.objects.filter(solicitacao=s).order_by("-criado_em")})
+    anexos = AnexoOPO.objects.filter(solicitacao=s).order_by("-criado_em")
+    a = getattr(request.user, "acesso_institucional", None)
+    pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))))
+    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "pode_apoio": pode_apoio})
 
 
 @login_required
