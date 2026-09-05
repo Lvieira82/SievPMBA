@@ -47,10 +47,15 @@ def painel_gestao(request):
         nivel = acesso.perfil
 
     hoje = timezone.localdate()
+    acesso = acesso_do_usuario(user)
+    pode_apoio = bool(
+        eh_desenvolvedor(user)
+        or (acesso and acesso.ativo and user.is_active and acesso.funcao == "GESTOR" and acesso.perfil == "UNIDADE")
+    )
     context = {
-        "perfil": acesso_do_usuario(user),
+        "perfil": acesso,
         "nivel": nivel,
-        "funcao": "DESENVOLVEDOR" if eh_desenvolvedor(user) else acesso_do_usuario(user).funcao,
+        "funcao": "DESENVOLVEDOR" if eh_desenvolvedor(user) else acesso.funcao,
         "titulo_painel": titulo,
         "descricao_acesso": descricao_acesso(user),
         "eh_desenvolvedor": eh_desenvolvedor(user),
@@ -59,6 +64,7 @@ def painel_gestao(request):
         "eh_operador": eh_operador(user),
         "pode_administrar": pode_administrar_usuarios(user),
         "pode_manual": pode_lancamento_manual(user),
+        "pode_apoio": pode_apoio,
         "pendentes_opo": solicitacoes.filter(status="PENDENTE").count(),
         "eventos_semana": solicitacoes.filter(data_evento__gte=hoje, data_evento__lte=hoje + timedelta(days=7)).count(),
         "eventos_mes": solicitacoes.filter(data_evento__year=hoje.year, data_evento__month=hoje.month).count(),
