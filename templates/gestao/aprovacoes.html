@@ -28,11 +28,11 @@
 {% endwith %}
 </td>
 <td class="col-acoes">
+<a href="{% url 'transferir_solicitacao' s.id %}" class="btn-transferir">🔄 Transferir</a>
 {% if s.documentos.all|length %}
 <form method="post" action="{% url 'aprovar_solicitacao' s.id %}">{% csrf_token %}<button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>
-<a href="{% url 'transferir_solicitacao' s.id %}" class="btn-transferir">🔄 Transferir</a>
 <a href="{% url 'solicitar_correcao' s.id %}" class="btn-corrigir">✏️ Corrigir</a>
-{% else %}<span style="color:#6b7280;font-size:13px">Ações bloqueadas até existir documento.</span>{% endif %}
+{% else %}<span style="display:block;color:#6b7280;font-size:13px;margin-top:6px">Aprovação/correção bloqueadas até existir documento.</span>{% endif %}
 </td>
 </tr>
 {% empty %}<tr><td colspan="6" class="vazio">Nenhuma solicitação pendente encontrada.</td></tr>{% endfor %}
