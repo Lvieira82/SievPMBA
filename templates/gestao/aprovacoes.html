@@ -4,12 +4,13 @@
 <style>
 .card-aprovacoes{background:#fff;max-width:1250px;margin:40px auto;padding:35px;border-radius:16px;box-shadow:0 5px 20px rgba(0,0,0,.08)}
 .card-aprovacoes h1{text-align:center;margin-bottom:10px;color:#111827}.aviso-docs{text-align:center;color:#6b7280;margin-bottom:25px}
-.tabela-wrap{width:100%;overflow-x:auto}.tabela-aprovacoes{width:100%;border-collapse:collapse}.tabela-aprovacoes th{background:#111827;color:#fff;padding:14px 12px;text-align:left;font-size:15px}.tabela-aprovacoes td{padding:14px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}.col-acoes{min-width:270px}.btn-doc,.btn-gerar,.btn-corrigir,.btn-voltar{display:inline-block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:3px 4px 3px 0;border:0;cursor:pointer}.btn-doc{background:#6b7280}.btn-gerar{background:#907C64}.btn-corrigir{background:#d97706}.btn-voltar{background:#6b7280;margin-top:25px}.docs-ok{display:block;color:#15803d;font-size:12px;font-weight:bold;margin:5px 0}.docs-pendente{display:block;color:#b45309;font-size:12px;font-weight:bold;margin-top:5px}.doc-list{margin:8px 0 10px;padding:8px;background:#f8fafc;border-radius:8px}.doc-item{padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.doc-item:last-child{border-bottom:0}.doc-item a{color:#2563eb;font-weight:bold;text-decoration:none}.vazio{text-align:center;padding:25px;color:#6b7280}
-@media(max-width:768px){.card-aprovacoes{padding:20px}.btn-doc,.btn-gerar,.btn-corrigir{display:block;width:100%;box-sizing:border-box;text-align:center}}
+.tabela-wrap{width:100%;overflow-x:auto}.tabela-aprovacoes{width:100%;border-collapse:collapse}.tabela-aprovacoes th{background:#111827;color:#fff;padding:14px 12px;text-align:left;font-size:15px}.tabela-aprovacoes td{padding:14px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}.col-acoes{min-width:310px}
+.btn-doc,.btn-gerar,.btn-corrigir,.btn-transferir,.btn-voltar{display:inline-block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:3px 4px 3px 0;border:0;cursor:pointer}.btn-doc{background:#6b7280}.btn-gerar{background:#907C64}.btn-corrigir{background:#d97706}.btn-transferir{background:#2563eb}.btn-voltar{background:#6b7280;margin-top:25px}.docs-ok{display:block;color:#15803d;font-size:12px;font-weight:bold;margin:5px 0}.docs-pendente{display:block;color:#b45309;font-size:12px;font-weight:bold;margin-top:5px}.doc-list{margin:8px 0 10px;padding:8px;background:#f8fafc;border-radius:8px}.doc-item{padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.doc-item:last-child{border-bottom:0}.doc-item a{color:#2563eb;font-weight:bold;text-decoration:none}.vazio{text-align:center;padding:25px;color:#6b7280}
+@media(max-width:768px){.card-aprovacoes{padding:20px}.btn-doc,.btn-gerar,.btn-corrigir,.btn-transferir{display:block;width:100%;box-sizing:border-box;text-align:center}}
 </style>
 <div class="card-aprovacoes">
 <h1>Solicitações Pendentes de OPO</h1>
-<p class="aviso-docs">Os documentos abaixo são carregados diretamente do banco de dados da solicitação. Confira-os antes de aprovar ou devolver para correção.</p>
+<p class="aviso-docs">Os documentos abaixo são carregados diretamente do banco de dados da solicitação. Confira-os antes de aprovar, transferir ou devolver para correção.</p>
 <div class="tabela-wrap"><table class="tabela-aprovacoes"><thead><tr><th>Protocolo</th><th>Evento</th><th>Solicitante</th><th>Data do Evento</th><th>Documentos</th><th>Ações</th></tr></thead><tbody>
 {% for s in solicitacoes %}
 <tr>
@@ -20,7 +21,7 @@
 <span class="docs-ok">✓ {{ qtd }} documento(s) no banco</span>
 <div class="doc-list">
 {% for documento in s.documentos.all %}
-<div class="doc-item"><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank">📄 Abrir PDF</a></div>
+<div class="doc-item"><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>
 {% endfor %}
 </div>
 {% else %}<span class="docs-pendente">⚠ Nenhum documento encontrado no banco.</span>{% endif %}
@@ -28,7 +29,8 @@
 </td>
 <td class="col-acoes">
 {% if s.documentos.all|length %}
-<form method="post" action="{% url 'aprovar_solicitacao' s.id %}">{% csrf_token %}<button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação e geração da OPO?');">✅ Aprovar e gerar OPO</button></form>
+<form method="post" action="{% url 'aprovar_solicitacao' s.id %}">{% csrf_token %}<button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>
+<a href="{% url 'transferir_solicitacao' s.id %}" class="btn-transferir">🔄 Transferir</a>
 <a href="{% url 'solicitar_correcao' s.id %}" class="btn-corrigir">✏️ Corrigir</a>
 {% else %}<span style="color:#6b7280;font-size:13px">Ações bloqueadas até existir documento.</span>{% endif %}
 </td>
