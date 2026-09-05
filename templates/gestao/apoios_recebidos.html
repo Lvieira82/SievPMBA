@@ -1,0 +1,7 @@
+{% extends 'base.html' %}
+{% block title %}Apoios Recebidos{% endblock %}
+{% block content %}
+<style>.box{max-width:1100px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}h1{color:#907c64}.item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin:14px 0}.meta{color:#64748b;margin:8px 0 14px}.btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700}.status{font-weight:700}.empty{text-align:center;padding:30px;color:#6b7280;background:#f8fafc;border-radius:10px}</style>
+<div class="box"><h1>🤝 Apoios Recebidos</h1><p>Eventos enviados por outras unidades para emprego especializado fora da área territorial de origem.</p>
+{% for apoio in apoios %}<div class="item"><strong>Protocolo {{ apoio.solicitacao.protocolo }}</strong><div class="meta"><strong>{{ apoio.solicitacao.nome_evento }}</strong> · {{ apoio.solicitacao.data_evento|date:'d/m/Y' }} · Origem: {{ apoio.unidade_origem.sigla }}</div><span class="status">Status: {{ apoio.get_status_display }}</span><br><br><a class="btn" href="{% url 'abrir_apoio' apoio.id %}">📂 Abrir Apoio</a></div>{% empty %}<div class="empty">Nenhum apoio recebido.</div>{% endfor %}
+<a href="{% url 'painel_gestao' %}" style="display:inline-block;margin-top:20px">← Voltar ao Painel</a></div>{% endblock %}
