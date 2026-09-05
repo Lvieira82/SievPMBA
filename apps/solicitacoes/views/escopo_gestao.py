@@ -10,6 +10,7 @@ from apps.solicitacoes.permissoes import (
     eh_desenvolvedor,
     eh_gestor,
     eh_membro,
+    eh_operador,
     pode_gerar_opo,
     pode_ver_solicitacao,
     pode_ver_documentacao_solicitacao,
@@ -29,10 +30,10 @@ def documentos_solicitacao_seguro(request, id):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
 
-    docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
+    docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento").all()
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
     if request.method == "POST":
-        if not (eh_desenvolvedor(request.user) or eh_gestor(request.user) or eh_membro(request.user)):
+        if not (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE")):
             messages.error(request, "Você não possui permissão para anexar documentos.")
             return redirect("documentos_solicitacao", id=id)
         arq = request.FILES.get("arquivo")
@@ -43,12 +44,7 @@ def documentos_solicitacao_seguro(request, id):
             try:
                 validar_pdf_upload(arq)
                 tipo = get_object_or_404(TipoDocumento, pk=tid, ativo=True)
-                DocumentoSolicitacao.objects.create(
-                    solicitacao=s,
-                    tipo_documento=tipo,
-                    descricao=request.POST.get("descricao", "").strip(),
-                    arquivo=arq,
-                )
+                DocumentoSolicitacao.objects.create(solicitacao=s, tipo_documento=tipo, descricao=request.POST.get("descricao", "").strip(), arquivo=arq)
                 messages.success(request, "Documento anexado com sucesso.")
                 return redirect("documentos_solicitacao", id=id)
             except Exception as e:
@@ -69,6 +65,9 @@ def abrir_documento_solicitacao_seguro(request, id, tipo):
 
 @login_required
 def opos_geradas_seguro(request):
+    if eh_operador(request.user):
+        messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
+        return redirect("eventos_dia")
     anexos = AnexoOPO.objects.select_related(
         "solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro"
     ).filter(solicitacao__unidade__in=escopo_unidades(request.user)).order_by("-criado_em")
@@ -80,6 +79,9 @@ def opos_geradas_seguro(request):
 
 @login_required
 def detalhe_opo_seguro(request, id):
+    if eh_operador(request.user):
+        messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
+        return redirect("eventos_dia")
     s = get_object_or_404(Solicitacao.objects.select_related("municipio", "bairro", "unidade", "tipo_evento"), pk=id)
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a esta OPO.")
@@ -101,10 +103,7 @@ def mapa_eventos_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-    eventos = Solicitacao.objects.filter(
-        unidade__in=escopo_unidades(request.user),
-        data_evento__gte=timezone.localdate(),
-    ).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
+    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user), data_evento__gte=timezone.localdate()).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
     return render(request, "gestao/mapa_eventos.html", {"eventos": eventos})
 
 
