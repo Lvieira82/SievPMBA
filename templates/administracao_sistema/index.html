@@ -15,21 +15,6 @@
     </div>
   </div>
 
-  <div class="row g-4 mb-4">
-    <div class="col-lg-4"><div class="card h-100"><div class="card-body p-4">
-      <h3 style="color:#907C64">Gestor COPPM</h3>
-      <ul class="mb-0"><li>Cadastra membros do COPPM.</li><li>Visão de toda a PMBA.</li><li>Relatórios e estatísticas por CPR e unidade.</li><li>Dashboard e ranking.</li><li>Membros apenas visualizam e não cadastram outros.</li></ul>
-    </div></div></div>
-    <div class="col-lg-4"><div class="card h-100"><div class="card-body p-4">
-      <h3 style="color:#907C64">Gestor CPR</h3>
-      <ul class="mb-0"><li>Cadastra somente membros do próprio CPR.</li><li>Visualiza as unidades subordinadas.</li><li>Gera relatórios e estatísticas do CPR.</li><li>Não acessa outros CPRs nem níveis superiores.</li><li>Membros não cadastram outros membros.</li></ul>
-    </div></div></div>
-    <div class="col-lg-4"><div class="card h-100"><div class="card-body p-4">
-      <h3 style="color:#907C64">Gestor de Unidade</h3>
-      <ul class="mb-0"><li>Cadastra somente membros da própria unidade.</li><li>Não visualiza unidades do mesmo nível ou acima.</li><li>Lança solicitações manuais.</li><li>Extrai relatórios e usa o mapa de eventos da unidade.</li><li>Não altera senhas próprias ou dos membros.</li></ul>
-    </div></div></div>
-  </div>
-
   <div class="card"><div class="card-body p-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
       <div><h2 class="mb-1" style="color:#907C64">Usuários sob sua gestão</h2><p class="text-muted mb-0">Unidades e bairros continuam exclusivos do desenvolvedor.</p></div>
@@ -49,7 +34,20 @@
             <td>{{ p.cpr.sigla|default:'—' }}</td>
             <td>{{ p.unidade.sigla|default:'—' }}</td>
             <td>{% if p.ativo and p.usuario.is_active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
-            <td><a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>{% if scope.desenvolvedor %} · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>{% endif %}{% if p.ativo %} · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>{% endif %}</td>
+            <td>
+              <a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>
+              {% if scope.desenvolvedor %}
+                · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>
+                {% if p.ativo and p.usuario.is_active %}
+                  · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>
+                {% else %}
+                  · <a href="{% url 'administracao_usuario_ativar' p.usuario.id %}">Ativar</a>
+                {% endif %}
+                · <a href="{% url 'administracao_usuario_excluir' p.usuario.id %}" onclick="return confirm('Excluir definitivamente este registro? Esta ação não pode ser desfeita.');">Excluir</a>
+              {% elif p.ativo %}
+                · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>
+              {% endif %}
+            </td>
           </tr>
         {% empty %}<tr><td colspan="9" class="text-center py-4">Nenhum membro cadastrado neste âmbito.</td></tr>{% endfor %}
         </tbody>
