@@ -135,7 +135,7 @@ def pode_gerar_opo(user, solicitacao):
     if eh_desenvolvedor(user):
         return True
     a = acesso_do_usuario(user)
-    return bool(a and a.ativo and user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil in {"CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
+    return bool(a and a.ativo and user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
 
 
 def descricao_acesso(user):
