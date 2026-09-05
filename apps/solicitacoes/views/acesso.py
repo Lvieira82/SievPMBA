@@ -67,6 +67,12 @@ def _enviar_codigo_novo_navegador(request, usuario):
     return registro
 
 
+def _destino_principal(acesso):
+    if acesso and acesso.perfil == "OPERADOR":
+        return "eventos_dia"
+    return "painel_gestao"
+
+
 def _finalizar_login(request, usuario, acesso, next_url=None):
     login(request, usuario)
     request.session.pop("siev_usuario_pendente", None)
@@ -76,12 +82,13 @@ def _finalizar_login(request, usuario, acesso, next_url=None):
         return redirect("trocar_senha_primeiro_acesso")
     if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
         return redirect(next_url)
-    return redirect("painel_gestao")
+    return redirect(_destino_principal(acesso))
 
 
 def login_gestao(request):
     if request.user.is_authenticated:
-        return redirect("painel_gestao")
+        acesso = getattr(request.user, "acesso_institucional", None)
+        return redirect(_destino_principal(acesso))
     if request.method == "POST":
         matricula = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
@@ -90,7 +97,7 @@ def login_gestao(request):
         if usuario is None:
             messages.error(request, "Matrícula ou senha inválidos.")
             return render(request, "gestao/login.html", {"next": next_url})
-        if usuario.is_superuser or usuario.is_staff:
+        if usuario.is_superuser:
             login(request, usuario)
             return redirect("painel_gestao")
         acesso = getattr(usuario, "acesso_institucional", None)
@@ -103,7 +110,7 @@ def login_gestao(request):
         if acesso.perfil == "CPR" and not acesso.cpr:
             messages.error(request, "O acesso está sem CPR vinculado.")
             return render(request, "gestao/login.html", {"next": next_url})
-        if acesso.perfil == "UNIDADE" and not acesso.unidade:
+        if acesso.perfil in {"UNIDADE", "OPERADOR"} and not acesso.unidade:
             messages.error(request, "O acesso está sem Unidade vinculada.")
             return render(request, "gestao/login.html", {"next": next_url})
         if not usuario.email:
@@ -165,7 +172,7 @@ def verificar_novo_navegador(request):
 def trocar_senha_primeiro_acesso(request):
     acesso = getattr(request.user, "acesso_institucional", None)
     if not acesso or not acesso.primeiro_acesso:
-        return redirect("painel_gestao")
+        return redirect(_destino_principal(acesso))
     if request.method == "POST":
         form = SetPasswordForm(request.user, request.POST)
         if form.is_valid():
@@ -173,7 +180,7 @@ def trocar_senha_primeiro_acesso(request):
             acesso.primeiro_acesso = False
             acesso.save(update_fields=["primeiro_acesso", "atualizado_em"])
             messages.success(request, "Senha definida com sucesso. Seu acesso está liberado.")
-            return redirect("painel_gestao")
+            return redirect(_destino_principal(acesso))
     else:
         form = SetPasswordForm(request.user)
     return render(request, "gestao/trocar_senha_primeiro_acesso.html", {"form": form})
@@ -216,7 +223,5 @@ def redefinir_senha(request, uidb64, token):
 
 @login_required
 def logout_gestao(request):
-    # Não apaga o cookie do dispositivo: logout encerra a sessão, mas este dispositivo
-    # permanece confiável e o próximo login não exige novo código.
     logout(request)
     return redirect("portal")
