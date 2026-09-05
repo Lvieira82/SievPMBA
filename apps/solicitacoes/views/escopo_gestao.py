@@ -1,15 +1,15 @@
-import io
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, FileResponse, Http404
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.core.files.storage import default_storage
+
 from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
 from apps.solicitacoes.permissoes import (
     eh_desenvolvedor,
     eh_gestor,
-    eh_membro,
     eh_operador,
     pode_gerar_opo,
     pode_ver_solicitacao,
@@ -17,7 +17,8 @@ from apps.solicitacoes.permissoes import (
     pode_ver_mapa_eventos,
     escopo_unidades,
 )
-from .operacional import gerar_opo as gerar_opo_original, gerar_mapa_eventos_pdf as mapa_pdf_original
+from .operacional import gerar_mapa_eventos_pdf as mapa_pdf_original
+from .geracao_opo import gerar_opo_com_evento_extra
 
 
 @login_required
@@ -30,7 +31,7 @@ def documentos_solicitacao_seguro(request, id):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
 
-    docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento").all()
+    docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
     if request.method == "POST":
         if not (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE")):
@@ -60,7 +61,16 @@ def abrir_documento_solicitacao_seguro(request, id, tipo):
     if not pode_ver_documentacao_solicitacao(request.user) or not pode_ver_solicitacao(request.user, doc.solicitacao):
         messages.error(request, "Você não possui acesso a este documento.")
         return redirect("painel_gestao")
-    return FileResponse(doc.arquivo.open("rb"), content_type="application/pdf")
+    try:
+        nome = doc.arquivo.name
+        if not nome or not default_storage.exists(nome):
+            raise Http404("O arquivo não está disponível no armazenamento do SiEv.")
+        arquivo = default_storage.open(nome, "rb")
+    except FileNotFoundError:
+        raise Http404("O arquivo não está disponível no armazenamento do SiEv.")
+    except OSError:
+        raise Http404("Não foi possível abrir o arquivo PDF.")
+    return FileResponse(arquivo, content_type="application/pdf")
 
 
 @login_required
@@ -95,7 +105,7 @@ def gerar_opo_seguro(request, id):
     if not pode_gerar_opo(request.user, s):
         messages.error(request, "Você não possui permissão para gerar esta OPO.")
         return redirect("painel_gestao")
-    return gerar_opo_original(request, id)
+    return gerar_opo_com_evento_extra(request, id)
 
 
 @login_required
