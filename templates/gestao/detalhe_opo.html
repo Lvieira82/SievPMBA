@@ -1,14 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}Detalhes da OPO{% endblock %}
 {% block content %}
-<div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
-<h1 style="color:#907C64">📄 OPO {{ solicitacao.protocolo }}</h1>
+<style>
+.opo-box{max-width:1000px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.opo-box h1{color:#907C64}.acoes{margin-top:25px;padding-top:20px;border-top:1px solid #e5e7eb}.btn{display:inline-block;padding:11px 17px;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;margin:4px}.apoio{background:#2563eb}.voltar{background:#6b7280}.arquivos{margin-top:25px;background:#f8fafc;padding:18px;border-radius:12px}.arquivo{padding:8px 0}.arquivo a{color:#2563eb;font-weight:700}
+</style>
+<div class="opo-box">
+<h1>📄 OPO {{ solicitacao.protocolo }}</h1>
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
 <p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p>
 <p><strong>Bairro/Distrito:</strong> {{ solicitacao.bairro.nome|default:'Não informado' }}</p>
-<p><strong>Unidade:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p>
+<p><strong>Unidade responsável:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p>
 <p><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }} — {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}</p>
-<hr>
-<p style="margin-top:25px"><a href="{% url 'opos_geradas' %}">← Voltar para OPOs geradas</a></p>
-</div></div>
+
+<div class="arquivos"><h2>📑 OPOs geradas</h2>{% for anexo in anexos %}<div class="arquivo">{{ anexo.descricao|default:'OPO' }} — <a href="{{ anexo.arquivo.url }}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>{% empty %}<p>Nenhuma OPO encontrada.</p>{% endfor %}</div>
+
+<div class="acoes">
+<a href="{% url 'enviar_apoio' solicitacao.id %}" class="btn apoio">🤝 Apoio</a>
+<a href="{% url 'opos_geradas' %}" class="btn voltar">← Voltar para OPOs geradas</a>
+</div>
+</div>
 {% endblock %}
