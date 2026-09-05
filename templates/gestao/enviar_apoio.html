@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Enviar Apoio{% endblock %}
+{% block content %}
+<style>
+.box{max-width:720px;margin:40px auto;padding:32px;background:#fff;border-radius:18px;box-shadow:0 8px 25px rgba(0,0,0,.08)}
+h1{text-align:center;color:#111827}.sub{text-align:center;color:#6b7280;margin-bottom:25px}.resumo{background:#f8fafc;border-radius:12px;padding:18px;line-height:1.7;margin-bottom:24px}.campo{margin-bottom:20px}.campo label{display:block;font-weight:700;margin-bottom:8px}.campo select,.campo textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d1d5db;border-radius:9px}.campo textarea{min-height:90px}.info{background:#eff6ff;border-left:4px solid #2563eb;padding:14px;border-radius:8px;color:#1e3a8a;margin-bottom:22px}.acoes{text-align:center}.btn{display:inline-block;border:0;border-radius:9px;padding:12px 20px;text-decoration:none;font-weight:700;cursor:pointer;margin:4px}.send{background:#2563eb;color:#fff}.back{background:#6b7280;color:#fff}
+</style>
+<div class="box">
+<h1>🤝 Enviar Apoio</h1>
+<p class="sub">Envie o pacote do evento para uma unidade especializada produzir sua própria OPO.</p>
+<div class="resumo"><strong>Protocolo:</strong> {{ solicitacao.protocolo }}<br><strong>Evento:</strong> {{ solicitacao.nome_evento }}<br><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }}<br><strong>Unidade responsável:</strong> {{ solicitacao.unidade.sigla }}</div>
+<div class="info">A unidade destinatária terá acesso à <strong>documentação original</strong> e à <strong>OPO principal</strong>. Esses arquivos continuam vinculados ao protocolo e não são duplicados.</div>
+<form method="post">{% csrf_token %}
+<div class="campo"><label for="unidade_destino">Unidade especializada destinatária</label><select name="unidade_destino" id="unidade_destino" required><option value="">Selecione...</option>{% for u in unidades %}<option value="{{ u.id }}">{{ u.sigla }} — {{ u.nome }}</option>{% endfor %}</select></div>
+<div class="campo"><label for="observacao">Observação (opcional)</label><textarea name="observacao" id="observacao" placeholder="Ex.: apoio de cavalaria no perímetro externo do evento."></textarea></div>
+<div class="acoes"><a class="btn back" href="{% url 'detalhe_opo' solicitacao.id %}">← Voltar</a><button class="btn send" type="submit" onclick="return confirm('Confirma o envio deste apoio?');">🤝 Enviar Apoio</button></div>
+</form>
+</div>
+{% endblock %}
