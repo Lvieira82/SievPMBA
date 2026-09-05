@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Apoio Operacional{% endblock %}
+{% block content %}
+<style>.box{max-width:1000px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}h1{color:#907c64}.sec{margin-top:25px;padding:18px;background:#f8fafc;border-radius:12px}.btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:4px}.green{background:#15803d}.gray{background:#6b7280}.doc{border-bottom:1px solid #e5e7eb;padding:10px 0}.doc a{color:#2563eb;font-weight:700}.status{font-weight:700}</style>
+<div class="box">
+<h1>🤝 Apoio Operacional — {{ apoio.solicitacao.protocolo }}</h1>
+<p><strong>Evento:</strong> {{ apoio.solicitacao.nome_evento }}</p><p><strong>Data:</strong> {{ apoio.solicitacao.data_evento|date:'d/m/Y' }} — {{ apoio.solicitacao.hora_inicio|time:'H:i' }} às {{ apoio.solicitacao.hora_fim|time:'H:i' }}</p><p><strong>Unidade de origem:</strong> {{ apoio.unidade_origem.sigla }} · <strong>Unidade de apoio:</strong> {{ apoio.unidade_destino.sigla }}</p><p class="status">Status: {{ apoio.get_status_display }}</p>
+{% if apoio.status == 'ENVIADO' %}<form method="post" style="display:inline">{% csrf_token %}<button class="btn green" type="submit">✓ Marcar como recebido</button></form>{% endif %}
+<div class="sec"><h2>📑 Documentação original</h2>{% for d in documentos %}<div class="doc"><strong>{{ d.tipo_documento.nome }}</strong>{% if d.descricao %} — {{ d.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' d.id 'arquivo' %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>{% empty %}<p>Nenhum documento anexado.</p>{% endfor %}</div>
+<div class="sec"><h2>📄 OPO principal</h2>{% for opo in opos %}{% if opo.arquivo %}<div class="doc"><strong>{{ opo.descricao|default:'OPO' }}</strong><br><a href="{{ opo.arquivo.url }}" target="_blank" rel="noopener">📄 Abrir OPO principal</a></div>{% endif %}{% empty %}<p>OPO principal não encontrada.</p>{% endfor %}</div>
+<div class="sec"><h2>🚔 Minha OPO</h2>{% if apoio.opo_arquivo %}<p>OPO própria da unidade de apoio já gerada.</p><a class="btn green" href="{{ apoio.opo_arquivo.url }}" target="_blank" rel="noopener">📄 Abrir minha OPO</a>{% else %}<p>A unidade pode gerar sua própria OPO a partir dos documentos e da OPO principal.</p><a class="btn" href="{% url 'gerar_opo_apoio' apoio.id %}">✚ Gerar minha OPO</a>{% endif %}</div>
+<a class="btn gray" href="{% url 'apoios_recebidos' %}">← Voltar</a></div>{% endblock %}
