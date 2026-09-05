@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}Gerar OPO{% endblock %}
+{% block content %}
+<style>
+.opo-gerar{max-width:650px;margin:55px auto;padding:35px;background:#fff;border-radius:18px;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+.opo-gerar h1{text-align:center;color:#111827;margin-bottom:10px}.sub{text-align:center;color:#6b7280;margin-bottom:28px}
+.resumo{background:#f8fafc;border-radius:12px;padding:18px;margin-bottom:25px;color:#374151}.resumo strong{color:#111827}
+.opcoes{border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin-bottom:25px}.opcoes h3{margin-top:0;color:#111827}.opcao{display:flex;align-items:flex-start;gap:12px;padding:13px;border-radius:9px;margin:8px 0;background:#f8fafc;cursor:pointer}.opcao input{margin-top:4px}.opcao strong{display:block;color:#111827}.opcao span{display:block;color:#6b7280;font-size:13px;margin-top:3px}
+.acoes{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.btn{border:0;border-radius:9px;padding:12px 22px;font-weight:700;cursor:pointer;text-decoration:none}.btn-gerar{background:#907c64;color:#fff}.btn-voltar{background:#6b7280;color:#fff}
+</style>
+<div class="opo-gerar">
+    <h1>📄 Gerar OPO</h1>
+    <p class="sub">Defina se este evento será considerado extraordinário antes de gerar a Ordem de Policiamento.</p>
+
+    <div class="resumo">
+        <strong>Protocolo:</strong> {{ solicitacao.protocolo }}<br>
+        <strong>Evento:</strong> {{ solicitacao.nome_evento }}<br>
+        <strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }}<br>
+        <strong>Unidade:</strong> {{ solicitacao.unidade.sigla|default:'Não definida' }}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="opcoes">
+            <h3>Evento extra?</h3>
+            <label class="opcao">
+                <input type="radio" name="evento_extra" value="SIM" required>
+                <span><strong>SIM — Evento extra</strong>O campo EFETIVO da OPO será apresentado como: “Efetivo extraordinário escalado.”</span>
+            </label>
+            <label class="opcao">
+                <input type="radio" name="evento_extra" value="NAO" required>
+                <span><strong>NÃO — Evento normal</strong>A OPO manterá o efetivo operacional padrão.</span>
+            </label>
+        </div>
+        <div class="acoes">
+            <a href="{% url 'aprovacoes' %}" class="btn btn-voltar">← Voltar</a>
+            <button type="submit" class="btn btn-gerar" onclick="return confirm('Confirma a geração da OPO com a opção selecionada?');">✅ Gerar OPO</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
