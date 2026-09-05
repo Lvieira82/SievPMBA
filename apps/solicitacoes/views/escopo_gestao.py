@@ -20,22 +20,18 @@ from .geracao_opo import gerar_opo_com_evento_extra
 
 
 def _abrir_pdf_seguro(arquivo_field):
-    """Abre um PDF tanto pelo storage do Django quanto pelo caminho físico do Render."""
     if not arquivo_field:
         raise Http404("Documento sem arquivo associado.")
-
     nome = getattr(arquivo_field, "name", "") or ""
     if not nome:
         raise Http404("Documento sem nome de arquivo.")
 
-    # Caminho oficial do storage configurado pelo Django.
     try:
         if default_storage.exists(nome):
             return default_storage.open(nome, "rb")
     except (OSError, ValueError):
         pass
 
-    # Fallback para o disco persistente do Render.
     try:
         caminho = Path(settings.MEDIA_ROOT) / nome
         if caminho.is_file():
@@ -43,9 +39,7 @@ def _abrir_pdf_seguro(arquivo_field):
     except (OSError, ValueError):
         pass
 
-    raise Http404(
-        f"O PDF não foi encontrado no armazenamento. Arquivo registrado: {nome}"
-    )
+    raise Http404(f"O PDF não foi encontrado no armazenamento. Arquivo registrado: {nome}")
 
 
 @login_required
@@ -71,12 +65,7 @@ def documentos_solicitacao_seguro(request, id):
             try:
                 validar_pdf_upload(arq)
                 tipo = get_object_or_404(TipoDocumento, pk=tid, ativo=True)
-                DocumentoSolicitacao.objects.create(
-                    solicitacao=s,
-                    tipo_documento=tipo,
-                    descricao=request.POST.get("descricao", "").strip(),
-                    arquivo=arq,
-                )
+                DocumentoSolicitacao.objects.create(solicitacao=s, tipo_documento=tipo, descricao=request.POST.get("descricao", "").strip(), arquivo=arq)
                 messages.success(request, "Documento anexado com sucesso.")
                 return redirect("documentos_solicitacao", id=id)
             except Exception as e:
@@ -86,20 +75,12 @@ def documentos_solicitacao_seguro(request, id):
 
 @login_required
 def abrir_documento_solicitacao_seguro(request, id, tipo="arquivo"):
-    doc = get_object_or_404(
-        DocumentoSolicitacao.objects.select_related("solicitacao__unidade"),
-        pk=id,
-    )
-
-    # O tipo existe para preservar as URLs antigas do sistema. O documento real
-    # é identificado pelo registro DocumentoSolicitacao.
+    doc = get_object_or_404(DocumentoSolicitacao.objects.select_related("solicitacao__unidade"), pk=id)
     if tipo not in {"pdf", "arquivo", "documento", "oficio_comandante"}:
         raise Http404("Tipo de documento inválido.")
-
     if not pode_ver_documentacao_solicitacao(request.user) or not pode_ver_solicitacao(request.user, doc.solicitacao):
         messages.error(request, "Você não possui acesso a este documento.")
         return redirect("painel_gestao")
-
     arquivo = _abrir_pdf_seguro(doc.arquivo)
     resposta = FileResponse(arquivo, content_type="application/pdf")
     nome = Path(doc.arquivo.name).name or "documento.pdf"
@@ -118,10 +99,14 @@ def opos_geradas_seguro(request):
     ).filter(solicitacao__unidade__in=escopo_unidades(request.user)).order_by("-criado_em")
     grupos = {}
     for a in anexos:
-        grupos.setdefault(
-            a.solicitacao.protocolo,
-            {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": []},
-        )["arquivos"].append(a)
+        if a.solicitacao.protocolo not in grupos:
+            grupos[a.solicitacao.protocolo] = {
+                "codigo": a.solicitacao.protocolo,
+                "solicitacao": a.solicitacao,
+                "arquivos": [],
+                "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento")),
+            }
+        grupos[a.solicitacao.protocolo]["arquivos"].append(a)
     return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values()), "pode_apoio": eh_desenvolvedor(request.user) or eh_gestor(request.user)})
 
 
@@ -135,19 +120,15 @@ def detalhe_opo_seguro(request, id):
         messages.error(request, "Você não possui acesso a esta OPO.")
         return redirect("painel_gestao")
     anexos = AnexoOPO.objects.filter(solicitacao=s).order_by("-criado_em")
+    documentos = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     a = getattr(request.user, "acesso_institucional", None)
     pode_apoio = bool(
-        anexos.exists()
-        and (
+        anexos.exists() and (
             eh_desenvolvedor(request.user)
-            or (
-                a and a.ativo and request.user.is_active and a.funcao == "GESTOR"
-                and a.perfil in {"COPPM", "CPR", "UNIDADE"}
-                and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id)
-            )
+            or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))
         )
     )
-    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "pode_apoio": pode_apoio})
+    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio})
 
 
 @login_required
@@ -164,10 +145,7 @@ def mapa_eventos_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-    eventos = Solicitacao.objects.filter(
-        unidade__in=escopo_unidades(request.user),
-        data_evento__gte=timezone.localdate(),
-    ).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
+    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user), data_evento__gte=timezone.localdate()).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
     return render(request, "gestao/mapa_eventos.html", {"eventos": eventos})
 
 
