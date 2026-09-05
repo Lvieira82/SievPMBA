@@ -8,7 +8,6 @@ def acesso_do_usuario(user):
 
 
 def eh_desenvolvedor(user):
-    # Desenvolvedor é exclusivamente o superuser do Django.
     return bool(user and user.is_authenticated and user.is_superuser)
 
 
@@ -87,16 +86,12 @@ def escopo_unidades(user):
 
 
 def pode_administrar_usuarios(user):
-    # Somente desenvolvedor e gestores institucionais. Membros não administram usuários.
     return bool(eh_desenvolvedor(user) or perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
 
 
 def pode_lancamento_manual(user):
     a = acesso_do_usuario(user)
-    return bool(
-        eh_desenvolvedor(user)
-        or (a and a.ativo and user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil in {"CPR", "UNIDADE"})
-    )
+    return bool(eh_desenvolvedor(user) or (a and a.ativo and user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil in {"CPR", "UNIDADE"}))
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
@@ -133,7 +128,7 @@ def pode_transferir(user, solicitacao):
     if eh_desenvolvedor(user):
         return True
     a = acesso_do_usuario(user)
-    return bool(a and a.ativo and user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil in {"CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
+    return bool(a and a.ativo and user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
 
 
 def pode_gerar_opo(user, solicitacao):
