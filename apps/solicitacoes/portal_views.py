@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -109,10 +110,11 @@ def nova_solicitacao(request):
                     solicitacao.origem = "EXTERNA"
                     solicitacao.status = "PENDENTE"
                     try:
-                        solicitacao.save()
-                        _salvar_documentos(request, solicitacao)
-                        _enviar_email_recebimento(solicitacao)
-                    except Exception as erro:
+                        with transaction.atomic():
+                            solicitacao.save()
+                            _salvar_documentos(request, solicitacao)
+                            _enviar_email_recebimento(solicitacao)
+                    except Exception:
                         if solicitacao.pk:
                             solicitacao.delete()
                         form.add_error(None, "A solicitação não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
@@ -197,17 +199,21 @@ def corrigir_solicitacao(request, protocolo):
     if request.method == "POST":
         form = CorrecaoSolicitacaoForm(request.POST, request.FILES, instance=solicitacao)
         if form.is_valid():
-            obj = form.save(commit=False)
-            obj.protocolo = solicitacao.protocolo
-            obj.data_evento = solicitacao.data_evento
-            obj.status = "PENDENTE"
-            obj.motivo_correcao = ""
-            obj.save()
+            try:
+                with transaction.atomic():
+                    obj = form.save(commit=False)
+                    obj.protocolo = solicitacao.protocolo
+                    obj.data_evento = solicitacao.data_evento
+                    obj.status = "PENDENTE"
+                    obj.motivo_correcao = ""
+                    obj.save()
 
-            _salvar_documentos(request, obj)
+                    _salvar_documentos(request, obj)
 
-            if obj.email:
-                mensagem = f"""Olá, {obj.solicitante}!
+                    if not obj.email:
+                        raise ValueError("A solicitação não possui e-mail para confirmação da correção.")
+
+                    mensagem = f"""Olá, {obj.solicitante}!
 
 Recebemos a correção da sua solicitação {obj.protocolo}.
 
@@ -217,16 +223,18 @@ Você pode acompanhar pelo protocolo: {obj.protocolo}
 
 PMBA - Sistema de Informações de Eventos (SiEvPM).
 """
-                send_mail(
-                    f"Correção recebida - Protocolo {obj.protocolo}",
-                    mensagem,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [obj.email],
-                    fail_silently=False,
-                )
-
-            messages.success(request, "Correções enviadas com sucesso. Sua solicitação retornou para análise.")
-            return redirect(f"{reverse('consultar')}?protocolo={obj.protocolo}")
+                    send_mail(
+                        f"Correção recebida - Protocolo {obj.protocolo}",
+                        mensagem,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [obj.email],
+                        fail_silently=False,
+                    )
+            except Exception:
+                form.add_error(None, "A correção não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
+            else:
+                messages.success(request, "Correções enviadas com sucesso. Sua solicitação retornou para análise.")
+                return redirect(f"{reverse('consultar')}?protocolo={obj.protocolo}")
     else:
         form = CorrecaoSolicitacaoForm(instance=solicitacao)
 
