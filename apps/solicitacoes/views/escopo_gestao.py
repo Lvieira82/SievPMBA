@@ -78,7 +78,7 @@ def opos_geradas_seguro(request):
     grupos = {}
     for a in anexos:
         grupos.setdefault(a.solicitacao.protocolo, {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": []})["arquivos"].append(a)
-    return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values())})
+    return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values()), "pode_apoio": eh_desenvolvedor(request.user) or eh_gestor(request.user)})
 
 
 @login_required
