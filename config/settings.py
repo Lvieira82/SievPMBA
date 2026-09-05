@@ -82,9 +82,10 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
 EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
 
-# A autenticação do SiEv é própria. O /admin/ continua disponível apenas para
-# superusuários/staff, mas decorators login_required nunca devem mandar usuários
-# institucionais para a tela administrativa do Django.
+# URL pública usada em links enviados por e-mail.
+# Pode ser sobrescrita no ambiente de produção por SITE_URL.
+SITE_URL = config("SITE_URL", default="https://sievpmba.onrender.com").rstrip("/")
+
 LOGIN_URL = "/gestao/"
 LOGIN_REDIRECT_URL = "/painel/"
 LOGOUT_REDIRECT_URL = "/"
