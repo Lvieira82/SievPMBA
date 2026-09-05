@@ -6,12 +6,11 @@ class SolicitacoesConfig(AppConfig):
     name = "apps.solicitacoes"
 
     def ready(self):
-
         from django.conf import settings
 
-        if settings.DEBUG:
-            return
+        if not settings.DEBUG:
+            from .scheduler import iniciar_scheduler
+            iniciar_scheduler()
 
-        from .scheduler import iniciar_scheduler
-
-        iniciar_scheduler()
+        # Registra os sinais de criação de usuários institucionais.
+        from . import signals  # noqa: F401
