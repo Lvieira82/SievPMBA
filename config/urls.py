@@ -30,7 +30,7 @@ from apps.solicitacoes.views.administracao_sistema import (
 from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
 from apps.solicitacoes.views.compat import (
     alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
-    minhas_solicitacoes, verificar_autenticidade, abrir_documento_solicitacao,
+    minhas_solicitacoes, verificar_autenticidade,
 )
 from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
@@ -46,8 +46,8 @@ from apps.solicitacoes.views.aprovacoes_seguras import (
     aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao, gerar_opo_seguro,
 )
 from apps.solicitacoes.views.escopo_gestao import (
-    documentos_solicitacao_seguro, opos_geradas_seguro, detalhe_opo_seguro,
-    mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
+    documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro,
+    opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
 )
 from apps.solicitacoes.models import Solicitacao
 from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor
@@ -110,7 +110,7 @@ urlpatterns = [
     path("verificar/<str:protocolo>/", verificar_autenticidade, name="verificar_autenticidade"),
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
     path("documentos/<int:id>/", documentos_solicitacao_seguro, name="documentos_solicitacao"),
-    path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao, name="abrir_documento_solicitacao"),
+    path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao"),
     path("gestao/lancamento-manual/", lancamento_manual, name="lancamento_manual"),
     path("gestao/mapa-eventos/", mapa_eventos_seguro, name="mapa_eventos"),
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf_seguro, name="gerar_mapa_eventos_pdf"),
@@ -132,13 +132,8 @@ urlpatterns = [
     path("protocolo/estatisticas/", estatisticas_protocolo, name="estatisticas_protocolo"),
 ]
 
-# O runserver não serve arquivos estáticos quando DEBUG=False.
-# Mantemos o comportamento de produção no Render e, localmente,
-# servimos os arquivos diretamente pelo finder do Django.
 if os.environ.get("RENDER") != "true":
-    urlpatterns += [
-        path("static/<path:path>", serve_static),
-    ]
+    urlpatterns += [path("static/<path:path>", serve_static)]
 
 if settings.DEBUG:
     urlpatterns += [path("media/<path:path>", serve, {"document_root": settings.MEDIA_ROOT})]
