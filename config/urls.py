@@ -17,7 +17,7 @@ from apps.solicitacoes.portal_views import (
 from apps.solicitacoes.portal_views_multiplas import nova_solicitacao, confirmar_multiplas
 from apps.solicitacoes.views.administracao import (
     cadastrar_usuario_unidade, desativar_usuario_unidade, editar_usuario_unidade,
-    logout_gestao, transferir_solicitacao, trocar_senha_usuario, usuarios_unidade,
+    logout_gestao, trocar_senha_usuario, usuarios_unidade,
 )
 from apps.solicitacoes.views.login_acesso import login_gestao
 from apps.solicitacoes.views.acesso import (
@@ -43,12 +43,14 @@ from apps.solicitacoes.views.protocolo import (
 )
 from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bairros_por_municipio, importar_areas_responsabilidade
 from apps.solicitacoes.views.aprovacoes_seguras import (
-    aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao, gerar_opo_seguro,
+    aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao,
 )
 from apps.solicitacoes.views.escopo_gestao import (
     documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro,
     opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
+    gerar_opo_seguro,
 )
+from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_seguro
 from apps.solicitacoes.models import Solicitacao
 from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor
 
@@ -100,7 +102,7 @@ urlpatterns = [
     path("gestao/pendentes-opo/", listar_pendentes_opo_seguro, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
-    path("aprovacoes/transferir/<int:id>/", transferir_solicitacao, name="transferir_solicitacao"),
+    path("aprovacoes/transferir/<int:id>/", transferir_solicitacao_seguro, name="transferir_solicitacao"),
     path("solicitacao/<int:id>/corrigir/", solicitar_correcao_gestao, name="solicitar_correcao"),
     path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
     path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
