@@ -52,9 +52,7 @@ class UsuarioSistemaForm(forms.Form):
             self.fields[name].widget.attrs["class"] = "form-select"
 
         self.fields["cpr"].queryset = CPR.objects.filter(ativo=True).order_by("sigla")
-        self.fields["unidade"].queryset = (
-            Unidade.objects.filter(ativo=True).select_related("cpr").order_by("nome")
-        )
+        self.fields["unidade"].queryset = Unidade.objects.filter(ativo=True).select_related("cpr").order_by("nome")
 
         if scope and not scope["desenvolvedor"]:
             if scope["perfil"] == "CPR":
@@ -66,17 +64,10 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["cpr"].pk)
                 self.fields["cpr"].initial = scope["cpr"].pk
                 self.fields["cpr"].disabled = True
-                self.fields["unidade"].queryset = (
-                    Unidade.objects.filter(cpr=scope["cpr"], ativo=True)
-                    .select_related("cpr").order_by("nome")
-                )
+                self.fields["unidade"].queryset = Unidade.objects.filter(cpr=scope["cpr"], ativo=True).select_related("cpr").order_by("nome")
 
             elif scope["perfil"] == "UNIDADE":
-                # O Gestor de Unidade pode cadastrar membro da unidade ou Operador.
-                self.fields["perfil"].choices = [
-                    ("UNIDADE", "Membro de Unidade"),
-                    ("OPERADOR", "Operador"),
-                ]
+                self.fields["perfil"].choices = [("UNIDADE", "Membro de Unidade"), ("OPERADOR", "Operador")]
                 self.fields["perfil"].initial = "UNIDADE"
                 self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["unidade"].cpr_id)
                 self.fields["cpr"].initial = scope["unidade"].cpr_id
@@ -139,50 +130,41 @@ class UsuarioSistemaForm(forms.Form):
 
         if perfil in ("UNIDADE", "OPERADOR") and not unidade:
             self.add_error("unidade", "Selecione a unidade.")
-
         if perfil == "CPR" and not cpr:
             self.add_error("cpr", "Selecione o CPR.")
-
         if cpr and unidade and unidade.cpr_id != cpr.id:
             self.add_error("unidade", "A unidade selecionada não pertence ao CPR informado.")
 
-        if perfil in ("COPPM", "OPERADOR"):
-            if perfil == "COPPM":
-                cleaned["cpr"] = None
-                cleaned["unidade"] = None
-            elif unidade:
-                cleaned["cpr"] = unidade.cpr
+        if perfil == "COPPM":
+            cleaned["cpr"] = None
+            cleaned["unidade"] = None
+        elif perfil == "OPERADOR" and unidade:
+            cleaned["cpr"] = unidade.cpr
 
         if self.scope and not self.scope["desenvolvedor"]:
             if funcao != "MEMBRO":
                 self.add_error("funcao", "Somente membros podem ser cadastrados por gestores.")
-
             if self.scope["perfil"] == "CPR":
                 if perfil != "CPR":
                     self.add_error("perfil", "O Gestor CPR só pode cadastrar membros do CPR.")
                 if unidade and unidade.cpr_id != self.scope["cpr"].id:
                     self.add_error("unidade", "A unidade não pertence ao seu CPR.")
-
             elif self.scope["perfil"] == "UNIDADE":
                 if perfil not in ("UNIDADE", "OPERADOR"):
                     self.add_error("perfil", "Perfil não permitido para esta unidade.")
                 if unidade and unidade.id != self.scope["unidade"].id:
                     self.add_error("unidade", "Você só pode cadastrar membros da sua unidade.")
-
             elif self.scope["perfil"] == "COPPM" and perfil != "COPPM":
                 self.add_error("perfil", "O Gestor COPPM só pode cadastrar membros da COPPM.")
-
         return cleaned
 
 
 def _escopo(request):
     if request.user.is_superuser:
         return {"desenvolvedor": True, "perfil": None, "cpr": None, "unidade": None}
-
     acesso = getattr(request.user, "acesso_institucional", None)
-    if not acesso or not acesso.ativo or acesso.funcao != "GESTOR":
+    if not acesso or not acesso.ativo or not request.user.is_active or acesso.funcao != "GESTOR":
         return None
-
     if acesso.perfil == "CPR" and acesso.cpr:
         return {"desenvolvedor": False, "perfil": "CPR", "cpr": acesso.cpr, "unidade": None}
     if acesso.perfil == "UNIDADE" and acesso.unidade:
@@ -208,22 +190,35 @@ def _pode_gerenciar(scope, acesso):
     return False
 
 
-def _senha_inicial():
+def _senha_inicial(matricula=None, perfil=None):
+    if perfil == "OPERADOR" and matricula:
+        return matricula
     alfabeto = string.ascii_letters + string.digits
     return "".join(secrets.choice(alfabeto) for _ in range(12))
 
 
 def _enviar_senha_inicial(user, senha):
-    send_mail(
-        subject="Seu acesso institucional ao SiEv",
-        message=(
-            f"Olá, {user.get_full_name()}.\n\n"
+    perfil = getattr(user, "acesso_institucional", None)
+    eh_operador = bool(perfil and perfil.perfil == "OPERADOR")
+    if eh_operador:
+        texto = (
+            "Seu acesso de Operador foi criado.\n\n"
+            f"Matrícula: {user.username}\n"
+            f"Senha inicial: {senha}\n\n"
+            "No primeiro acesso, o SiEv exigirá que você troque essa senha por uma senha pessoal.\n"
+            "Após a troca, o Operador terá acesso somente às OPOs liberadas em Eventos do Dia da sua unidade."
+        )
+    else:
+        texto = (
             "Seu acesso institucional ao SiEv foi criado.\n\n"
             f"Matrícula: {user.username}\n"
             f"Senha inicial: {senha}\n\n"
             "No primeiro acesso o sistema exigirá a troca desta senha.\n"
             "Nunca compartilhe sua senha."
-        ),
+        )
+    send_mail(
+        subject="Seu acesso institucional ao SiEv",
+        message=f"Olá, {user.get_full_name()}.\n\n{texto}",
         from_email=None,
         recipient_list=[user.email],
         fail_silently=False,
@@ -245,7 +240,6 @@ def administracao_sistema(request):
     if not scope:
         messages.error(request, "Você não possui permissão para administrar usuários.")
         return redirect("painel_gestao")
-
     qs = AcessoInstitucional.objects.select_related("usuario", "cpr", "unidade")
     if not scope["desenvolvedor"]:
         if scope["perfil"] == "COPPM":
@@ -258,12 +252,7 @@ def administracao_sistema(request):
                 Q(perfil="UNIDADE", funcao="MEMBRO", unidade=scope["unidade"]) |
                 Q(perfil="OPERADOR", funcao="MEMBRO", unidade=scope["unidade"])
             )
-
-    return render(request, "administracao_sistema/index.html", {
-        "acessos": qs.order_by("usuario__first_name", "matricula"),
-        "perfis": qs,
-        "scope": scope,
-    })
+    return render(request, "administracao_sistema/index.html", {"acessos": qs.order_by("usuario__first_name", "matricula"), "perfis": qs, "scope": scope})
 
 
 @login_required
@@ -272,7 +261,6 @@ def usuario_novo(request):
     if not scope:
         messages.error(request, "Você não possui permissão para cadastrar usuários.")
         return redirect("painel_gestao")
-
     if request.method == "POST":
         form = UsuarioSistemaForm(request.POST, scope=scope)
         if form.is_valid():
@@ -291,29 +279,11 @@ def usuario_novo(request):
                     data["perfil"] = "COPPM"
                     data["cpr"] = None
                     data["unidade"] = None
-
-            senha = _senha_inicial()
+            senha = _senha_inicial(data["matricula"], data["perfil"])
             try:
                 with transaction.atomic():
-                    user = User.objects.create_user(
-                        username=data["matricula"],
-                        email=data["email"],
-                        password=senha,
-                        first_name=data["nome"],
-                        is_active=data["ativo"],
-                    )
-                    AcessoInstitucional.objects.create(
-                        usuario=user,
-                        matricula=data["matricula"],
-                        cpf=data["cpf"],
-                        telefone=data["telefone"],
-                        perfil=data["perfil"],
-                        funcao=data["funcao"],
-                        cpr=data["cpr"],
-                        unidade=data["unidade"],
-                        primeiro_acesso=True,
-                        ativo=data["ativo"],
-                    )
+                    user = User.objects.create_user(username=data["matricula"], email=data["email"], password=senha, first_name=data["nome"], is_active=data["ativo"])
+                    AcessoInstitucional.objects.create(usuario=user, matricula=data["matricula"], cpf=data["cpf"], telefone=data["telefone"], perfil=data["perfil"], funcao=data["funcao"], cpr=data["cpr"], unidade=data["unidade"], primeiro_acesso=True, ativo=data["ativo"])
                     _sincronizar_perfil_compat(user, data)
                     _enviar_senha_inicial(user, senha)
             except Exception:
@@ -325,7 +295,6 @@ def usuario_novo(request):
                 return redirect("administracao_sistema")
     else:
         form = UsuarioSistemaForm(scope=scope)
-
     return render(request, "administracao_sistema/form.html", {"form": form, "novo": True, "scope": scope})
 
 
@@ -337,7 +306,6 @@ def usuario_editar(request, id):
     if not scope or not _pode_gerenciar(scope, acesso):
         messages.error(request, "Você não pode alterar este cadastro.")
         return redirect("administracao_sistema")
-
     if request.method == "POST":
         form = UsuarioSistemaForm(request.POST, instance=user, scope=scope)
         if form.is_valid():
@@ -365,24 +333,19 @@ def usuario_editar(request, id):
             return redirect("administracao_sistema")
     else:
         form = UsuarioSistemaForm(instance=user, scope=scope)
-
     return render(request, "administracao_sistema/form.html", {"form": form, "novo": False, "usuario": user, "scope": scope})
 
 
 @login_required
 def usuario_senha(request, id):
-    if not request.user.is_superuser:
-        messages.error(request, "Gestores não podem alterar senhas. O usuário deve usar o primeiro acesso ou 'Esqueci minha senha'.")
-        return redirect("administracao_sistema")
-
+    scope = _escopo(request)
     user = get_object_or_404(User, pk=id)
     acesso = getattr(user, "acesso_institucional", None)
-    if not acesso:
-        messages.error(request, "Este usuário não possui cadastro institucional.")
+    if not scope or not _pode_gerenciar(scope, acesso):
+        messages.error(request, "Você não pode alterar a senha deste usuário.")
         return redirect("administracao_sistema")
-
     if request.method == "POST":
-        senha = _senha_inicial()
+        senha = _senha_inicial(acesso.matricula, acesso.perfil)
         user.set_password(senha)
         user.save(update_fields=["password"])
         acesso.primeiro_acesso = True
@@ -394,7 +357,6 @@ def usuario_senha(request, id):
         else:
             messages.success(request, "Nova senha provisória enviada para o e-mail do usuário.")
         return redirect("administracao_sistema")
-
     return render(request, "administracao_sistema/senha.html", {"usuario": user})
 
 
