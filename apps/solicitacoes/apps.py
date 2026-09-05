@@ -14,3 +14,6 @@ class SolicitacoesConfig(AppConfig):
 
         # Registra os sinais de criação de usuários institucionais.
         from . import signals  # noqa: F401
+
+        # Registra os modelos auxiliares de apoio operacional.
+        from . import models_apoio  # noqa: F401
