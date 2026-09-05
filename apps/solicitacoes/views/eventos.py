@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -22,7 +23,6 @@ def _eventos_do_acesso(acesso, hoje):
         .select_related("municipio", "unidade", "bairro")
         .order_by("hora_inicio", "nome_evento")
     )
-
     if acesso.perfil == "OPERADOR":
         if not acesso.unidade_id:
             return eventos.none()
@@ -36,47 +36,37 @@ def _eventos_do_acesso(acesso, hoje):
     return eventos.none()
 
 
+@login_required
 def eventos_dia(request):
-    acesso_logado = None
-    if request.user.is_authenticated:
-        acesso_logado = getattr(request.user, "acesso_institucional", None)
-        if acesso_logado and (not acesso_logado.ativo or not request.user.is_active):
-            acesso_logado = None
+    acesso_logado = getattr(request.user, "acesso_institucional", None)
+    if not acesso_logado or not acesso_logado.ativo or not request.user.is_active:
+        messages.error(request, "Acesso institucional não autorizado.")
+        return redirect("login_gestao")
 
     if request.method == "GET":
         return render(request, "solicitacoes/eventos_dia.html", {"acesso_logado": acesso_logado})
 
-    matricula = request.POST.get("matricula", "").strip()
-    if not matricula and acesso_logado:
-        matricula = acesso_logado.matricula
-    if not matricula:
-        return render(request, "solicitacoes/eventos_dia.html", {"erro": "Informe sua matrícula.", "acesso_logado": acesso_logado})
-
+    matricula = request.POST.get("matricula", "").strip() or acesso_logado.matricula
     acesso = _acesso_por_matricula(matricula)
     if not acesso:
         return render(request, "solicitacoes/eventos_dia.html", {"erro": "Matrícula sem acesso institucional ativo.", "acesso_logado": acesso_logado})
-
-    if request.user.is_authenticated and acesso.usuario_id != request.user.id:
+    if acesso.usuario_id != request.user.id:
         return render(request, "solicitacoes/eventos_dia.html", {"erro": "A matrícula informada não corresponde ao usuário autenticado.", "acesso_logado": acesso_logado})
 
     hoje = timezone.localdate()
     eventos = _eventos_do_acesso(acesso, hoje)
     ids_eventos = list(eventos.values_list("id", flat=True))
-
     request.session["eventos_acesso_id"] = acesso.id
     request.session["eventos_matricula"] = acesso.matricula
     request.session["eventos_opos_autorizadas"] = ids_eventos
 
     return render(request, "solicitacoes/eventos_dia_resultado.html", {
-        "eventos": eventos,
-        "matricula": acesso.matricula,
-        "acesso": acesso,
-        "unidade": acesso.unidade,
-        "data": hoje,
-        "data_eventos": hoje,
+        "eventos": eventos, "matricula": acesso.matricula, "acesso": acesso,
+        "unidade": acesso.unidade, "data": hoje, "data_eventos": hoje,
     })
 
 
+@login_required
 def eventos_dia_resultado(request):
     acesso_id = request.session.get("eventos_acesso_id")
     if not acesso_id:
@@ -88,30 +78,17 @@ def eventos_dia_resultado(request):
         .filter(id=acesso_id, ativo=True, usuario__is_active=True)
         .first()
     )
-    if not acesso:
-        request.session.pop("eventos_acesso_id", None)
-        request.session.pop("eventos_matricula", None)
-        request.session.pop("eventos_opos_autorizadas", None)
+    if not acesso or acesso.usuario_id != request.user.id:
+        for chave in ("eventos_acesso_id", "eventos_matricula", "eventos_opos_autorizadas"):
+            request.session.pop(chave, None)
         messages.error(request, "Acesso não autorizado.")
-        return redirect("eventos_dia")
-
-    if request.user.is_authenticated and acesso.usuario_id != request.user.id:
-        request.session.pop("eventos_acesso_id", None)
-        request.session.pop("eventos_matricula", None)
-        request.session.pop("eventos_opos_autorizadas", None)
-        messages.error(request, "Acesso não autorizado.")
-        return redirect("eventos_dia")
+        return redirect("login_gestao")
 
     hoje = timezone.localdate()
     eventos = _eventos_do_acesso(acesso, hoje)
     request.session["eventos_opos_autorizadas"] = list(eventos.values_list("id", flat=True))
-
     return render(request, "solicitacoes/eventos_dia_resultado.html", {
-        "eventos": eventos,
-        "perfil": acesso,
-        "acesso": acesso,
-        "matricula": acesso.matricula,
-        "unidade": acesso.unidade,
-        "data": hoje,
-        "data_eventos": hoje,
+        "eventos": eventos, "perfil": acesso, "acesso": acesso,
+        "matricula": acesso.matricula, "unidade": acesso.unidade,
+        "data": hoje, "data_eventos": hoje,
     })
