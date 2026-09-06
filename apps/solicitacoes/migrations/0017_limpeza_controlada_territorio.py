@@ -77,23 +77,40 @@ def localizar_bairro(Bairro, municipio, nome):
 def localizar_unidade(Unidade, municipio, nome_unidade):
     alvo = normalizar_unidade(nome_unidade)
 
-    # 1. Primeiro tenta o nome/sigla completo, que é a associação mais segura.
-    exatas = []
-    for unidade in Unidade.objects.filter(ativo=True).order_by("id"):
-        if alvo in {
+    # 1. Primeiro tenta o nome/sigla completo entre as unidades ativas.
+    exatas_ativas = []
+    exatas_inativas = []
+    for unidade in Unidade.objects.all().order_by("id"):
+        nomes = {
             normalizar_unidade(unidade.nome),
             normalizar_unidade(unidade.sigla),
-        }:
-            exatas.append(unidade)
+        }
+        if alvo in nomes:
+            if unidade.ativo:
+                exatas_ativas.append(unidade)
+            else:
+                exatas_inativas.append(unidade)
 
-    if len(exatas) == 1:
-        return exatas[0]
+    if len(exatas_ativas) == 1:
+        return exatas_ativas[0]
+    if len(exatas_ativas) > 1:
+        raise RuntimeError(
+            f"Existem unidades ativas duplicadas para '{nome_unidade}' em '{municipio.nome}'."
+        )
+    if len(exatas_inativas) == 1:
+        # Uma unidade territorial pode estar desativada administrativamente.
+        # A migração preserva esse estado; não reativa cadastros por conta própria.
+        return exatas_inativas[0]
+    if len(exatas_inativas) > 1:
+        raise RuntimeError(
+            f"Existem unidades inativas duplicadas para '{nome_unidade}' em '{municipio.nome}'."
+        )
 
     # 2. Para fontes antigas como "67ª CIPM", permite prefixo somente quando
     #    há uma única unidade compatível no CPR do município.
     base = alvo.split("/", 1)[0].strip()
     candidatos = []
-    for unidade in Unidade.objects.filter(ativo=True).select_related("cpr"):
+    for unidade in Unidade.objects.all().select_related("cpr"):
         for texto in (unidade.nome, unidade.sigla):
             normalizado = normalizar_unidade(texto)
             if normalizado == base or normalizado.startswith(base + "/"):
@@ -114,8 +131,8 @@ def localizar_unidade(Unidade, municipio, nome_unidade):
         return next(iter(candidatos_unicos.values()))
 
     nomes = ", ".join(
-        f"{u.id}:{u.nome}" for u in candidatos_unicos.values()
-    ) or "nenhuma unidade ativa"
+        f"{u.id}:{u.nome}{' [inativa]' if not u.ativo else ''}" for u in candidatos_unicos.values()
+    ) or "nenhuma unidade compatível"
     raise RuntimeError(
         f"Não foi possível resolver de forma única a unidade '{nome_unidade}' "
         f"para '{municipio.nome}': {nomes}."
