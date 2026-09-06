@@ -51,6 +51,7 @@ from apps.solicitacoes.views.aprovacoes_seguras import (
 )
 from apps.solicitacoes.views.escopo_gestao import (
     documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro,
+    abrir_oficio_comandante_seguro,
     opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
     gerar_opo_seguro,
 )
@@ -123,6 +124,7 @@ urlpatterns = [
     path("verificar/<str:protocolo>/", verificar_autenticidade, name="verificar_autenticidade"),
     path("alterar-status/<int:id>/<str:status>/", alterar_status, name="alterar_status"),
     path("documentos/<int:id>/", documentos_solicitacao_seguro, name="documentos_solicitacao"),
+    path("documento/oficio/<int:id>/", abrir_oficio_comandante_seguro, name="abrir_oficio_comandante"),
     path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao"),
     path("documento/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao_direto"),
     path("documentos/arquivo/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_arquivo"),
