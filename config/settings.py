@@ -73,21 +73,19 @@ DATA_UPLOAD_MAX_NUMBER_FILES = 20
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-# E-mail institucional (Hostinger / SMTP SSL na porta 465).
-# As variáveis de ambiente do Render continuam tendo prioridade.
+# Mesmo serviço SMTP utilizado pelo siev95.3.
+# A senha fica exclusivamente nas variáveis de ambiente do Render.
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.hostinger.com")
-EMAIL_PORT = config("EMAIL_PORT", default=465, cast=int)
-EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="sievpm@pmba.online")
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.gmail.com")
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="adm95cipm@gmail.com")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
-EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=True, cast=bool)
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=False, cast=bool)
-DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="adm95cipm@gmail.com")
 USER_EMAIL_FROM = config("USER_EMAIL_FROM", default=DEFAULT_FROM_EMAIL)
 EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
 
-# URL pública usada em links enviados por e-mail.
-# Pode ser sobrescrita no ambiente de produção por SITE_URL.
 SITE_URL = config("SITE_URL", default="https://sievpmba.onrender.com").rstrip("/")
 
 LOGIN_URL = "/gestao/"
