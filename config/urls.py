@@ -52,9 +52,10 @@ from apps.solicitacoes.views.aprovacoes_seguras import (
 from apps.solicitacoes.views.escopo_gestao import (
     documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro,
     abrir_oficio_comandante_seguro, abrir_opo_gestao_seguro,
-    opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro, gerar_mapa_eventos_pdf_seguro,
+    opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro,
     gerar_opo_seguro,
 )
+from apps.solicitacoes.views.mapa_eventos_pdf import gerar_mapa_eventos_pdf_seguro
 from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_seguro
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
