@@ -28,7 +28,7 @@ def carregar_csv_bairros():
         raise RuntimeError(f"CSV de bairros oficial não encontrado: {caminho}")
 
     linhas = []
-    vistos = set()
+    vistos = {}
     with caminho.open("r", encoding="utf-8-sig", newline="") as arquivo:
         leitor = csv.DictReader(arquivo)
         campos = {str(c).strip().lower() for c in (leitor.fieldnames or [])}
