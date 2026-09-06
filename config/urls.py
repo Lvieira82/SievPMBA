@@ -28,7 +28,10 @@ from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar, usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.administracao_acoes import usuario_ativar, usuario_excluir
-from apps.solicitacoes.views.cadastro_territorio import cadastro_bairros, cadastro_unidades
+from apps.solicitacoes.views.cadastro_territorio import (
+    cadastro_bairros, cadastro_unidades, ativar_unidade, desativar_unidade,
+    excluir_unidade,
+)
 from apps.solicitacoes.views.compat import (
     alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
     minhas_solicitacoes, verificar_autenticidade,
@@ -96,6 +99,9 @@ urlpatterns = [
     path("gestao/administracao/usuario/<int:id>/ativar/", usuario_ativar, name="administracao_usuario_ativar"),
     path("gestao/administracao/usuario/<int:id>/excluir/", usuario_excluir, name="administracao_usuario_excluir"),
     path("gestao/cadastro/unidades/", cadastro_unidades, name="cadastro_unidades"),
+    path("gestao/cadastro/unidades/<int:id>/ativar/", ativar_unidade, name="ativar_unidade"),
+    path("gestao/cadastro/unidades/<int:id>/desativar/", desativar_unidade, name="desativar_unidade"),
+    path("gestao/cadastro/unidades/<int:id>/excluir/", excluir_unidade, name="excluir_unidade"),
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
