@@ -13,8 +13,17 @@ from apps.solicitacoes.permissoes import (
     eh_operador,
     eh_gestor,
     eh_membro,
+    eh_membro_unidade,
     escopo_unidades,
-    pode_administrar_usuarios,
+    pode_ver_administracao,
+    pode_cadastrar_operador,
+    pode_ver_historico,
+    pode_ver_ranking,
+    pode_ver_proximos_eventos,
+    pode_ver_mapa_eventos,
+    pode_ver_dashboard,
+    pode_ver_documentacao_solicitacao,
+    pode_gerar_opo,
     pode_lancamento_manual,
 )
 
@@ -42,16 +51,15 @@ def painel_gestao(request):
             titulo = "Gestão COPPM" if acesso.funcao == "GESTOR" else "Acesso COPPM"
         elif acesso.perfil == "CPR":
             titulo = f"Gestão {acesso.cpr}" if acesso.funcao == "GESTOR" else f"Acesso {acesso.cpr}"
-        else:
+        elif acesso.perfil == "UNIDADE":
             titulo = f"Gestão {acesso.unidade}" if acesso.funcao == "GESTOR" else f"Acesso {acesso.unidade}"
+        else:
+            titulo = "Acesso institucional"
         nivel = acesso.perfil
 
     hoje = timezone.localdate()
     acesso = acesso_do_usuario(user)
-    pode_apoio = bool(
-        eh_desenvolvedor(user)
-        or (acesso and acesso.ativo and user.is_active and acesso.funcao == "GESTOR" and acesso.perfil == "UNIDADE")
-    )
+
     context = {
         "perfil": acesso,
         "nivel": nivel,
@@ -61,10 +69,18 @@ def painel_gestao(request):
         "eh_desenvolvedor": eh_desenvolvedor(user),
         "eh_gestor": eh_gestor(user),
         "eh_membro": eh_membro(user),
+        "eh_membro_unidade": eh_membro_unidade(user),
         "eh_operador": eh_operador(user),
-        "pode_administrar": pode_administrar_usuarios(user),
+        "pode_administrar": pode_ver_administracao(user),
+        "pode_cadastrar_operador": pode_cadastrar_operador(user),
+        "pode_proximos": pode_ver_proximos_eventos(user),
+        "pode_historico": pode_ver_historico(user),
+        "pode_analise": pode_ver_ranking(user),
+        "pode_mapa": pode_ver_mapa_eventos(user),
+        "pode_dashboard": pode_ver_dashboard(user),
+        "pode_documentacao": pode_ver_documentacao_solicitacao(user),
+        "pode_gerar_opo": bool(pode_gerar_opo(user)),
         "pode_manual": pode_lancamento_manual(user),
-        "pode_apoio": pode_apoio,
         "pendentes_opo": solicitacoes.filter(status="PENDENTE").count(),
         "eventos_semana": solicitacoes.filter(data_evento__gte=hoje, data_evento__lte=hoje + timedelta(days=7)).count(),
         "eventos_mes": solicitacoes.filter(data_evento__year=hoje.year, data_evento__month=hoje.month).count(),
