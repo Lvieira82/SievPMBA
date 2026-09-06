@@ -25,51 +25,36 @@ def _abrir_pdf_seguro(arquivo_field):
     nome = getattr(arquivo_field, "name", "") or ""
     if not nome:
         raise Http404("Documento sem nome de arquivo.")
-
     try:
         if default_storage.exists(nome):
             return default_storage.open(nome, "rb")
     except (OSError, ValueError):
         pass
-
     try:
         caminho = Path(settings.MEDIA_ROOT) / nome
         if caminho.is_file():
             return caminho.open("rb")
     except (OSError, ValueError):
         pass
-
     raise Http404(f"O PDF não foi encontrado no armazenamento. Arquivo registrado: {nome}")
 
 
 @login_required
 def documentos_solicitacao_seguro(request, id):
-    s = get_object_or_404(
-        Solicitacao.objects.select_related("unidade", "municipio", "bairro"),
-        pk=id,
-    )
+    s = get_object_or_404(Solicitacao.objects.select_related("unidade", "municipio", "bairro"), pk=id)
     if not pode_ver_documentacao_solicitacao(request.user):
         messages.error(request, "A documentação das solicitações é exclusiva do Gestor de Unidade e do Desenvolvedor.")
         return redirect("painel_gestao")
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
-
     docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
-
-    # Na fila de PENDENTE/OPO a documentação já foi encerrada para esta fase.
-    # A tela passa a ser somente de consulta, sem oferecer novo anexo.
-    pode_anexar = s.status != "PENDENTE" and (
-        eh_desenvolvedor(request.user)
-        or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE")
-    )
-
+    pode_anexar = s.status != "PENDENTE" and (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE"))
     if request.method == "POST":
         if not pode_anexar:
             messages.error(request, "A documentação desta solicitação já está encerrada nesta fase.")
             return redirect("documentos_solicitacao", id=id)
-
         arq = request.FILES.get("arquivo")
         tid = request.POST.get("tipo_documento")
         if not arq or not tid:
@@ -78,39 +63,20 @@ def documentos_solicitacao_seguro(request, id):
             try:
                 validar_pdf_upload(arq)
                 tipo = get_object_or_404(TipoDocumento, pk=tid, ativo=True)
-                DocumentoSolicitacao.objects.create(
-                    solicitacao=s,
-                    tipo_documento=tipo,
-                    descricao=request.POST.get("descricao", "").strip(),
-                    arquivo=arq,
-                )
+                DocumentoSolicitacao.objects.create(solicitacao=s, tipo_documento=tipo, descricao=request.POST.get("descricao", "").strip(), arquivo=arq)
                 messages.success(request, "Documento anexado com sucesso.")
                 return redirect("documentos_solicitacao", id=id)
             except Exception as e:
                 messages.error(request, f"Documento rejeitado: {e}")
-
-    return render(
-        request,
-        "gestao/documentos_solicitacao.html",
-        {
-            "solicitacao": s,
-            "documentos": docs,
-            "tipos_documento": tipos,
-            "pode_anexar": pode_anexar,
-        },
-    )
+    return render(request, "gestao/documentos_solicitacao.html", {"solicitacao": s, "documentos": docs, "tipos_documento": tipos, "pode_anexar": pode_anexar})
 
 
 @login_required
 def abrir_oficio_comandante_seguro(request, id):
-    s = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=id,
-    )
+    s = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=id)
     if not pode_ver_documentacao_solicitacao(request.user) or not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a este documento.")
         return redirect("painel_gestao")
-
     arquivo = _abrir_pdf_seguro(s.oficio_comandante)
     nome = Path(s.oficio_comandante.name).name or "oficio_comandante.pdf"
     resposta = FileResponse(arquivo, content_type="application/pdf")
@@ -140,18 +106,11 @@ def opos_geradas_seguro(request):
     if eh_operador(request.user):
         messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
         return redirect("eventos_dia")
-    anexos = AnexoOPO.objects.select_related(
-        "solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro"
-    ).filter(solicitacao__unidade__in=escopo_unidades(request.user)).order_by("-criado_em")
+    anexos = AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro").filter(solicitacao__unidade__in=escopo_unidades(request.user)).exclude(arquivo="").order_by("-criado_em")
     grupos = {}
     for a in anexos:
         if a.solicitacao.protocolo not in grupos:
-            grupos[a.solicitacao.protocolo] = {
-                "codigo": a.solicitacao.protocolo,
-                "solicitacao": a.solicitacao,
-                "arquivos": [],
-                "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento")),
-            }
+            grupos[a.solicitacao.protocolo] = {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": [], "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento"))}
         grupos[a.solicitacao.protocolo]["arquivos"].append(a)
     return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values()), "pode_apoio": eh_desenvolvedor(request.user) or eh_gestor(request.user)})
 
@@ -165,15 +124,12 @@ def detalhe_opo_seguro(request, id):
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a esta OPO.")
         return redirect("painel_gestao")
-    anexos = AnexoOPO.objects.filter(solicitacao=s).order_by("-criado_em")
+    # Ignora registros antigos que ficaram sem arquivo quando a função upload_to
+    # ainda apontava para instance.protocolo em AnexoOPO.
+    anexos = AnexoOPO.objects.filter(solicitacao=s).exclude(arquivo="").order_by("-criado_em")
     documentos = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     a = getattr(request.user, "acesso_institucional", None)
-    pode_apoio = bool(
-        anexos.exists() and (
-            eh_desenvolvedor(request.user)
-            or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))
-        )
-    )
+    pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))))
     return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio})
 
 
