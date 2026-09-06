@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
 
 from .administracao_sistema import _escopo, _pode_gerenciar
@@ -47,7 +48,16 @@ def usuario_excluir(request, id):
 
     matricula = acesso.matricula
     nome = user.get_full_name() or user.username
-    user.delete()
+
+    try:
+        user.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            "Este usuário possui registros históricos vinculados e não pode ser excluído "
+            "sem preservar esses registros. Desative o acesso para impedir novos logins."
+        )
+        return redirect("administracao_sistema")
 
     messages.success(request, f"Registro de {nome} ({matricula}) excluído definitivamente.")
     return redirect("administracao_sistema")
