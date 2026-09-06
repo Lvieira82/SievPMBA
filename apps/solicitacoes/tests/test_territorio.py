@@ -10,6 +10,7 @@ from apps.solicitacoes.models import (
 )
 from apps.solicitacoes.territorio import (
     municipio_tem_multiplas_unidades,
+    unidade_para_bairro,
     validar_direcionamento,
 )
 
@@ -76,3 +77,42 @@ class TerritorioTestCase(TestCase):
         self.assertTrue(data["multiplas_unidades"])
         self.assertEqual(len(data["bairros"]), 2)
         self.assertEqual(len(data["unidades"]), 2)
+
+    def test_bairro_com_duplicidade_preserva_unidade_do_municipio(self):
+        municipio = Municipio.objects.create(nome="Feira de Santana")
+        bairro = Bairro.objects.create(municipio=municipio, nome="Aviário")
+
+        unidade_errada = Unidade.objects.create(
+            cpr=self.unidade_a.cpr,
+            nome="45ª CIPM/CURAÇÁ",
+            sigla="45ª CIPM/CURAÇÁ",
+            tipo="CIPM",
+        )
+        unidade_correta = Unidade.objects.create(
+            cpr=self.unidade_a.cpr,
+            nome="67ª CIPM/FEIRA DE SANTANA",
+            sigla="67ª CIPM/FEIRA DE SANTANA",
+            tipo="CIPM",
+        )
+
+        AreaResponsabilidade.objects.create(
+            bairro=bairro,
+            unidade=unidade_errada,
+        )
+        AreaResponsabilidade.objects.create(
+            bairro=bairro,
+            unidade=unidade_correta,
+        )
+
+        self.assertIs(unidade_correta, unidade_para_bairro(bairro))
+
+        response = self.client.get(
+            f"/api/municipios/{municipio.id}/bairros/"
+        )
+        data = response.json()
+        aviario = next(item for item in data["bairros"] if item["nome"] == "Aviário")
+
+        self.assertEqual(
+            aviario["unidades"],
+            [{"id": unidade_correta.id, "nome": unidade_correta.nome}],
+        )
