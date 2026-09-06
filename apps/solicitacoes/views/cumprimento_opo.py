@@ -1,7 +1,10 @@
 from pathlib import Path
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.storage import default_storage
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
@@ -27,8 +30,7 @@ def _operador_autorizado(request, solicitacao):
 
 def _opo_principal(solicitacao):
     return (
-        AnexoOPO.objects
-        .filter(solicitacao=solicitacao)
+        AnexoOPO.objects.filter(solicitacao=solicitacao)
         .exclude(arquivo="")
         .order_by("-criado_em")
         .first()
@@ -108,11 +110,32 @@ def cumprimento_opo(request, solicitacao_id):
 
 @login_required
 def abrir_opo_operador(request, anexo_id):
-    opo = get_object_or_404(AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade"), pk=anexo_id)
+    opo = get_object_or_404(
+        AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade"),
+        pk=anexo_id,
+    )
     if not _operador_autorizado(request, opo.solicitacao):
         messages.error(request, "Esta OPO não está liberada para o seu acesso de operador.")
         return redirect("eventos_dia")
     if not opo.arquivo:
         messages.error(request, "O arquivo da OPO não está disponível.")
         return redirect("cumprimento_opo", solicitacao_id=opo.solicitacao_id)
-    return redirect("abrir_opo_gestao", anexo_id=anexo_id)
+
+    nome = getattr(opo.arquivo, "name", "") or ""
+    if not nome:
+        raise Http404("O arquivo da OPO não possui nome.")
+    try:
+        if default_storage.exists(nome):
+            arquivo = default_storage.open(nome, "rb")
+        else:
+            caminho = Path(settings.MEDIA_ROOT) / nome
+            if not caminho.is_file():
+                raise Http404("O arquivo da OPO não foi encontrado no armazenamento.")
+            arquivo = caminho.open("rb")
+    except (OSError, ValueError):
+        raise Http404("O arquivo da OPO não foi encontrado no armazenamento.")
+
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{Path(nome).name}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
