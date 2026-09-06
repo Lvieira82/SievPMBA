@@ -10,9 +10,9 @@ from django.contrib import messages
 from django.shortcuts import redirect
 
 from apps.solicitacoes.portal_views import (
-    agenda_gestao, consultar_protocolo, corrigir_solicitacao, lista_bairros,
+    consultar_protocolo, corrigir_solicitacao, lista_bairros,
     lista_municipios, listar_unidades, nova_solicitacao, portal,
-    proximos_eventos_gestao, selecionar_unidade,
+    selecionar_unidade,
 )
 from apps.solicitacoes.portal_views_multiplas import nova_solicitacao, confirmar_multiplas
 from apps.solicitacoes.views.administracao import (
@@ -44,6 +44,7 @@ from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
 from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador
+from apps.solicitacoes.views.agenda_gestao_segura import agenda_gestao_segura, proximos_eventos_gestao_seguro
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
     fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
@@ -63,12 +64,12 @@ from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
 )
-from apps.solicitacoes.permissoes import eh_desenvolvedor, pode_gerar_opo
+from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
 @login_required
 def listar_pendentes_opo_seguro(request):
-    if not (eh_desenvolvedor(request.user) or pode_gerar_opo(request.user)):
+    if not pode_gerar_opo(request.user):
         messages.error(request, "Somente o Gestor de Unidade pode acessar a geração de OPO nesta etapa.")
         return redirect("painel_gestao")
     return aprovacoes(request)
@@ -125,8 +126,8 @@ urlpatterns = [
     path("aprovar/<int:id>/", aprovar_solicitacao, name="aprovar_solicitacao"),
     path("aprovacoes/transferir/<int:id>/", transferir_solicitacao_seguro, name="transferir_solicitacao"),
     path("solicitacao/<int:id>/corrigir/", solicitar_correcao_gestao, name="solicitar_correcao"),
-    path("gestao/proximos-eventos/", proximos_eventos_gestao, name="proximos_eventos_gestao"),
-    path("gestao/agenda/", agenda_gestao, name="agenda_gestao"),
+    path("gestao/proximos-eventos/", proximos_eventos_gestao_seguro, name="proximos_eventos_gestao"),
+    path("gestao/agenda/", agenda_gestao_segura, name="agenda_gestao"),
     path("dashboard/", dashboard, name="dashboard"),
     path("dashboard/operacional/", dashboard, name="dashboard_operacional"),
     path("minhas/", minhas_solicitacoes, name="minhas_solicitacoes"),
