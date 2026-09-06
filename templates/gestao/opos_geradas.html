@@ -22,7 +22,7 @@
 {% empty %}<span class="sem-documento">Nenhum documento original encontrado no banco.</span>{% endfor %}
 </div>
 <div class="bloco-documentos"><span class="titulo-documentos">📑 OPO gerada</span>
-{% for arquivo in protocolo.arquivos %}{% if arquivo.arquivo %}<a class="btn" href="{{ arquivo.arquivo.url }}?v={{ arquivo.criado_em|date:'U' }}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>{% endif %}{% empty %}<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>{% endfor %}
+{% for arquivo in protocolo.arquivos %}{% if arquivo.arquivo %}<a class="btn" href="{% url 'abrir_opo_gestao' arquivo.id %}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>{% endif %}{% empty %}<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>{% endfor %}
 </div>
 <div class="acoes-op">
 <a class="btn btn-detalhes" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
