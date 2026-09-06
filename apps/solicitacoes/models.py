@@ -5,51 +5,30 @@ from django.contrib.auth.models import User
 from django.core.validators import FileExtensionValidator
 
 
-# ==========================================================
-# FUNÇÕES AUXILIARES
-# ==========================================================
-
 def gerar_protocolo_unico():
     while True:
         protocolo = uuid.uuid4().hex[:8].upper()
-
-        if not Solicitacao.objects.filter(
-            protocolo=protocolo
-        ).exists():
+        if not Solicitacao.objects.filter(protocolo=protocolo).exists():
             return protocolo
 
 
 def upload_documento(instance, filename):
-    return os.path.join(
-        "protocolos",
-        instance.solicitacao.protocolo,
-        filename
-    )
+    return os.path.join("protocolos", instance.solicitacao.protocolo, filename)
 
 
 def upload_comandante(instance, filename):
-    return os.path.join(
-        "protocolos",
-        instance.protocolo,
-        "oficio_comandante.pdf"
-    )
+    return os.path.join("protocolos", instance.protocolo, "oficio_comandante.pdf")
 
 
 def pasta_opo(instance, filename):
-    # O FileField pertence a AnexoOPO, portanto o protocolo
-    # precisa ser obtido pela solicitação relacionada.
     protocolo = getattr(instance.solicitacao, "protocolo", None) or "SEM_PROTOCOLO"
-    return os.path.join(
-        "protocolos",
-        protocolo,
-        "opo",
-        filename
-    )
+    return os.path.join("protocolos", protocolo, "opo", filename)
 
 
-# ==========================================================
-# ORGANIZAÇÃO PMBA
-# ==========================================================
+def upload_cumprimento_opo(instance, filename):
+    protocolo = getattr(instance.opo.solicitacao, "protocolo", None) or "SEM_PROTOCOLO"
+    return os.path.join("protocolos", protocolo, "cumprimentos", filename)
+
 
 class COPPM(models.Model):
     nome = models.CharField(max_length=120)
@@ -272,6 +251,28 @@ class AnexoOPO(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     def __str__(self):
         return self.arquivo.name
+
+
+class CumprimentoOPO(models.Model):
+    opo = models.ForeignKey(AnexoOPO, on_delete=models.CASCADE, related_name="cumprimentos")
+    operador = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="cumprimentos_opo")
+    cumprida = models.BooleanField(null=True, blank=True)
+    imagem = models.FileField(
+        upload_to=upload_cumprimento_opo,
+        blank=True,
+        null=True,
+        validators=[FileExtensionValidator(allowed_extensions=["jpg", "jpeg", "png", "webp"])],
+    )
+    justificativa = models.TextField(blank=True)
+    respondido_em = models.DateTimeField(null=True, blank=True)
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["opo", "operador"], name="uq_cumprimento_opo_operador"),
+        ]
+        ordering = ["-respondido_em", "-id"]
+    def __str__(self):
+        resposta = "SIM" if self.cumprida is True else "NÃO" if self.cumprida is False else "PENDENTE"
+        return f"{self.opo} - {resposta}"
 
 
 class MatriculaAutorizada(models.Model):
