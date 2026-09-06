@@ -812,28 +812,15 @@ class MatriculaAutorizada(models.Model):
     )
 
     class Meta:
-
-        ordering = [
-
-            "nome"
-
-        ]
-
+        ordering = ["nome"]
         verbose_name = "Matrícula Autorizada"
-
         verbose_name_plural = "Matrículas Autorizadas"
 
     def __str__(self):
-
         if self.unidade:
             return f"{self.posto} {self.nome} ({self.unidade})"
-
         return f"{self.posto} {self.nome}"
 
-
-# ==========================================================
-# PERFIL DO USUÁRIO
-# ==========================================================
 
 # ==========================================================
 # PERFIL E ACESSO DO USUÁRIO
@@ -854,11 +841,9 @@ class PerfilUsuario(models.Model):
     )
 
     perfil = models.CharField(
-        max_length=20,
-        choices=PERFIS
+        max_length=20
     )
 
-    # Usado pelo gestor CPR
     cpr = models.ForeignKey(
         CPR,
         on_delete=models.SET_NULL,
@@ -867,7 +852,6 @@ class PerfilUsuario(models.Model):
         related_name="gestores_siev"
     )
 
-    # Usado pelo gestor de Unidade
     unidade = models.ForeignKey(
         Unidade,
         on_delete=models.SET_NULL,
@@ -889,37 +873,21 @@ class PerfilUsuario(models.Model):
     )
 
     class Meta:
-
         verbose_name = "Perfil de Usuário"
-
         verbose_name_plural = "Perfis de Usuários"
 
     def __str__(self):
-
         if self.perfil == "COPPM":
-
-            return (
-                f"{self.usuario.username} - "
-                f"Gestor COPPM"
-            )
-
+            return f"{self.usuario.username} - Gestor COPPM"
         if self.perfil == "CPR":
-
-            return (
-                f"{self.usuario.username} - "
-                f"Gestor CPR - {self.cpr}"
-            )
-
+            return f"{self.usuario.username} - Gestor CPR - {self.cpr}"
         if self.perfil == "UNIDADE":
-
-            return (
-                f"{self.usuario.username} - "
-                f"Gestor Unidade - {self.unidade}"
-            )
-
+            return f"{self.usuario.username} - Gestor Unidade - {self.unidade}"
         return self.usuario.username
 
 UsuarioPerfil = PerfilUsuario
+
+
 # ==========================================================
 # LOG DO SISTEMA
 # ==========================================================
@@ -958,21 +926,14 @@ class LogSistema(models.Model):
     )
 
     class Meta:
-
-        ordering = [
-
-            "-criado_em"
-
-        ]
-
+        ordering = ["-criado_em"]
         verbose_name = "Log"
-
         verbose_name_plural = "Logs"
 
     def __str__(self):
-
         return f"{self.criado_em:%d/%m/%Y %H:%M} - {self.acao}"
-    
+
+
 class TransferenciaSolicitacao(models.Model):
 
     solicitacao = models.ForeignKey(
@@ -995,7 +956,9 @@ class TransferenciaSolicitacao(models.Model):
 
     usuario = models.ForeignKey(
         User,
-        on_delete=models.PROTECT,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="transferencias_realizadas"
     )
 
@@ -1011,7 +974,6 @@ class TransferenciaSolicitacao(models.Model):
         ordering = ["-criado_em"]
 
     def __str__(self):
-
         return (
             f"{self.solicitacao.protocolo} - "
             f"{self.unidade_origem} → "
@@ -1039,13 +1001,11 @@ class HistoricoSolicitacao(models.Model):
         related_name="historicos_siev"
     )
 
-    # Compatibilidade com registros/rotinas antigas
     status = models.CharField(
         max_length=40,
         blank=True
     )
 
-    # Mudança de status
     status_anterior = models.CharField(
         max_length=40,
         blank=True
@@ -1056,7 +1016,6 @@ class HistoricoSolicitacao(models.Model):
         blank=True
     )
 
-    # Mudança de unidade
     unidade_anterior = models.ForeignKey(
         Unidade,
         on_delete=models.SET_NULL,
@@ -1073,7 +1032,6 @@ class HistoricoSolicitacao(models.Model):
         related_name="historicos_unidade_nova"
     )
 
-    # Tipo da movimentação
     acao = models.CharField(
         max_length=50,
         blank=True
@@ -1088,13 +1046,9 @@ class HistoricoSolicitacao(models.Model):
     )
 
     class Meta:
-
-        ordering = [
-            "-criado_em"
-        ]
+        ordering = ["-criado_em"]
 
     def __str__(self):
-
         return (
             f"{self.solicitacao.protocolo} - "
             f"{self.acao or self.status_novo or self.status}"
