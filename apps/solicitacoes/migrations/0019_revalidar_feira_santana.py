@@ -19,19 +19,29 @@ def executar(apps, schema_editor):
     fonte = importlib.import_module(FEIRA)
 
     for nome_unidade, nomes_bairros in fonte.BAIRROS.items():
-        unidades = list(
+        unidades_ativas = list(
             Unidade.objects.filter(
                 nome__iexact=nome_unidade,
                 ativo=True,
             ).order_by("id")
         )
+        unidades_inativas = list(
+            Unidade.objects.filter(
+                nome__iexact=nome_unidade,
+                ativo=False,
+            ).order_by("id")
+        )
 
-        if len(unidades) != 1:
+        if len(unidades_ativas) == 1:
+            unidade = unidades_ativas[0]
+        elif len(unidades_ativas) == 0 and len(unidades_inativas) == 1:
+            # Não reativa a unidade. Apenas preserva a associação territorial
+            # correta para que o cadastro administrativo continue soberano.
+            unidade = unidades_inativas[0]
+        else:
             raise RuntimeError(
                 f"A unidade '{nome_unidade}' de Feira de Santana não pôde ser resolvida de forma única."
             )
-
-        unidade = unidades[0]
 
         for nome_bairro in nomes_bairros:
             bairro = Bairro.objects.filter(
