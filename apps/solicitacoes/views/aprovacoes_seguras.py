@@ -28,7 +28,17 @@ def aprovacoes(request):
         permitidas = [s.id for s in solicitacoes if pode_aprovar_solicitacao(request.user, s)]
         solicitacoes = solicitacoes.filter(id__in=permitidas)
 
-    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes, "pode_aprovar": True})
+    conferidas = {}
+    for s in solicitacoes:
+        ids = {str(item.id) for item in s.documentos.all()}
+        vistos = set(request.session.get(f"documentos_conferidos_{s.id}", []))
+        conferidas[s.id] = bool(ids) and ids.issubset(vistos)
+
+    return render(
+        request,
+        "gestao/aprovacoes.html",
+        {"solicitacoes": solicitacoes, "pode_aprovar": True, "documentos_conferidos": conferidas},
+    )
 
 
 @login_required
@@ -43,6 +53,23 @@ def aprovar_solicitacao(request, id):
         messages.error(request, "Esta solicitação não está pendente de aprovação.")
         return redirect("aprovacoes")
 
+    documentos = list(solicitacao.documentos.all())
+    if not documentos:
+        messages.error(
+            request,
+            "A aprovação está bloqueada: a solicitação não possui documentação anexada para conferência.",
+        )
+        return redirect("aprovacoes")
+
+    vistos = {str(item) for item in request.session.get(f"documentos_conferidos_{solicitacao.id}", [])}
+    pendentes = [doc for doc in documentos if str(doc.id) not in vistos]
+    if pendentes:
+        messages.warning(
+            request,
+            "Antes de aprovar, abra e confira todos os documentos anexados desta solicitação.",
+        )
+        return redirect("aprovacoes")
+
     solicitacao.status = "APROVADA"
     solicitacao.data_aprovacao = timezone.now()
     solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
@@ -51,7 +78,7 @@ def aprovar_solicitacao(request, id):
         solicitacao=solicitacao,
         usuario=request.user,
         status="APROVADA",
-        observacao="Solicitação aprovada pelo gestor.",
+        observacao="Solicitação aprovada pelo gestor após conferência da documentação.",
     )
     messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. Escolha o tipo de efetivo para gerar a OPO.")
     return redirect("gerar_opo", id=id)
