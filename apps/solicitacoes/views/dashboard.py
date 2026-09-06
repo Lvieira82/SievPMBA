@@ -1,10 +1,10 @@
 from datetime import timedelta
 
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import render, redirect
 from django.utils import timezone
-from django.contrib import messages
 
 from apps.solicitacoes.models import Solicitacao
 from apps.solicitacoes.permissoes import (
@@ -25,7 +25,6 @@ def _negar(request, mensagem="Você não possui permissão para acessar esta ár
 def dashboard(request):
     if not pode_ver_dashboard(request.user):
         return _negar(request, "O Dashboard está disponível somente para o Gestor de Unidade e o Desenvolvedor.")
-
     if eh_operador(request.user):
         return _negar(request)
 
@@ -33,6 +32,13 @@ def dashboard(request):
     base = Solicitacao.objects.filter(unidade__in=unidades)
     hoje = timezone.localdate()
     proximos_30 = hoje + timedelta(days=30)
+
+    eventos = (
+        base.filter(data_evento__gte=hoje)
+        .select_related("municipio", "bairro", "unidade", "tipo_evento")
+        .order_by("data_evento", "hora_inicio")[:10]
+    )
+
     context = {
         "eventos_hoje": base.filter(data_evento=hoje).count(),
         "eventos_futuros": base.filter(data_evento__range=[hoje, proximos_30]).count(),
@@ -40,6 +46,7 @@ def dashboard(request):
         "correcao": base.filter(status="CORRECAO").count(),
         "aprovadas": base.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
         "indeferidas": base.filter(status="REJEITADA").count(),
+        "eventos": eventos,
     }
     return render(request, "dashboard/index.html", context)
 
