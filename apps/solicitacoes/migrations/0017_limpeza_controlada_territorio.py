@@ -113,16 +113,41 @@ def localizar_municipio(Municipio, nome):
 
 
 def localizar_bairro(Bairro, municipio, nome):
+    # Primeiro preserva o cadastro original quando o texto do CSV coincide
+    # exatamente com o nome armazenado no banco.
+    exatos = list(
+        Bairro.objects.filter(municipio=municipio, nome=nome).order_by("id")
+    )
+    if len(exatos) == 1:
+        return exatos[0]
+    if len(exatos) > 1:
+        raise RuntimeError(
+            f"O município '{municipio.nome}' possui bairros duplicados para '{nome}'."
+        )
+
+    # Só usamos normalização como fallback para diferenças de maiúsculas/minúsculas
+    # ou acentuação. Se houver mais de um cadastro ativo, não fazemos suposição.
     candidatos = [
         bairro
         for bairro in Bairro.objects.filter(municipio=municipio).order_by("id")
         if normalizar(bairro.nome) == normalizar(nome)
     ]
+    if len(candidatos) == 1:
+        return candidatos[0]
+
+    ativos = [bairro for bairro in candidatos if bairro.ativo]
+    if len(ativos) == 1:
+        return ativos[0]
     if len(candidatos) > 1:
-        raise RuntimeError(
-            f"O município '{municipio.nome}' possui bairros duplicados para '{nome}'."
+        nomes = ", ".join(
+            f"{bairro.id}:{bairro.nome}{' [inativo]' if not bairro.ativo else ''}"
+            for bairro in candidatos
         )
-    return candidatos[0] if candidatos else None
+        raise RuntimeError(
+            f"O município '{municipio.nome}' possui múltiplos cadastros para "
+            f"'{nome}' e não foi possível identificar o original com segurança: {nomes}."
+        )
+    return None
 
 
 def _unica_priorizando_ativas(candidatos, nome_unidade, municipio):
