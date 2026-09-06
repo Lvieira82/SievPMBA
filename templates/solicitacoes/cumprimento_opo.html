@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Cumprimento da OPO{% endblock %}
+{% block titulo %}Cumprimento da OPO{% endblock %}
+{% block content %}
+<style>
+.wrap{max-width:950px;margin:30px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.info{background:#f8f9fa;border-left:4px solid #907C64;padding:14px 16px;border-radius:8px;margin:15px 0}.opcoes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}.opcao{border:1px solid #d1d5db;border-radius:12px;padding:18px}.opcao label{font-weight:700;display:flex;align-items:center;gap:10px;font-size:18px}.opcao input[type=radio]{width:20px;height:20px}.campo{margin-top:15px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input[type=file],.campo textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:8px}.campo textarea{min-height:120px;resize:vertical}.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;background:#907C64;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.btn2{background:#fff;color:#374151;border:1px solid #bbb}.erro{background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.sucesso{background:#dcfce7;color:#166534;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.oculto{display:none}.status{font-weight:700}.pendente{color:#92400e}.sim{color:#15803d}.nao{color:#b91c1c}@media(max-width:700px){.opcoes{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+  <div class="cardx">
+    <h1>✅ Cumprimento da OPO</h1>
+    <div class="info">
+      <strong>Evento:</strong> {{ solicitacao.nome_evento }}<br>
+      <strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }}<br>
+      <strong>Horário:</strong> {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}<br>
+      <strong>Município:</strong> {{ solicitacao.municipio }}<br>
+      <strong>Local:</strong> {{ solicitacao.local }}<br>
+      <strong>Unidade:</strong> {{ solicitacao.unidade }}
+    </div>
+    {% for message in messages %}<div class="{% if message.tags == 'success' %}sucesso{% else %}erro{% endif %}">{{ message }}</div>{% endfor %}
+    <p><a class="btn" href="{% url 'abrir_opo_operador' opo.id %}" target="_blank">📄 Abrir OPO</a></p>
+
+    {% if registro.cumprida is True %}<p class="status sim">Situação registrada: SIM — OPO cumprida.</p>{% elif registro.cumprida is False %}<p class="status nao">Situação registrada: NÃO — OPO não cumprida.</p>{% else %}<p class="status pendente">Situação ainda não registrada.</p>{% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="opcoes">
+        <div class="opcao"><label><input type="radio" name="cumprida" value="SIM" {% if registro.cumprida is True %}checked{% endif %} onchange="mostrarCampos()"> SIM — Cumprida</label><div id="campo-imagem" class="campo {% if registro.cumprida is not True %}oculto{% endif %}"><label for="imagem">Anexar imagem da execução</label><input id="imagem" name="imagem" type="file" accept="image/jpeg,image/png,image/webp"></div></div>
+        <div class="opcao"><label><input type="radio" name="cumprida" value="NAO" {% if registro.cumprida is False %}checked{% endif %} onchange="mostrarCampos()"> NÃO — Não cumprida</label><div id="campo-justificativa" class="campo {% if registro.cumprida is not False %}oculto{% endif %}"><label for="justificativa">Justificativa</label><textarea id="justificativa" name="justificativa" placeholder="Informe por que a OPO não foi cumprida.">{{ registro.justificativa }}</textarea></div></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" type="submit">Salvar resposta</button><a class="btn btn2" href="{% url 'eventos_dia' %}">Voltar aos eventos</a></div>
+    </form>
+  </div>
+</div>
+<script>
+function mostrarCampos(){
+  const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked;
+  const nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;
+  document.getElementById('campo-imagem').classList.toggle('oculto',!sim);
+  document.getElementById('campo-justificativa').classList.toggle('oculto',!nao);
+}
+</script>
+{% endblock %}
