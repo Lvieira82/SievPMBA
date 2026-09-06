@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from apps.solicitacoes.models import (
@@ -58,13 +59,16 @@ class TerritorioTestCase(TestCase):
 
     def test_municipio_com_duas_unidades_exige_bairro(self):
         self.assertTrue(municipio_tem_multiplas_unidades(self.municipio))
-        self.assertIs(self.unidade_b, validar_direcionamento(self.municipio, self.bairro_b))
+        self.assertIs(
+            self.unidade_b,
+            validar_direcionamento(self.municipio, self.bairro_b),
+        )
 
     def test_bairro_de_outro_municipio_nao_pode_ser_usado(self):
         outro = Municipio.objects.create(nome="Outro Município")
         bairro = Bairro.objects.create(municipio=outro, nome="Centro")
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(ValidationError):
             validar_direcionamento(self.municipio, bairro)
 
     def test_api_retorna_bairros_e_unidades(self):
@@ -78,7 +82,7 @@ class TerritorioTestCase(TestCase):
         self.assertEqual(len(data["bairros"]), 2)
         self.assertEqual(len(data["unidades"]), 2)
 
-    def test_bairro_com_duplicidade_preserva_unidade_do_municipio(self):
+    def test_bairro_com_duplicidade_nao_e_direcionado_por_chute(self):
         municipio = Municipio.objects.create(nome="Feira de Santana")
         bairro = Bairro.objects.create(municipio=municipio, nome="Aviário")
 
@@ -104,15 +108,17 @@ class TerritorioTestCase(TestCase):
             unidade=unidade_correta,
         )
 
-        self.assertIs(unidade_correta, unidade_para_bairro(bairro))
+        self.assertIsNone(unidade_para_bairro(bairro))
+
+        with self.assertRaises(ValidationError):
+            validar_direcionamento(municipio, bairro)
 
         response = self.client.get(
             f"/api/municipios/{municipio.id}/bairros/"
         )
         data = response.json()
-        aviario = next(item for item in data["bairros"] if item["nome"] == "Aviário")
-
-        self.assertEqual(
-            aviario["unidades"],
-            [{"id": unidade_correta.id, "nome": unidade_correta.nome}],
+        aviario = next(
+            item for item in data["bairros"] if item["nome"] == "Aviário"
         )
+
+        self.assertEqual(aviario["unidades"], [])
