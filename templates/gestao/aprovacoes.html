@@ -26,7 +26,7 @@
 {% endfor %}
 </div>
 <a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentação</a>
-{% if documentos_conferidos|get_item:s.id %}<span class="conferencia-ok">✓ Todos os documentos foram conferidos</span>{% else %}<span class="conferencia-pendente">⚠ Confira todos os documentos antes de aprovar</span>{% endif %}
+{% if s.documentos_conferidos %}<span class="conferencia-ok">✓ Todos os documentos foram conferidos</span>{% else %}<span class="conferencia-pendente">⚠ Confira todos os documentos antes de aprovar</span>{% endif %}
 {% else %}
 <span class="docs-pendente">⚠ Nenhum documento registrado nesta solicitação.</span>
 <a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentação</a>
@@ -35,7 +35,7 @@
 </td>
 <td class="col-acoes">
 <a href="{% url 'transferir_solicitacao' s.id %}" class="btn-transferir">🔄 Transferir</a>
-{% if documentos_conferidos|get_item:s.id %}<form method="post" action="{% url 'aprovar_solicitacao' s.id %}" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>{% else %}<button type="button" class="btn-gerar" disabled title="Abra e confira todos os documentos antes de aprovar">🔒 Confira os documentos</button>{% endif %}
+{% if s.documentos_conferidos %}<form method="post" action="{% url 'aprovar_solicitacao' s.id %}" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>{% else %}<button type="button" class="btn-gerar" disabled title="Abra e confira todos os documentos antes de aprovar">🔒 Confira os documentos</button>{% endif %}
 <a href="{% url 'solicitar_correcao' s.id %}" class="btn-corrigir">✏️ Corrigir</a>
 <a href="{% url 'enviar_apoio' s.id %}" class="btn-compartilhar">🤝 Compartilhar apoio</a>
 <span class="acao-info">O apoio pode ser enviado para unidades especializadas, como Cavalaria e Motociclistas, que atuarão fora da área territorial da unidade responsável.</span>
