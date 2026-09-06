@@ -7,6 +7,27 @@
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
 <p><strong>Status:</strong> {{ solicitacao.get_status_display }}</p>
 <hr>
+
+{% if solicitacao.oficio_comandante %}
+<div style="border:1px solid #d1d5db;border-radius:10px;padding:14px;margin:18px 0;background:#f8fafc">
+<strong>📄 Ofício ao Comandante da Unidade</strong>
+<a href="{% url 'abrir_oficio_comandante' solicitacao.id %}" target="_blank" rel="noopener" style="float:right;color:#2563eb;font-weight:bold">Abrir PDF</a>
+<div style="clear:both"></div>
+</div>
+{% endif %}
+
+<h3>Documentos anexados</h3>
+{% for documento in documentos %}
+<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0">
+<strong>{{ documento.tipo_documento.nome }}</strong> — {{ documento.descricao|default:'Sem descrição' }}
+<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener" style="float:right;color:#907C64;font-weight:bold">Abrir PDF</a>
+</div>
+{% empty %}
+<p style="color:#6b7280">Nenhum documento adicional foi anexado.</p>
+{% endfor %}
+
+{% if pode_anexar %}
+<hr style="margin-top:25px">
 <h3>Anexar documento PDF</h3>
 <form method="post" enctype="multipart/form-data" style="margin:20px 0">
 {% csrf_token %}
@@ -21,16 +42,13 @@
 <input type="file" name="arquivo" accept="application/pdf,.pdf" required style="display:block;margin:6px 0 16px">
 <button type="submit" style="background:#907C64;color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:bold">Anexar PDF</button>
 </form>
-<h3>Documentos já anexados</h3>
-{% for documento in documentos %}
-<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0">
-<strong>{{ documento.tipo_documento.nome }}</strong> — {{ documento.descricao|default:'Sem descrição' }}
-<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" style="float:right;color:#907C64;font-weight:bold">Abrir PDF</a>
+{% elif solicitacao.status == 'PENDENTE' %}
+<div style="margin-top:20px;padding:14px 16px;background:#ecfdf5;border:1px solid #bbf7d0;border-radius:10px;color:#166534">
+<strong>✓ Documentação encerrada nesta fase.</strong><br>
+Esta solicitação já está na etapa de análise para aprovação e geração da OPO. Não é necessário nem permitido adicionar novos documentos por esta tela.
 </div>
-{% empty %}<p style="color:#6b7280">Nenhum documento anexado.</p>{% endfor %}
-{% if solicitacao.status == 'APROVADA' or solicitacao.status == 'CONCLUIDA' %}
-<p style="margin-top:25px"><a href="{% url 'gerar_opo' solicitacao.id %}" style="background:#28a745;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:bold">✔ Gerar OPO</a></p>
 {% endif %}
-<p style="margin-top:25px"><a href="{% url 'painel_gestao' %}">← Voltar ao painel</a></p>
+
+<p style="margin-top:25px"><a href="{% url 'aprovacoes' %}">← Voltar para Aprovações</a></p>
 </div></div>
 {% endblock %}
