@@ -30,27 +30,21 @@
                 {% else %}
                     {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" %}
                         <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" %}
                         <li><a href="{% url 'proximos_eventos_gestao' %}" title="Eventos futuros"><i class="bi bi-calendar-event"></i><span>Eventos futuros</span></a></li>
                         <li><a href="{% url 'agenda_gestao' %}" title="Históricos"><i class="bi bi-clock-history"></i><span>Históricos</span></a></li>
                         <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-bar-chart"></i><span>Análise</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" and user.acesso_institucional.perfil == "CPR" or user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" and user.acesso_institucional.perfil == "UNIDADE" %}
-                        <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" and user.acesso_institucional.perfil == "UNIDADE" %}
-                        <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
-                        <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" %}
+                        {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" %}
+                            <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
+                        {% endif %}
+                        {% if user.acesso_institucional.perfil == "UNIDADE" %}
+                            <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
+                            <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
+                        {% endif %}
                         <li><a href="{% url 'dashboard_operacional' %}" title="Dashboard"><i class="bi bi-graph-up"></i><span>Dashboard</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.perfil == "UNIDADE" and user.acesso_institucional.funcao == "MEMBRO" %}
-                        <li><a href="{% url 'administracao_unidade_membro' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
-                    {% endif %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" and user.acesso_institucional.perfil in "COPPM CPR UNIDADE" %}
                         <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                    {% elif user.acesso_institucional and user.acesso_institucional.perfil == "UNIDADE" and user.acesso_institucional.funcao == "MEMBRO" %}
+                        <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
+                        <li><a href="{% url 'administracao_unidade_membro' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                     {% endif %}
                 {% endif %}
                 <li><a href="/logout/" title="Sair da sessão"><i class="bi bi-box-arrow-right"></i><span>Sair da sessão</span></a></li>
@@ -62,7 +56,7 @@
             <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2></div>
             <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
         </header>
-        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}{% block content %}{% endblock %}</section>
+        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</section>
         <footer class="rodape">Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
     </div>
 </div>
