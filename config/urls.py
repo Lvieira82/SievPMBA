@@ -28,10 +28,12 @@ from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar, usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.administracao_acoes import usuario_ativar, usuario_excluir
+from apps.solicitacoes.views.administracao_unidade_membro import administracao_unidade_membro
 from apps.solicitacoes.views.cadastro_territorio import (
     cadastro_bairros, cadastro_unidades, ativar_unidade, desativar_unidade,
     excluir_unidade,
 )
+from apps.solicitacoes.views.cadastro_municipios import cadastro_municipios, alternar_municipio
 from apps.solicitacoes.views.compat import (
     alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
     minhas_solicitacoes, verificar_autenticidade,
@@ -41,6 +43,7 @@ from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
+from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
     fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
@@ -60,13 +63,13 @@ from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
 )
-from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor
+from apps.solicitacoes.permissoes import eh_desenvolvedor, pode_gerar_opo
 
 
 @login_required
 def listar_pendentes_opo_seguro(request):
-    if not (eh_desenvolvedor(request.user) or eh_gestor(request.user)):
-        messages.error(request, "Somente gestores podem acessar as solicitações pendentes de OPO.")
+    if not (eh_desenvolvedor(request.user) or pode_gerar_opo(request.user)):
+        messages.error(request, "Somente o Gestor de Unidade pode acessar a geração de OPO nesta etapa.")
         return redirect("painel_gestao")
     return aprovacoes(request)
 
@@ -85,6 +88,8 @@ urlpatterns = [
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
+    path("eventos-do-dia/cumprimento/<int:solicitacao_id>/", cumprimento_opo, name="cumprimento_opo"),
+    path("eventos-do-dia/opo/arquivo/<int:anexo_id>/", abrir_opo_operador, name="abrir_opo_operador"),
     path("gestao/", login_gestao, name="login_gestao"),
     path("gestao/verificar-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
     path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
@@ -94,6 +99,7 @@ urlpatterns = [
     path("painel/", painel_gestao, name="painel_gestao"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
+    path("gestao/administracao/unidade-membro/", administracao_unidade_membro, name="administracao_unidade_membro"),
     path("gestao/administracao/usuario/novo/", usuario_novo, name="administracao_usuario_novo"),
     path("gestao/administracao/usuario/<int:id>/editar/", usuario_editar, name="administracao_usuario_editar"),
     path("gestao/administracao/usuario/<int:id>/senha/", usuario_senha, name="administracao_usuario_senha"),
@@ -105,6 +111,8 @@ urlpatterns = [
     path("gestao/cadastro/unidades/<int:id>/desativar/", desativar_unidade, name="desativar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/excluir/", excluir_unidade, name="excluir_unidade"),
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
+    path("gestao/cadastro/municipios/", cadastro_municipios, name="cadastro_municipios"),
+    path("gestao/cadastro/municipios/<int:id>/alternar/", alternar_municipio, name="alternar_municipio"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
