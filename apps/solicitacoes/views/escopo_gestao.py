@@ -62,6 +62,7 @@ def documentos_solicitacao_seguro(request, id):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
     docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
+    opos = AnexoOPO.objects.filter(solicitacao=s).exclude(arquivo="").order_by("-criado_em")
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
     pode_anexar = s.status != "PENDENTE" and (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE"))
     if request.method == "POST":
@@ -81,7 +82,7 @@ def documentos_solicitacao_seguro(request, id):
                 return redirect("documentos_solicitacao", id=id)
             except Exception as e:
                 messages.error(request, f"Documento rejeitado: {e}")
-    return render(request, "gestao/documentos_solicitacao.html", {"solicitacao": s, "documentos": docs, "tipos_documento": tipos, "pode_anexar": pode_anexar})
+    return render(request, "gestao/documentos_solicitacao.html", {"solicitacao": s, "documentos": docs, "opos": opos, "tipos_documento": tipos, "pode_anexar": pode_anexar})
 
 
 @login_required
@@ -198,7 +199,6 @@ def mapa_eventos_seguro(request):
 
 
 def _tipo_opo_mapa(solicitacao):
-    """Retorna ORDINÁRIO/EXTRAORDINÁRIO a partir da OPO mais recente."""
     anexo = AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
     if not anexo:
         return "ORDINÁRIO"
@@ -217,7 +217,6 @@ def gerar_mapa_eventos_pdf_seguro(request):
         return redirect("painel_gestao")
 
     eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
-
     data_inicio = (request.GET.get("data_inicio") or "").strip()
     data_fim = (request.GET.get("data_fim") or "").strip()
     if data_inicio:
@@ -246,7 +245,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
     cabecalho = ParagraphStyle("CabecalhoMapa", parent=celula, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)
 
     story = []
-    logo_path = finders.find("logos/logo_pm_200.png")
+    logo_path = finders.find("logos/logo_pmba.png")
     if logo_path:
         logo = Image(logo_path, width=22*mm, height=22*mm)
         logo.hAlign = "CENTER"
@@ -257,12 +256,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
     for evento in eventos:
         if evento.unidade and evento.unidade.nome not in unidades_titulo:
             unidades_titulo.append(evento.unidade.nome)
-    if len(unidades_titulo) == 1:
-        unidade_titulo = unidades_titulo[0]
-    elif unidades_titulo:
-        unidade_titulo = " / ".join(unidades_titulo)
-    else:
-        unidade_titulo = "UNIDADE RESPONSÁVEL"
+    unidade_titulo = unidades_titulo[0] if len(unidades_titulo) == 1 else (" / ".join(unidades_titulo) if unidades_titulo else "UNIDADE RESPONSÁVEL")
     story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}", subtitulo))
     if data_inicio and data_fim:
         periodo_texto = f"Período: {datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')}"
@@ -274,36 +268,32 @@ def gerar_mapa_eventos_pdf_seguro(request):
         periodo_texto = "Todos os eventos do âmbito institucional"
     story.append(Paragraph(periodo_texto, periodo))
 
-    rows = [[
-        Paragraph("Data", cabecalho),
-        Paragraph("Hora", cabecalho),
-        Paragraph("Evento", cabecalho),
-        Paragraph("Município", cabecalho),
-        Paragraph("Unidade que gerou", cabecalho),
-        Paragraph("Tipo", cabecalho),
-    ]]
+    dados = [[Paragraph("DATA", cabecalho), Paragraph("HORA", cabecalho), Paragraph("EVENTO", cabecalho), Paragraph("MUNICÍPIO", cabecalho), Paragraph("UNIDADE QUE GEROU", cabecalho), Paragraph("TIPO", cabecalho)]]
     for evento in eventos:
-        rows.append([
+        unidade = evento.unidade.nome if evento.unidade else "Não definida"
+        dados.append([
             Paragraph(evento.data_evento.strftime("%d/%m/%Y"), celula),
             Paragraph(evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-", celula),
-            Paragraph(str(evento.nome_evento or "-"), celula),
-            Paragraph(str(evento.municipio.nome if evento.municipio else "-"), celula),
-            Paragraph(str(evento.unidade.nome if evento.unidade else "-"), celula),
+            Paragraph(evento.nome_evento or "-", celula),
+            Paragraph(evento.municipio.nome if evento.municipio else "-", celula),
+            Paragraph(unidade, celula),
             Paragraph(_tipo_opo_mapa(evento), celula),
         ])
-
-    tabela = Table(rows, repeatRows=1, colWidths=[25*mm, 20*mm, 65*mm, 42*mm, 75*mm, 35*mm], hAlign="CENTER")
+    tabela = Table(dados, repeatRows=1, colWidths=[22*mm, 18*mm, 50*mm, 38*mm, 72*mm, 30*mm])
     tabela.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4b5563")),
-        ("GRID", (0, 0), (-1, -1), 0.45, colors.HexColor("#9ca3af")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6b7280")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9ca3af")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-        ("TOPPADDING", (0, 0), (-1, -1), 4),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("ALIGN", (0, 0), (1, -1), "CENTER"),
+        ("ALIGN", (5, 1), (5, -1), "CENTER"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
     story.append(tabela)
-    story.append(Spacer(1, 5*mm))
-    story.append(Paragraph("Sistema Inteligente de Eventos - Polícia Militar da Bahia", periodo))
+    if not eventos.exists():
+        story.append(Spacer(1, 8*mm))
+        story.append(Paragraph("Nenhum evento encontrado para o período selecionado.", celula))
     doc.build(story)
     return response
