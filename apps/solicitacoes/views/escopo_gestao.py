@@ -102,6 +102,24 @@ def abrir_documento_solicitacao_seguro(request, id, tipo="arquivo"):
 
 
 @login_required
+def abrir_opo_gestao_seguro(request, anexo_id):
+    anexo = get_object_or_404(
+        AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade"),
+        pk=anexo_id,
+    )
+    solicitacao = anexo.solicitacao
+    if eh_operador(request.user) or not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta OPO.")
+        return redirect("painel_gestao")
+    arquivo = _abrir_pdf_seguro(anexo.arquivo)
+    nome = Path(anexo.arquivo.name).name or f"OPO_{solicitacao.protocolo}.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
+
+
+@login_required
 def opos_geradas_seguro(request):
     if eh_operador(request.user):
         messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
@@ -124,8 +142,6 @@ def detalhe_opo_seguro(request, id):
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a esta OPO.")
         return redirect("painel_gestao")
-    # Ignora registros antigos que ficaram sem arquivo quando a função upload_to
-    # ainda apontava para instance.protocolo em AnexoOPO.
     anexos = AnexoOPO.objects.filter(solicitacao=s).exclude(arquivo="").order_by("-criado_em")
     documentos = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     a = getattr(request.user, "acesso_institucional", None)
