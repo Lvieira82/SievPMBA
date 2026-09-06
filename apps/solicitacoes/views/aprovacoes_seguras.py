@@ -7,14 +7,14 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
-from apps.solicitacoes.permissoes import pode_aprovar_solicitacao
+from apps.solicitacoes.permissoes import perfil_gestor, pode_aprovar_solicitacao
 from .geracao_opo import gerar_opo_com_evento_extra
 
 
 @login_required
 def aprovacoes(request):
     # Nesta etapa, aprovação e geração de OPO pertencem exclusivamente ao Gestor de Unidade.
-    if not pode_aprovar_solicitacao(request.user, Solicitacao.objects.none().first()):
+    if not perfil_gestor(request.user, "UNIDADE"):
         messages.error(request, "Somente o Gestor de Unidade pode acessar as aprovações.")
         return redirect("painel_gestao")
 
