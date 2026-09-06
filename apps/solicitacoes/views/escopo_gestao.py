@@ -44,19 +44,32 @@ def _abrir_pdf_seguro(arquivo_field):
 
 @login_required
 def documentos_solicitacao_seguro(request, id):
-    s = get_object_or_404(Solicitacao.objects.select_related("unidade", "municipio", "bairro"), pk=id)
+    s = get_object_or_404(
+        Solicitacao.objects.select_related("unidade", "municipio", "bairro"),
+        pk=id,
+    )
     if not pode_ver_documentacao_solicitacao(request.user):
         messages.error(request, "A documentação das solicitações é exclusiva do Gestor de Unidade e do Desenvolvedor.")
         return redirect("painel_gestao")
     if not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso aos documentos desta solicitação.")
         return redirect("painel_gestao")
+
     docs = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
+
+    # Na fila de PENDENTE/OPO a documentação já foi encerrada para esta fase.
+    # A tela passa a ser somente de consulta, sem oferecer novo anexo.
+    pode_anexar = s.status != "PENDENTE" and (
+        eh_desenvolvedor(request.user)
+        or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE")
+    )
+
     if request.method == "POST":
-        if not (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and getattr(request.user.acesso_institucional, "perfil", None) == "UNIDADE")):
-            messages.error(request, "Você não possui permissão para anexar documentos.")
+        if not pode_anexar:
+            messages.error(request, "A documentação desta solicitação já está encerrada nesta fase.")
             return redirect("documentos_solicitacao", id=id)
+
         arq = request.FILES.get("arquivo")
         tid = request.POST.get("tipo_documento")
         if not arq or not tid:
@@ -65,12 +78,45 @@ def documentos_solicitacao_seguro(request, id):
             try:
                 validar_pdf_upload(arq)
                 tipo = get_object_or_404(TipoDocumento, pk=tid, ativo=True)
-                DocumentoSolicitacao.objects.create(solicitacao=s, tipo_documento=tipo, descricao=request.POST.get("descricao", "").strip(), arquivo=arq)
+                DocumentoSolicitacao.objects.create(
+                    solicitacao=s,
+                    tipo_documento=tipo,
+                    descricao=request.POST.get("descricao", "").strip(),
+                    arquivo=arq,
+                )
                 messages.success(request, "Documento anexado com sucesso.")
                 return redirect("documentos_solicitacao", id=id)
             except Exception as e:
                 messages.error(request, f"Documento rejeitado: {e}")
-    return render(request, "gestao/documentos_solicitacao.html", {"solicitacao": s, "documentos": docs, "tipos_documento": tipos})
+
+    return render(
+        request,
+        "gestao/documentos_solicitacao.html",
+        {
+            "solicitacao": s,
+            "documentos": docs,
+            "tipos_documento": tipos,
+            "pode_anexar": pode_anexar,
+        },
+    )
+
+
+@login_required
+def abrir_oficio_comandante_seguro(request, id):
+    s = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=id,
+    )
+    if not pode_ver_documentacao_solicitacao(request.user) or not pode_ver_solicitacao(request.user, s):
+        messages.error(request, "Você não possui acesso a este documento.")
+        return redirect("painel_gestao")
+
+    arquivo = _abrir_pdf_seguro(s.oficio_comandante)
+    nome = Path(s.oficio_comandante.name).name or "oficio_comandante.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
 
 
 @login_required
