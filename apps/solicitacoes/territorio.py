@@ -1,25 +1,75 @@
+import unicodedata
+
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 
 from .models import AreaResponsabilidade, Bairro, Municipio, Unidade
 
 
-def unidades_do_municipio(municipio):
-    """Retorna as unidades ativas que possuem área no município."""
-    unidade_ids = (
+def _normalizar(texto):
+    texto = str(texto or "").strip().upper()
+    texto = unicodedata.normalize("NFKD", texto)
+    return "".join(c for c in texto if not unicodedata.combining(c))
+
+
+def _areas_do_bairro(bairro):
+    return list(
         AreaResponsabilidade.objects
         .filter(
-            bairro__municipio=municipio,
-            bairro__ativo=True,
-            unidade__ativo=True,
+            bairro=bairro,
             ativo=True,
+            unidade__ativo=True,
         )
-        .values_list("unidade_id", flat=True)
-        .distinct()
+        .select_related("unidade", "bairro__municipio")
+        .order_by("id")
     )
 
+
+def _area_correta_do_bairro(bairro):
+    """Retorna uma única área para o bairro.
+
+    Regra territorial do SiEv: um bairro/distrito pertence a uma única
+    unidade. Se houver registros antigos duplicados, primeiro tenta preservar
+    a unidade cujo nome identifica o próprio município do bairro. Isso evita
+    que um bairro com o mesmo nome em cidades diferentes herde a unidade de
+    outro município.
+    """
+    areas = _areas_do_bairro(bairro)
+
+    if not areas:
+        return None
+
+    if len(areas) == 1:
+        return areas[0]
+
+    municipio = _normalizar(bairro.municipio.nome)
+    correspondentes = []
+
+    for area in areas:
+        unidade_texto = _normalizar(area.unidade.nome)
+        if municipio and municipio in unidade_texto:
+            correspondentes.append(area)
+
+    if len(correspondentes) == 1:
+        return correspondentes[0]
+
+    # Compatibilidade com cadastros antigos que ainda possuam duplicidade.
+    # Mantém a associação mais recente até que o cadastro territorial seja
+    # corrigido pelo desenvolvedor.
+    return areas[-1]
+
+
+def unidades_do_municipio(municipio):
+    """Retorna as unidades ativas que possuem área no município."""
+    unidade_ids = []
+    bairros = bairros_do_municipio(municipio)
+
+    for bairro in bairros:
+        area = _area_correta_do_bairro(bairro)
+        if area:
+            unidade_ids.append(area.unidade_id)
+
     if municipio.unidade_responsavel_id:
-        unidade_ids = list(unidade_ids)
         unidade_ids.append(municipio.unidade_responsavel_id)
 
     return (
@@ -41,27 +91,10 @@ def bairros_do_municipio(municipio):
 
 
 def unidade_para_bairro(bairro):
-    """Resolve a unidade responsável pelo bairro.
-
-    A unidade só é escolhida automaticamente quando existe uma única
-    unidade ativa para aquele bairro.
-    """
-    unidades = list(
-        Unidade.objects.filter(
-            arearesponsabilidade__bairro=bairro,
-            arearesponsabilidade__ativo=True,
-            ativo=True,
-        ).distinct().order_by("nome")
-    )
-
-    if len(unidades) == 1:
-        return unidades[0]
-
-    if len(unidades) > 1:
-        raise ValidationError(
-            "O bairro selecionado possui mais de uma unidade responsável. "
-            "É necessário definir a área de responsabilidade antes de enviar a solicitação."
-        )
+    """Resolve a única unidade responsável pelo bairro."""
+    area = _area_correta_do_bairro(bairro)
+    if area:
+        return area.unidade
 
     if bairro.municipio.unidade_responsavel_id:
         return bairro.municipio.unidade_responsavel
@@ -101,24 +134,17 @@ def lista_bairros(request, municipio_id):
 
     dados = []
     for bairro in bairros:
-        areas = list(
-            AreaResponsabilidade.objects
-            .filter(
-                bairro=bairro,
-                ativo=True,
-                unidade__ativo=True,
-            )
-            .select_related("unidade")
-            .order_by("unidade__nome")
-        )
+        area = _area_correta_do_bairro(bairro)
 
         dados.append({
             "id": bairro.id,
             "nome": bairro.nome,
-            "unidades": [
-                {"id": area.unidade_id, "nome": area.unidade.nome}
-                for area in areas
-            ],
+            "unidades": ([
+                {
+                    "id": area.unidade_id,
+                    "nome": area.unidade.nome,
+                }
+            ] if area else []),
         })
 
     return JsonResponse({
