@@ -7,7 +7,8 @@
 </style>
 <div class="wrap">
   <div class="cardx"><h1>🏙️ Cidades / Municípios</h1><p>Cadastro territorial realizado exclusivamente pelo Desenvolvedor.</p>
-    <form method="post"><{% csrf_token %}>
+    <form method="post">
+      {% csrf_token %}
       <div class="grid">
         <div class="field"><label for="nome">Cidade / Município</label><input id="nome" name="nome" required maxlength="120"></div>
         <div class="field"><label for="ibge">Código IBGE</label><input id="ibge" name="ibge" maxlength="10"></div>
