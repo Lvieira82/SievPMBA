@@ -5,30 +5,28 @@
 .card-aprovacoes{background:#fff;max-width:1350px;margin:40px auto;padding:35px;border-radius:16px;box-shadow:0 5px 20px rgba(0,0,0,.08)}
 .card-aprovacoes h1{text-align:center;margin-bottom:10px;color:#111827}.aviso-docs{text-align:center;color:#6b7280;margin-bottom:25px}
 .tabela-wrap{width:100%;overflow-x:auto}.tabela-aprovacoes{width:100%;border-collapse:collapse}.tabela-aprovacoes th{background:#111827;color:#fff;padding:14px 12px;text-align:left;font-size:15px}.tabela-aprovacoes td{padding:14px 12px;border-bottom:1px solid #e5e7eb;vertical-align:top}.col-acoes{min-width:430px}
-.btn-doc,.btn-gerar,.btn-corrigir,.btn-transferir,.btn-compartilhar,.btn-voltar{display:inline-block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:3px 4px 3px 0;border:0;cursor:pointer}.btn-doc{background:#6b7280}.btn-gerar{background:#907C64}.btn-corrigir{background:#d97706}.btn-transferir{background:#2563eb}.btn-compartilhar{background:#0f766e}.btn-voltar{background:#6b7280;margin-top:25px}.btn-documentos{display:inline-block;background:#374151;color:#fff;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:bold;margin-top:6px}
-.docs-ok{display:block;color:#15803d;font-size:12px;font-weight:bold;margin:5px 0}.docs-pendente{display:block;color:#b45309;font-size:12px;font-weight:bold;margin-top:5px}.doc-list{margin:8px 0 10px;padding:8px;background:#f8fafc;border-radius:8px}.doc-item{padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.doc-item:last-child{border-bottom:0}.doc-item a{color:#2563eb;font-weight:bold;text-decoration:none}.vazio{text-align:center;padding:25px;color:#6b7280}.acao-info{display:block;color:#6b7280;font-size:12px;margin-top:6px}
-@media(max-width:768px){.card-aprovacoes{padding:20px}.btn-doc,.btn-gerar,.btn-corrigir,.btn-transferir,.btn-compartilhar,.btn-voltar{display:block;width:100%;box-sizing:border-box;text-align:center}}
+.btn-gerar,.btn-corrigir,.btn-transferir,.btn-compartilhar,.btn-voltar{display:inline-block;padding:10px 14px;border-radius:8px;color:#fff;text-decoration:none;font-weight:bold;margin:3px 4px 3px 0;border:0;cursor:pointer}.btn-gerar{background:#907C64}.btn-gerar:disabled{background:#9ca3af;cursor:not-allowed}.btn-corrigir{background:#d97706}.btn-transferir{background:#2563eb}.btn-compartilhar{background:#0f766e}.btn-voltar{background:#6b7280;margin-top:25px}.btn-documentos{display:inline-block;background:#374151;color:#fff;padding:7px 10px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:bold;margin-top:6px}
+.docs-ok{display:block;color:#15803d;font-size:12px;font-weight:bold;margin:5px 0}.docs-pendente{display:block;color:#b45309;font-size:12px;font-weight:bold;margin-top:5px}.doc-list{margin:8px 0 10px;padding:8px;background:#f8fafc;border-radius:8px}.doc-item{padding:6px 0;border-bottom:1px solid #e5e7eb;font-size:13px}.doc-item:last-child{border-bottom:0}.doc-item a{color:#2563eb;font-weight:bold;text-decoration:none}.vazio{text-align:center;padding:25px;color:#6b7280}.acao-info{display:block;color:#6b7280;font-size:12px;margin-top:6px}.conferencia-ok{display:block;color:#15803d;font-size:12px;font-weight:bold;margin-top:8px}.conferencia-pendente{display:block;color:#b45309;font-size:12px;font-weight:bold;margin-top:8px}
+@media(max-width:768px){.card-aprovacoes{padding:20px}.btn-gerar,.btn-corrigir,.btn-transferir,.btn-compartilhar,.btn-voltar{display:block;width:100%;box-sizing:border-box;text-align:center}}
 </style>
 <div class="card-aprovacoes">
 <h1>Solicitações Pendentes de OPO</h1>
-<p class="aviso-docs">A documentação desta etapa é somente para consulta. Ações de transferência, correção, aprovação, geração de OPO e compartilhamento de apoio ficam disponíveis diretamente nesta tela.</p>
+<p class="aviso-docs">Antes da aprovação, o gestor deve abrir e conferir todos os documentos anexados. Somente após a conferência a aprovação e a geração da OPO ficam liberadas.</p>
 <div class="tabela-wrap"><table class="tabela-aprovacoes"><thead><tr><th>Protocolo</th><th>Evento</th><th>Solicitante</th><th>Data do Evento</th><th>Documentos anexados</th><th>Ações</th></tr></thead><tbody>
 {% for s in solicitacoes %}
 <tr>
 <td><strong>{{ s.protocolo }}</strong></td><td>{{ s.nome_evento }}</td><td>{{ s.solicitante }}</td><td>{{ s.data_evento|date:'d/m/Y' }}</td>
 <td>
 {% with qtd=s.documentos.all|length %}
-{% if qtd or s.oficio_comandante %}
-<span class="docs-ok">✓ Documentação disponível</span>
+{% if qtd %}
+<span class="docs-ok">✓ {{ qtd }} documento(s) disponível(is) para conferência</span>
 <div class="doc-list">
-{% if s.oficio_comandante %}
-<div class="doc-item"><strong>Ofício ao Comandante da Unidade</strong><br><a href="{% url 'abrir_oficio_comandante' s.id %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>
-{% endif %}
 {% for documento in s.documentos.all %}
-<div class="doc-item"><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>
+<div class="doc-item"><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener">📄 Abrir e conferir PDF</a></div>
 {% endfor %}
 </div>
-<a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentos</a>
+<a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentação</a>
+{% if documentos_conferidos|get_item:s.id %}<span class="conferencia-ok">✓ Todos os documentos foram conferidos</span>{% else %}<span class="conferencia-pendente">⚠ Confira todos os documentos antes de aprovar</span>{% endif %}
 {% else %}
 <span class="docs-pendente">⚠ Nenhum documento registrado nesta solicitação.</span>
 <a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentação</a>
@@ -37,7 +35,7 @@
 </td>
 <td class="col-acoes">
 <a href="{% url 'transferir_solicitacao' s.id %}" class="btn-transferir">🔄 Transferir</a>
-<form method="post" action="{% url 'aprovar_solicitacao' s.id %}" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>
+{% if documentos_conferidos|get_item:s.id %}<form method="post" action="{% url 'aprovar_solicitacao' s.id %}" style="display:inline"><input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}"><button type="submit" class="btn-gerar" onclick="return confirm('Confirma a aprovação desta solicitação?');">✅ Aprovar e gerar OPO</button></form>{% else %}<button type="button" class="btn-gerar" disabled title="Abra e confira todos os documentos antes de aprovar">🔒 Confira os documentos</button>{% endif %}
 <a href="{% url 'solicitar_correcao' s.id %}" class="btn-corrigir">✏️ Corrigir</a>
 <a href="{% url 'enviar_apoio' s.id %}" class="btn-compartilhar">🤝 Compartilhar apoio</a>
 <span class="acao-info">O apoio pode ser enviado para unidades especializadas, como Cavalaria e Motociclistas, que atuarão fora da área territorial da unidade responsável.</span>
