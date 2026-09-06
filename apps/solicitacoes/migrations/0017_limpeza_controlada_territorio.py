@@ -4,12 +4,8 @@ import unicodedata
 from django.db import migrations
 
 
-MIGRACAO_TERRITORIAL = (
-    "apps.solicitacoes.migrations.0012_aplicar_areas_responsabilidade_csv"
-)
-MIGRACAO_FEIRA = (
-    "apps.solicitacoes.migrations.0013_cadastrar_unidades_bairros_feira_santana"
-)
+MIGRACAO_TERRITORIAL = "apps.solicitacoes.migrations.0012_aplicar_areas_responsabilidade_csv"
+MIGRACAO_FEIRA = "apps.solicitacoes.migrations.0013_cadastrar_unidades_bairros_feira_santana"
 
 
 def normalizar(texto):
@@ -19,32 +15,27 @@ def normalizar(texto):
 
 
 def normalizar_unidade(texto):
-    texto = normalizar(texto)
-    texto = texto.split("/", 1)[0]
-    return texto.replace("º", "").replace("ª", "").strip()
+    return normalizar(texto).replace("º", "").replace("ª", "").strip()
 
 
 def carregar_mapeamento_autoritativo():
-    """Carrega a fonte territorial já versionada no próprio projeto.
+    """MUNICÍPIO + BAIRRO é sempre a chave territorial.
 
-    A chave sempre contém MUNICÍPIO + BAIRRO. Portanto, homônimos em cidades
-    diferentes jamais são misturados.
-
-    Quando a fonte histórica possui a mesma chave mais de uma vez, a última
-    ocorrência é tratada como a correção mais recente da própria fonte.
+    Para Feira de Santana, a migration 0013 contém os nomes completos das
+    unidades e prevalece sobre a nomenclatura antiga da migration 0012.
+    Isso é importante porque o banco pode possuir, por legado, tanto
+    "67ª CIPM" quanto "67ª CIPM/FEIRA DE SANTANA".
     """
     fonte = importlib.import_module(MIGRACAO_TERRITORIAL)
     mapeamento = {}
 
     for municipio, bairro, unidade in fonte.DADOS_TERRITORIAIS:
-        mapeamento[(normalizar(municipio), normalizar(bairro))] = normalizar_unidade(unidade)
+        mapeamento[(normalizar(municipio), normalizar(bairro))] = unidade
 
-    # A migration 0013 é posterior e contém a nomenclatura mais específica
-    # das unidades de Feira de Santana. Ela prevalece para os registros dela.
     feira = importlib.import_module(MIGRACAO_FEIRA)
     for nome_unidade, bairros in feira.BAIRROS.items():
         for bairro in bairros:
-            mapeamento[(normalizar("Feira de Santana"), normalizar(bairro))] = normalizar_unidade(nome_unidade)
+            mapeamento[(normalizar("Feira de Santana"), normalizar(bairro))] = nome_unidade
 
     return mapeamento
 
@@ -55,72 +46,88 @@ def localizar_municipio(Municipio, nome):
         for municipio in Municipio.objects.all()
         if normalizar(municipio.nome) == normalizar(nome)
     ]
-
     if len(candidatos) > 1:
-        raise RuntimeError(
-            f"Território inconsistente: existem municípios duplicados para '{nome}'."
-        )
-
+        raise RuntimeError(f"Existem municípios duplicados para '{nome}'.")
     return candidatos[0] if candidatos else None
 
 
 def localizar_bairro(Bairro, municipio, nome):
-    exatos = list(
+    candidatos = list(
         Bairro.objects.filter(municipio=municipio, nome__iexact=nome).order_by("id")
     )
-    if len(exatos) == 1:
-        return exatos[0]
-    if len(exatos) > 1:
+    if len(candidatos) == 1:
+        return candidatos[0]
+    if len(candidatos) > 1:
         raise RuntimeError(
-            f"Território inconsistente: município '{municipio.nome}' possui bairros duplicados com o nome '{nome}'."
+            f"O município '{municipio.nome}' possui bairros duplicados chamados '{nome}'."
         )
 
-    normalizados = [
+    candidatos = [
         bairro
         for bairro in Bairro.objects.filter(municipio=municipio).order_by("id")
         if normalizar(bairro.nome) == normalizar(nome)
     ]
-
-    if len(normalizados) > 1:
+    if len(candidatos) > 1:
         raise RuntimeError(
-            f"Território inconsistente: município '{municipio.nome}' possui mais de um bairro equivalente a '{nome}'."
+            f"O município '{municipio.nome}' possui bairros equivalentes duplicados para '{nome}'."
         )
+    return candidatos[0] if candidatos else None
 
-    return normalizados[0] if normalizados else None
 
+def localizar_unidade(Unidade, municipio, nome_unidade):
+    alvo = normalizar_unidade(nome_unidade)
 
-def localizar_unidade(Unidade, chave):
-    candidatos = []
+    # 1. Primeiro tenta o nome/sigla completo, que é a associação mais segura.
+    exatas = []
     for unidade in Unidade.objects.filter(ativo=True).order_by("id"):
-        chaves = {
+        if alvo in {
             normalizar_unidade(unidade.nome),
             normalizar_unidade(unidade.sigla),
+        }:
+            exatas.append(unidade)
+
+    if len(exatas) == 1:
+        return exatas[0]
+
+    # 2. Para fontes antigas como "67ª CIPM", permite prefixo somente quando
+    #    há uma única unidade compatível no CPR do município.
+    base = alvo.split("/", 1)[0].strip()
+    candidatos = []
+    for unidade in Unidade.objects.filter(ativo=True).select_related("cpr"):
+        for texto in (unidade.nome, unidade.sigla):
+            normalizado = normalizar_unidade(texto)
+            if normalizado == base or normalizado.startswith(base + "/"):
+                candidatos.append(unidade)
+                break
+
+    candidatos_unicos = {u.id: u for u in candidatos}
+    if municipio.unidade_responsavel_id:
+        mesma_cadeia = {
+            u.id: u
+            for u in candidatos_unicos.values()
+            if u.cpr_id == municipio.unidade_responsavel.cpr_id
         }
-        if chave in chaves:
-            candidatos.append(unidade)
+        if len(mesma_cadeia) == 1:
+            return next(iter(mesma_cadeia.values()))
 
-    if len(candidatos) != 1:
-        nomes = ", ".join(
-            f"{u.id}:{u.nome}" for u in candidatos
-        ) or "nenhuma unidade ativa"
-        raise RuntimeError(
-            f"Território inconsistente: a unidade '{chave}' não pôde ser resolvida de forma única ({nomes})."
-        )
+    if len(candidatos_unicos) == 1:
+        return next(iter(candidatos_unicos.values()))
 
-    return candidatos[0]
+    nomes = ", ".join(
+        f"{u.id}:{u.nome}" for u in candidatos_unicos.values()
+    ) or "nenhuma unidade ativa"
+    raise RuntimeError(
+        f"Não foi possível resolver de forma única a unidade '{nome_unidade}' "
+        f"para '{municipio.nome}': {nomes}."
+    )
 
 
 def ajustar_bairro(AreaResponsabilidade, bairro, unidade):
-    """Deixa exatamente uma área para o bairro, preservando o registro escolhido."""
     areas = list(
         AreaResponsabilidade.objects.filter(bairro=bairro).order_by("id")
     )
 
-    alvo = next(
-        (area for area in areas if area.unidade_id == unidade.id),
-        None,
-    )
-
+    alvo = next((area for area in areas if area.unidade_id == unidade.id), None)
     if alvo is None and areas:
         alvo = areas[0]
         alvo.unidade_id = unidade.id
@@ -132,12 +139,11 @@ def ajustar_bairro(AreaResponsabilidade, bairro, unidade):
             ativo=True,
         )
     else:
-        alvo.ativo = True
         alvo.unidade_id = unidade.id
+        alvo.ativo = True
         alvo.save(update_fields=["unidade", "ativo"])
 
     AreaResponsabilidade.objects.filter(bairro=bairro).exclude(pk=alvo.pk).delete()
-    return alvo
 
 
 def executar(apps, schema_editor):
@@ -147,10 +153,10 @@ def executar(apps, schema_editor):
     AreaResponsabilidade = apps.get_model("solicitacoes", "AreaResponsabilidade")
 
     mapeamento = carregar_mapeamento_autoritativo()
-    processados = set()
+    bairros_fonte = set()
 
-    # 1) Corrige todos os bairros que possuem fonte territorial autoritativa.
-    for (municipio_nome, bairro_nome), unidade_chave in mapeamento.items():
+    # Limpeza da fonte autoritativa: homônimos são tratados por município.
+    for (municipio_nome, bairro_nome), unidade_nome in mapeamento.items():
         municipio = localizar_municipio(Municipio, municipio_nome)
         if municipio is None:
             continue
@@ -163,15 +169,13 @@ def executar(apps, schema_editor):
                 ativo=True,
             )
 
-        unidade = localizar_unidade(Unidade, unidade_chave)
+        unidade = localizar_unidade(Unidade, municipio, unidade_nome)
         ajustar_bairro(AreaResponsabilidade, bairro, unidade)
-        processados.add(bairro.id)
+        bairros_fonte.add(bairro.id)
 
-    # 2) Faz uma segunda passada em registros fora da fonte autoritativa.
-    #    Se houver duplicidade, só resolve automaticamente quando a unidade
-    #    municipal padrão identifica inequivocamente uma das áreas.
-    inconsistencias = []
-
+    # Fora da fonte autoritativa, nunca inventa uma associação.
+    # Duplicidades só são resolvidas quando a unidade municipal padrão é
+    # inequivocamente uma das associações existentes.
     for bairro in Bairro.objects.filter(ativo=True).order_by("municipio_id", "id"):
         areas = list(
             AreaResponsabilidade.objects
@@ -180,48 +184,27 @@ def executar(apps, schema_editor):
             .order_by("id")
         )
 
-        if len(areas) == 1:
-            if not areas[0].ativo:
+        if len(areas) <= 1:
+            if len(areas) == 1 and not areas[0].ativo:
                 areas[0].ativo = True
                 areas[0].save(update_fields=["ativo"])
             continue
 
-        if len(areas) == 0:
-            inconsistencias.append(
-                f"{bairro.municipio.nome} / {bairro.nome}: sem unidade responsável"
-            )
-            continue
-
-        unidade_padrao_id = bairro.municipio.unidade_responsavel_id
-        candidatas = [
-            area for area in areas
-            if unidade_padrao_id and area.unidade_id == unidade_padrao_id
-        ]
-
+        padrao = bairro.municipio.unidade_responsavel_id
+        candidatas = [area for area in areas if padrao and area.unidade_id == padrao]
         if len(candidatas) == 1:
             ajustar_bairro(AreaResponsabilidade, bairro, candidatas[0].unidade)
             continue
 
-        unidades = ", ".join(
-            f"{area.unidade_id}:{area.unidade.nome}" for area in areas
-        )
-        inconsistencias.append(
-            f"{bairro.municipio.nome} / {bairro.nome}: múltiplas unidades ({unidades})"
-        )
-
-    if inconsistencias:
-        amostra = "\n".join(inconsistencias[:50])
-        restante = len(inconsistencias) - min(len(inconsistencias), 50)
-        sufixo = f"\n... e mais {restante}." if restante else ""
+        unidades = ", ".join(f"{area.unidade_id}:{area.unidade.nome}" for area in areas)
         raise RuntimeError(
-            "A limpeza territorial foi interrompida por inconsistências que não podem ser resolvidas com segurança.\n"
-            "Nenhum registro deve ser escolhido por chute. Corrija a fonte territorial e execute novamente.\n"
-            f"{amostra}{sufixo}"
+            "Duplicidade territorial sem fonte autoritativa para resolução: "
+            f"{bairro.municipio.nome} / {bairro.nome} → {unidades}. "
+            "A implantação foi interrompida para não escolher uma unidade por chute."
         )
 
 
 def desfazer(apps, schema_editor):
-    # Não desfazemos a limpeza porque ela corrige dados potencialmente errados.
     pass
 
 
