@@ -20,7 +20,7 @@ def aprovacoes(request):
     solicitacoes = (
         Solicitacao.objects.filter(status="PENDENTE")
         .select_related("municipio", "bairro", "unidade", "tipo_evento", "usuario")
-        .prefetch_related("documentos__tipo_documento")
+        .prefetch_related("documentos__tipo_documento", "opos")
         .order_by("data_evento", "hora_inicio")
     )
 
@@ -42,9 +42,7 @@ def aprovar_solicitacao(request, id):
     if solicitacao.status != "PENDENTE":
         messages.error(request, "Esta solicitação não está pendente de aprovação.")
         return redirect("aprovacoes")
-    if not solicitacao.documentos.exists():
-        messages.error(request, "Não é possível aprovar: a solicitação ainda não possui documentos anexados.")
-        return redirect("aprovacoes")
+
     solicitacao.status = "APROVADA"
     solicitacao.data_aprovacao = timezone.now()
     solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
@@ -53,7 +51,7 @@ def aprovar_solicitacao(request, id):
         solicitacao=solicitacao,
         usuario=request.user,
         status="APROVADA",
-        observacao="Solicitação aprovada após conferência dos documentos anexados.",
+        observacao="Solicitação aprovada pelo gestor.",
     )
     messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. Escolha o tipo de efetivo para gerar a OPO.")
     return redirect("gerar_opo", id=id)
@@ -68,10 +66,6 @@ def solicitar_correcao_gestao(request, id):
 
     if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para solicitar correção desta solicitação.")
-        return redirect("aprovacoes")
-
-    if not solicitacao.documentos.exists():
-        messages.error(request, "Não é possível mandar para correção: a solicitação ainda não possui documentos anexados.")
         return redirect("aprovacoes")
 
     if request.method == "POST":
@@ -107,7 +101,4 @@ def gerar_opo_seguro(request, id):
     if not eh_desenvolvedor(request.user) and not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para gerar esta OPO.")
         return redirect("painel_gestao")
-    if not solicitacao.documentos.exists():
-        messages.error(request, "A OPO não pode ser gerada sem documentos anexados.")
-        return redirect("aprovacoes")
     return gerar_opo_com_evento_extra(request, id)
