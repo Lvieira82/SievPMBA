@@ -82,10 +82,8 @@ def gerar_opo_com_evento_extra(request, id):
         messages.error(request, "A OPO somente pode ser gerada após a aprovação da solicitação.")
         return redirect("aprovacoes")
 
-    if not solicitacao.documentos.exists():
-        messages.error(request, "A OPO não pode ser gerada sem documentos anexados.")
-        return redirect("aprovacoes")
-
+    # Nesta etapa a documentação já foi encerrada. O Ofício ao Comandante
+    # faz parte da solicitação original e não deve bloquear a geração da OPO.
     if request.method == "GET":
         return render(request, "gestao/gerar_opo.html", {"solicitacao": solicitacao})
 
