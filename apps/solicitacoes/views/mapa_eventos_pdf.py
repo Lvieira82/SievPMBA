@@ -143,12 +143,8 @@ def gerar_mapa_eventos_pdf_seguro(request):
         periodo_texto = "Todos os eventos do âmbito institucional"
     story.append(Paragraph(periodo_texto, periodo))
 
-    # Mantemos a coluna Hora e acrescentamos as colunas específicas de Início e Fim.
-    # Hora continua representando a hora de referência do evento; Início e Fim
-    # mostram explicitamente o intervalo operacional cadastrado na solicitação.
     rows = [[
         Paragraph("Data", cabecalho),
-        Paragraph("Hora", cabecalho),
         Paragraph("Início", cabecalho),
         Paragraph("Fim", cabecalho),
         Paragraph("Evento", cabecalho),
@@ -160,10 +156,8 @@ def gerar_mapa_eventos_pdf_seguro(request):
     for evento in eventos:
         inicio = evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-"
         fim = evento.hora_fim.strftime("%H:%M") if evento.hora_fim else "-"
-        hora_referencia = inicio
         rows.append([
             Paragraph(evento.data_evento.strftime("%d/%m/%Y"), celula),
-            Paragraph(hora_referencia, celula),
             Paragraph(inicio, celula),
             Paragraph(fim, celula),
             Paragraph(str(evento.nome_evento or "-"), celula),
@@ -175,7 +169,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
     tabela = Table(
         rows,
         repeatRows=1,
-        colWidths=[22 * mm, 16 * mm, 18 * mm, 18 * mm, 55 * mm, 38 * mm, 70 * mm, 34 * mm],
+        colWidths=[24 * mm, 22 * mm, 22 * mm, 58 * mm, 40 * mm, 82 * mm, 36 * mm],
         hAlign="CENTER",
     )
     tabela.setStyle(TableStyle([
