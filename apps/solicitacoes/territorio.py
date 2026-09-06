@@ -26,41 +26,23 @@ def _areas_do_bairro(bairro):
 
 
 def _area_correta_do_bairro(bairro):
-    """Retorna uma única área para o bairro.
+    """Resolve uma única área responsável pelo bairro.
 
-    Regra territorial do SiEv: um bairro/distrito pertence a uma única
-    unidade. Se houver registros antigos duplicados, primeiro tenta preservar
-    a unidade cujo nome identifica o próprio município do bairro. Isso evita
-    que um bairro com o mesmo nome em cidades diferentes herde a unidade de
-    outro município.
+    Regra fundamental do SiEv: um bairro/distrito pertence a uma única
+    unidade. Nunca escolhe silenciosamente a associação mais recente.
+    Se houver mais de uma associação ativa, o direcionamento fica bloqueado
+    até que o cadastro territorial seja corrigido.
     """
     areas = _areas_do_bairro(bairro)
-
-    if not areas:
-        return None
 
     if len(areas) == 1:
         return areas[0]
 
-    municipio = _normalizar(bairro.municipio.nome)
-    correspondentes = []
-
-    for area in areas:
-        unidade_texto = _normalizar(area.unidade.nome)
-        if municipio and municipio in unidade_texto:
-            correspondentes.append(area)
-
-    if len(correspondentes) == 1:
-        return correspondentes[0]
-
-    # Compatibilidade com cadastros antigos que ainda possuam duplicidade.
-    # Mantém a associação mais recente até que o cadastro territorial seja
-    # corrigido pelo desenvolvedor.
-    return areas[-1]
+    return None
 
 
 def unidades_do_municipio(municipio):
-    """Retorna as unidades ativas que possuem área no município."""
+    """Retorna as unidades ativas que possuem área territorial válida."""
     unidade_ids = []
     bairros = bairros_do_municipio(municipio)
 
@@ -91,24 +73,27 @@ def bairros_do_municipio(municipio):
 
 
 def unidade_para_bairro(bairro):
-    """Resolve a única unidade responsável pelo bairro."""
+    """Retorna a unidade do bairro somente quando houver associação única."""
     area = _area_correta_do_bairro(bairro)
     if area:
         return area.unidade
-
-    if bairro.municipio.unidade_responsavel_id:
-        return bairro.municipio.unidade_responsavel
 
     return None
 
 
 def validar_direcionamento(municipio, bairro):
-    """Valida e resolve município → bairro → unidade."""
+    """Valida município → bairro → unidade sem permitir roteamento ambíguo."""
     if bairro is None:
         if municipio_tem_multiplas_unidades(municipio):
             raise ValidationError(
                 "Selecione o bairro para este município, pois existem múltiplas unidades responsáveis."
             )
+
+        if not municipio.unidade_responsavel_id:
+            raise ValidationError(
+                "Este município ainda não possui unidade responsável cadastrada."
+            )
+
         return municipio.unidade_responsavel
 
     if bairro.municipio_id != municipio.id:
@@ -116,7 +101,13 @@ def validar_direcionamento(municipio, bairro):
             "O bairro selecionado não pertence ao município informado."
         )
 
-    return unidade_para_bairro(bairro)
+    unidade = unidade_para_bairro(bairro)
+    if unidade is None:
+        raise ValidationError(
+            "O bairro selecionado não possui uma única unidade responsável cadastrada."
+        )
+
+    return unidade
 
 
 def lista_bairros(request, municipio_id):
