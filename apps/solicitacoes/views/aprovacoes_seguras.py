@@ -7,14 +7,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
-from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, pode_aprovar_solicitacao
+from apps.solicitacoes.permissoes import pode_aprovar_solicitacao
 from .geracao_opo import gerar_opo_com_evento_extra
 
 
 @login_required
 def aprovacoes(request):
-    if not (eh_desenvolvedor(request.user) or eh_gestor(request.user)):
-        messages.error(request, "Somente gestores podem acessar as aprovações.")
+    # Nesta etapa, aprovação e geração de OPO pertencem exclusivamente ao Gestor de Unidade.
+    if not pode_aprovar_solicitacao(request.user, Solicitacao.objects.none().first()):
+        messages.error(request, "Somente o Gestor de Unidade pode acessar as aprovações.")
         return redirect("painel_gestao")
 
     solicitacoes = (
@@ -24,9 +25,8 @@ def aprovacoes(request):
         .order_by("data_evento", "hora_inicio")
     )
 
-    if not eh_desenvolvedor(request.user):
-        permitidas = [s.id for s in solicitacoes if pode_aprovar_solicitacao(request.user, s)]
-        solicitacoes = solicitacoes.filter(id__in=permitidas)
+    permitidas = [s.id for s in solicitacoes if pode_aprovar_solicitacao(request.user, s)]
+    solicitacoes = solicitacoes.filter(id__in=permitidas)
 
     for s in solicitacoes:
         ids = {str(item.id) for item in s.documentos.all()}
@@ -106,7 +106,7 @@ def solicitar_correcao_gestao(request, id):
 @login_required
 def gerar_opo_seguro(request, id):
     solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=id)
-    if not eh_desenvolvedor(request.user) and not pode_aprovar_solicitacao(request.user, solicitacao):
+    if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para gerar esta OPO.")
         return redirect("painel_gestao")
     return gerar_opo_com_evento_extra(request, id)
