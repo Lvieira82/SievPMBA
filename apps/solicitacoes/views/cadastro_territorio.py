@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
 from apps.solicitacoes.models import Bairro, CPR, Municipio, Unidade
 
@@ -40,6 +42,51 @@ def cadastro_unidades(request):
         "unidades": Unidade.objects.select_related("cpr").order_by("nome"),
         "tipos": Unidade.TIPOS,
     })
+
+
+@login_required
+@require_POST
+def ativar_unidade(request, id):
+    if not _dev(request):
+        return _deny(request)
+    unidade = get_object_or_404(Unidade, pk=id)
+    unidade.ativo = True
+    unidade.save(update_fields=["ativo"])
+    messages.success(request, f"Unidade {unidade.nome} ativada.")
+    return redirect("cadastro_unidades")
+
+
+@login_required
+@require_POST
+def desativar_unidade(request, id):
+    if not _dev(request):
+        return _deny(request)
+    unidade = get_object_or_404(Unidade, pk=id)
+    unidade.ativo = False
+    unidade.save(update_fields=["ativo"])
+    messages.success(request, f"Unidade {unidade.nome} desativada.")
+    return redirect("cadastro_unidades")
+
+
+@login_required
+@require_POST
+def excluir_unidade(request, id):
+    if not _dev(request):
+        return _deny(request)
+    unidade = get_object_or_404(Unidade, pk=id)
+    nome = unidade.nome
+    try:
+        unidade.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"A unidade {nome} não pode ser excluída porque possui registros vinculados. "
+            "Desative a unidade para preservar o histórico.",
+        )
+        return redirect("cadastro_unidades")
+
+    messages.success(request, f"Unidade {nome} excluída definitivamente.")
+    return redirect("cadastro_unidades")
 
 
 @login_required
