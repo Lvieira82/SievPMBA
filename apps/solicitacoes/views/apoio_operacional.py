@@ -11,7 +11,7 @@ from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
 from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
-from .geracao_opo import _pdf_opo
+from .geracao_opo import _gerar_pdf_opo
 
 
 def _acesso(request):
@@ -160,7 +160,12 @@ def gerar_opo_apoio(request, id):
 
     base_opo = apoio.solicitacao.opos.order_by("-criado_em").first()
     evento_extra = bool(base_opo and "Evento extra: SIM" in (base_opo.descricao or ""))
-    conteudo = _pdf_opo(apoio.solicitacao, evento_extra=evento_extra, unidade_executor=apoio.unidade_destino)
+    conteudo = _gerar_pdf_opo(
+        request,
+        apoio.solicitacao,
+        evento_extra=evento_extra,
+        unidade_executor=apoio.unidade_destino,
+    )
     nome = f"OPO_APOIO_{apoio.solicitacao.protocolo}_{apoio.unidade_destino.sigla}.pdf"
     apoio.opo_arquivo.save(nome, ContentFile(conteudo), save=False)
     apoio.status = "OPO_GERADA"
