@@ -28,17 +28,12 @@ def aprovacoes(request):
         permitidas = [s.id for s in solicitacoes if pode_aprovar_solicitacao(request.user, s)]
         solicitacoes = solicitacoes.filter(id__in=permitidas)
 
-    conferidas = {}
     for s in solicitacoes:
         ids = {str(item.id) for item in s.documentos.all()}
         vistos = set(request.session.get(f"documentos_conferidos_{s.id}", []))
-        conferidas[s.id] = bool(ids) and ids.issubset(vistos)
+        s.documentos_conferidos = bool(ids) and ids.issubset(vistos)
 
-    return render(
-        request,
-        "gestao/aprovacoes.html",
-        {"solicitacoes": solicitacoes, "pode_aprovar": True, "documentos_conferidos": conferidas},
-    )
+    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes, "pode_aprovar": True})
 
 
 @login_required
@@ -55,19 +50,13 @@ def aprovar_solicitacao(request, id):
 
     documentos = list(solicitacao.documentos.all())
     if not documentos:
-        messages.error(
-            request,
-            "A aprovação está bloqueada: a solicitação não possui documentação anexada para conferência.",
-        )
+        messages.error(request, "A aprovação está bloqueada: a solicitação não possui documentação anexada para conferência.")
         return redirect("aprovacoes")
 
     vistos = {str(item) for item in request.session.get(f"documentos_conferidos_{solicitacao.id}", [])}
     pendentes = [doc for doc in documentos if str(doc.id) not in vistos]
     if pendentes:
-        messages.warning(
-            request,
-            "Antes de aprovar, abra e confira todos os documentos anexados desta solicitação.",
-        )
+        messages.warning(request, "Antes de aprovar, abra e confira todos os documentos anexados desta solicitação.")
         return redirect("aprovacoes")
 
     solicitacao.status = "APROVADA"
@@ -86,26 +75,19 @@ def aprovar_solicitacao(request, id):
 
 @login_required
 def solicitar_correcao_gestao(request, id):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade", "municipio", "usuario"),
-        pk=id,
-    )
-
+    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade", "municipio", "usuario"), pk=id)
     if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para solicitar correção desta solicitação.")
         return redirect("aprovacoes")
-
     if request.method == "POST":
         motivo = (request.POST.get("motivo_correcao") or request.POST.get("motivo") or "").strip()
         if not motivo:
             messages.error(request, "Informe o motivo da correção.")
             return render(request, "gestao/solicitar_correcao.html", {"solicitacao": solicitacao})
-
         solicitacao.status = "CORRECAO"
         solicitacao.motivo_correcao = motivo
         solicitacao.save(update_fields=["status", "motivo_correcao", "atualizado_em"])
         HistoricoSolicitacao.objects.create(solicitacao=solicitacao, usuario=request.user, status="CORRECAO", observacao=motivo)
-
         link = request.build_absolute_uri(reverse("corrigir_solicitacao", kwargs={"protocolo": solicitacao.protocolo}))
         destinatario = solicitacao.email or (solicitacao.usuario.email if solicitacao.usuario else "")
         if destinatario:
@@ -118,7 +100,6 @@ def solicitar_correcao_gestao(request, id):
         else:
             messages.warning(request, "A solicitação foi enviada para correção, mas não possui e-mail cadastrado.")
         return redirect("aprovacoes")
-
     return render(request, "gestao/solicitar_correcao.html", {"solicitacao": solicitacao})
 
 
