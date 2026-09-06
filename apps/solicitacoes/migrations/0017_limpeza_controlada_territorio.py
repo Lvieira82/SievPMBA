@@ -125,6 +125,23 @@ def localizar_bairro(Bairro, municipio, nome):
     return candidatos[0] if candidatos else None
 
 
+def _unica_priorizando_ativas(candidatos, nome_unidade, municipio):
+    candidatos = {u.id: u for u in candidatos}
+    ativas = {u.id: u for u in candidatos.values() if u.ativo}
+
+    if len(ativas) == 1:
+        return next(iter(ativas.values()))
+    if len(ativas) > 1:
+        nomes = ", ".join(f"{u.id}:{u.nome}" for u in ativas.values())
+        raise RuntimeError(
+            f"Existem várias unidades ativas compatíveis com '{nome_unidade}' "
+            f"em '{municipio.nome}': {nomes}."
+        )
+    if len(candidatos) == 1:
+        return next(iter(candidatos.values()))
+    return None
+
+
 def localizar_unidade(Unidade, municipio, nome_unidade):
     alvo = normalizar_unidade(nome_unidade)
     exatas = []
@@ -135,12 +152,9 @@ def localizar_unidade(Unidade, municipio, nome_unidade):
         }:
             exatas.append(unidade)
 
-    if len(exatas) == 1:
-        return exatas[0]
-    if len(exatas) > 1:
-        raise RuntimeError(
-            f"Existem unidades duplicadas para '{nome_unidade}' em '{municipio.nome}'."
-        )
+    resultado = _unica_priorizando_ativas(exatas, nome_unidade, municipio)
+    if resultado is not None:
+        return resultado
 
     base = alvo.split("/", 1)[0].strip()
     candidatos = []
@@ -153,10 +167,11 @@ def localizar_unidade(Unidade, municipio, nome_unidade):
         ):
             candidatos.append(unidade)
 
-    candidatos = {u.id: u for u in candidatos}
-    if len(candidatos) == 1:
-        return next(iter(candidatos.values()))
+    resultado = _unica_priorizando_ativas(candidatos, nome_unidade, municipio)
+    if resultado is not None:
+        return resultado
 
+    candidatos = {u.id: u for u in candidatos}
     nomes = ", ".join(
         f"{u.id}:{u.nome}{' [inativa]' if not u.ativo else ''}"
         for u in candidatos.values()
