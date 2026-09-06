@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
@@ -10,7 +11,16 @@ from django.utils import timezone
 
 from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
-from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, eh_operador, pode_gerar_opo, pode_ver_solicitacao, pode_ver_documentacao_solicitacao, pode_ver_mapa_eventos, escopo_unidades
+from apps.solicitacoes.permissoes import (
+    eh_desenvolvedor,
+    eh_gestor,
+    eh_operador,
+    pode_gerar_opo,
+    pode_ver_mapa_eventos,
+    pode_ver_solicitacao,
+    pode_ver_documentacao_solicitacao,
+    escopo_unidades,
+)
 from .operacional import gerar_mapa_eventos_pdf as mapa_pdf_original
 from .geracao_opo import gerar_opo_com_evento_extra
 
@@ -163,8 +173,26 @@ def mapa_eventos_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user), data_evento__gte=timezone.localdate()).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
-    return render(request, "gestao/mapa_eventos.html", {"eventos": eventos})
+
+    eventos = Solicitacao.objects.filter(
+        unidade__in=escopo_unidades(request.user),
+    ).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
+
+    data_inicio = (request.GET.get("data_inicio") or "").strip()
+    data_fim = (request.GET.get("data_fim") or "").strip()
+
+    if data_inicio:
+        try:
+            eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
+        except ValueError:
+            data_inicio = ""
+    if data_fim:
+        try:
+            eventos = eventos.filter(data_evento__lte=datetime.strptime(data_fim, "%Y-%m-%d").date())
+        except ValueError:
+            data_fim = ""
+
+    return render(request, "gestao/mapa_eventos.html", {"eventos": eventos, "data_inicio": data_inicio, "data_fim": data_fim})
 
 
 @login_required
