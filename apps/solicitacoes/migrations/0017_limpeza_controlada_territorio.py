@@ -186,19 +186,14 @@ def executar(apps, schema_editor):
     municipios_csv = carregar_csv_municipios()
     mapeamento_legado = carregar_mapeamento_legado()
 
-    # O CSV novo é a fonte autoritativa dos cinco municípios que ele contém.
     municipios_autoritarios = {
         normalizar(municipio) for municipio, _, _ in bairros_oficiais
     }
 
-    # Limpa integralmente as associações dos municípios presentes no CSV novo.
-    # Bairros que não estiverem no arquivo ficam sem roteamento; não inventamos
-    # uma unidade para eles.
     for municipio in Municipio.objects.all():
         if normalizar(municipio.nome) in municipios_autoritarios:
             AreaResponsabilidade.objects.filter(bairro__municipio=municipio).delete()
 
-    # Recria exatamente as associações do CSV novo: município + bairro -> unidade.
     for municipio_nome, bairro_nome, unidade_nome in bairros_oficiais:
         municipio = localizar_municipio(Municipio, municipio_nome)
         if municipio is None:
@@ -215,8 +210,6 @@ def executar(apps, schema_editor):
         unidade = localizar_unidade(Unidade, municipio, unidade_nome)
         ajustar_bairro(AreaResponsabilidade, bairro, unidade)
 
-    # Para os demais municípios, preserva a fonte legada já existente, mas
-    # continua garantindo uma única unidade por bairro.
     for (municipio_nome, bairro_nome), unidade_nome in mapeamento_legado.items():
         if municipio_nome in municipios_autoritarios:
             continue
@@ -229,8 +222,6 @@ def executar(apps, schema_editor):
         unidade = localizar_unidade(Unidade, municipio, unidade_nome)
         ajustar_bairro(AreaResponsabilidade, bairro, unidade)
 
-    # Municípios marcados como MAPEADOS no CSV municipal continuam podendo ter
-    # uma única unidade geral, desde que não sejam cobertos pelo CSV detalhado.
     for municipio in Municipio.objects.filter(ativo=True):
         nome = normalizar(municipio.nome)
         if nome in municipios_autoritarios:
@@ -254,6 +245,7 @@ def desfazer(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("solicitacoes", "0016_permitir_exclusao_usuario"),
+        ("solicitacoes", "0013_cadastrar_unidades_bairros_feira_santana"),
     ]
 
     operations = [
