@@ -17,21 +17,21 @@ from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
 def _texto_pdf(valor):
-    """Converte qualquer valor dinâmico em texto seguro para ReportLab."""
     if valor is None:
         return ""
     return escape(str(valor)).replace("\n", "<br/>")
 
 
 def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
+    """Geração da OPO recuperada do modelo operacional anterior, com dados dinâmicos protegidos."""
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
         pagesize=A4,
-        rightMargin=38,
-        leftMargin=38,
-        topMargin=38,
-        bottomMargin=38,
+        rightMargin=35,
+        leftMargin=35,
+        topMargin=35,
+        bottomMargin=35,
     )
     styles = getSampleStyleSheet()
     titulo = ParagraphStyle(
@@ -51,7 +51,9 @@ def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
 
     story = [
         Paragraph("POLÍCIA MILITAR DA BAHIA", titulo),
-        Paragraph("RECOMENDO EXECUTARDES A SEGUINTE OPO:", titulo),
+        Paragraph("ORDEM DE POLICIAMENTO - OPO", titulo),
+        Paragraph(_texto_pdf(f"PROTOCOLO: {solicitacao.protocolo}"), normal),
+        Spacer(1, 12),
     ]
 
     efetivo = (
@@ -63,9 +65,8 @@ def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
     observacoes = solicitacao.observacoes or ""
     if not observacoes:
         observacoes = (
-            "O organizador do evento está ciente de que caso haja perturbação "
-            "do sossego, aglomeração ou outro tipo de infração, a guarnição "
-            "adotará as medidas cabíveis."
+            "O organizador do evento está ciente de que caso haja perturbação do sossego, "
+            "aglomeração ou outro tipo de infração, a guarnição adotará as medidas cabíveis."
         )
     if unidade_executor:
         observacoes = f"OPO de apoio da {unidade_executor.sigla}. {observacoes}"
@@ -74,16 +75,10 @@ def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
         ["EVENTO:", solicitacao.nome_evento],
         ["LOCAL:", solicitacao.local],
         ["DATA:", solicitacao.data_evento.strftime("%d/%m/%Y")],
-        [
-            "HORÁRIO:",
-            f"{solicitacao.hora_inicio:%H:%M} – {solicitacao.hora_fim:%H:%M}",
-        ],
+        ["HORÁRIO:", f"{solicitacao.hora_inicio:%H:%M} – {solicitacao.hora_fim:%H:%M}"],
         ["EFETIVO:", efetivo],
         ["UNIFORME E ARMAMENTO:", "O de Dotação desta UOPM"],
-        [
-            "SOLICITANTE:",
-            f"{solicitacao.solicitante} ({solicitacao.telefone})",
-        ],
+        ["SOLICITANTE:", f"{solicitacao.solicitante} ({solicitacao.telefone})"],
         ["OBSERVAÇÕES:", observacoes],
     ]
 
@@ -91,25 +86,18 @@ def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
         dados.insert(6, ["UNIDADE EXECUTORA:", unidade_executor.nome])
 
     tabela = Table(
-        [
-            [Paragraph(_texto_pdf(a), normal), Paragraph(_texto_pdf(b), normal)]
-            for a, b in dados
-        ],
+        [[Paragraph(_texto_pdf(a), normal), Paragraph(_texto_pdf(b), normal)] for a, b in dados],
         colWidths=[145, 370],
     )
-    tabela.setStyle(
-        TableStyle(
-            [
-                ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ("LEFTPADDING", (0, 0), (-1, -1), 5),
-                ("RIGHTPADDING", (0, 0), (-1, -1), 5),
-                ("TOPPADDING", (0, 0), (-1, -1), 6),
-                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-                ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.lightgrey),
-            ]
-        )
-    )
+    tabela.setStyle(TableStyle([
+        ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 5),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.lightgrey),
+    ]))
     story.append(tabela)
     story.append(Spacer(1, 22))
     story.append(Paragraph("Ordem de policiamento gerada por", normal))
@@ -117,15 +105,9 @@ def _pdf_opo(solicitacao, evento_extra=False, unidade_executor=None):
     story.append(Paragraph("<b>SiEv – Sistema Integrado de Eventos</b>", normal))
     story.append(Spacer(1, 14))
     story.append(Paragraph(_texto_pdf(f"Protocolo: {solicitacao.protocolo}"), normal))
-
     if unidade_executor:
         story.append(Spacer(1, 5))
-        story.append(
-            Paragraph(
-                _texto_pdf(f"Unidade executora: {unidade_executor.sigla}"),
-                normal,
-            )
-        )
+        story.append(Paragraph(_texto_pdf(f"Unidade executora: {unidade_executor.sigla}"), normal))
 
     doc.build(story)
     return buffer.getvalue()
@@ -143,26 +125,18 @@ def gerar_opo_com_evento_extra(request, id):
         return redirect("painel_gestao")
 
     if solicitacao.status not in {"APROVADA", "CONCLUIDA"}:
-        messages.error(
-            request,
-            "A OPO somente pode ser gerada após a aprovação da solicitação.",
-        )
+        messages.error(request, "A OPO somente pode ser gerada após a aprovação da solicitação.")
         return redirect("aprovacoes")
 
-    # Nesta etapa a documentação já foi encerrada. A documentação original
-    # não deve bloquear a geração da OPO.
     if request.method == "GET":
-        return render(
-            request,
-            "gestao/gerar_opo.html",
-            {"solicitacao": solicitacao},
-        )
+        return render(request, "gestao/gerar_opo.html", {"solicitacao": solicitacao})
 
     evento_extra = request.POST.get("evento_extra") == "SIM"
     conteudo = _pdf_opo(solicitacao, evento_extra=evento_extra)
-    nome = f"OPO_{solicitacao.protocolo}.pdf"
 
-    anexo = AnexoOPO.objects.create(
+    # O arquivo é sempre gravado dentro de protocolos/<PROTOCOLO>/opo/.
+    nome = f"OPO_{solicitacao.protocolo}.pdf"
+    anexo = AnexoOPO(
         solicitacao=solicitacao,
         descricao=(
             "OPO gerada pelo SiEv — Evento extra: "
@@ -171,17 +145,16 @@ def gerar_opo_com_evento_extra(request, id):
     )
     anexo.arquivo.save(nome, ContentFile(conteudo), save=True)
 
+    # HistoricoSolicitacao usa o campo 'detalhes' (e não 'observacao').
     HistoricoSolicitacao.objects.create(
         solicitacao=solicitacao,
         usuario=request.user,
         acao="OPO GERADA",
-        observacao=(
+        detalhes=(
             f"Arquivo {nome} gerado. Evento extra: "
             f"{'SIM' if evento_extra else 'NÃO'}."
         ),
     )
-    messages.success(
-        request,
-        f"OPO {solicitacao.protocolo} gerada com sucesso.",
-    )
+
+    messages.success(request, f"OPO {solicitacao.protocolo} gerada com sucesso.")
     return redirect("detalhe_opo", id=id)
