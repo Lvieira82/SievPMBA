@@ -10,11 +10,7 @@ from django.utils import timezone
 
 from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
-from apps.solicitacoes.permissoes import (
-    eh_desenvolvedor, eh_gestor, eh_operador, pode_gerar_opo,
-    pode_ver_solicitacao, pode_ver_documentacao_solicitacao,
-    pode_ver_mapa_eventos, escopo_unidades,
-)
+from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, eh_operador, pode_gerar_opo, pode_ver_solicitacao, pode_ver_documentacao_solicitacao, pode_ver_mapa_eventos, escopo_unidades
 from .operacional import gerar_mapa_eventos_pdf as mapa_pdf_original
 from .geracao_opo import gerar_opo_com_evento_extra
 
@@ -77,8 +73,11 @@ def abrir_oficio_comandante_seguro(request, id):
     if not pode_ver_documentacao_solicitacao(request.user) or not pode_ver_solicitacao(request.user, s):
         messages.error(request, "Você não possui acesso a este documento.")
         return redirect("painel_gestao")
-    arquivo = _abrir_pdf_seguro(s.oficio_comandante)
-    nome = Path(s.oficio_comandante.name).name or "oficio_comandante.pdf"
+    if not hasattr(s, "oficio_comandante"):
+        raise Http404("O Ofício ao Comandante deve estar registrado em Documentos da Solicitação.")
+    arquivo_field = s.oficio_comandante
+    arquivo = _abrir_pdf_seguro(arquivo_field)
+    nome = Path(arquivo_field.name).name or "oficio_comandante.pdf"
     resposta = FileResponse(arquivo, content_type="application/pdf")
     resposta["Content-Disposition"] = f'inline; filename="{nome}"'
     resposta["X-Content-Type-Options"] = "nosniff"
@@ -94,8 +93,12 @@ def abrir_documento_solicitacao_seguro(request, id, tipo="arquivo"):
         messages.error(request, "Você não possui acesso a este documento.")
         return redirect("painel_gestao")
     arquivo = _abrir_pdf_seguro(doc.arquivo)
-    resposta = FileResponse(arquivo, content_type="application/pdf")
+    vistos = set(request.session.get(f"documentos_conferidos_{doc.solicitacao_id}", []))
+    vistos.add(str(doc.id))
+    request.session[f"documentos_conferidos_{doc.solicitacao_id}"] = sorted(vistos)
+    request.session.modified = True
     nome = Path(doc.arquivo.name).name or "documento.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
     resposta["Content-Disposition"] = f'inline; filename="{nome}"'
     resposta["X-Content-Type-Options"] = "nosniff"
     return resposta
@@ -103,10 +106,7 @@ def abrir_documento_solicitacao_seguro(request, id, tipo="arquivo"):
 
 @login_required
 def abrir_opo_gestao_seguro(request, anexo_id):
-    anexo = get_object_or_404(
-        AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade"),
-        pk=anexo_id,
-    )
+    anexo = get_object_or_404(AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade"), pk=anexo_id)
     solicitacao = anexo.solicitacao
     if eh_operador(request.user) or not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta OPO.")
