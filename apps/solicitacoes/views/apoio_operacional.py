@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db import transaction
 
-from apps.solicitacoes.models import AnexoOPO, HistoricoSolicitacao, Solicitacao, Unidade
+from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
 from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
@@ -26,8 +26,6 @@ def _eh_gestor_unidade_do(request, unidade):
 
 
 def _unidades_aptas_para_apoio(solicitacao):
-    # Unidades especializadas (ex.: Cavalaria e Motociclistas) podem receber
-    # o pacote de apoio para produzir sua própria OPO fora da área territorial.
     return Unidade.objects.filter(ativo=True, tipo="ESPECIALIZADA").exclude(pk=solicitacao.unidade_id).order_by("sigla", "nome")
 
 
@@ -37,13 +35,9 @@ def enviar_apoio(request, id):
 
     if not (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and pode_ver_solicitacao(request.user, solicitacao))):
         messages.error(request, "Você não possui permissão para enviar apoio deste evento.")
-        return redirect("opos_geradas")
+        return redirect("aprovacoes")
 
     opo = solicitacao.opos.order_by("-criado_em").first()
-    if not opo or not opo.arquivo:
-        messages.error(request, "Gere a OPO principal antes de enviar um apoio.")
-        return redirect("detalhe_opo", id=id)
-
     unidades = _unidades_aptas_para_apoio(solicitacao)
 
     if request.method == "POST":
@@ -55,7 +49,7 @@ def enviar_apoio(request, id):
         apoio = ApoioEvento.objects.filter(solicitacao=solicitacao, unidade_destino=unidade_destino).first()
         if apoio and apoio.status != "OPO_GERADA":
             messages.warning(request, f"O apoio para {unidade_destino.sigla} já foi enviado.")
-            return redirect("detalhe_opo", id=id)
+            return redirect("apoios_recebidos")
 
         with transaction.atomic():
             apoio, criado = ApoioEvento.objects.update_or_create(
@@ -73,20 +67,19 @@ def enviar_apoio(request, id):
                 usuario=request.user,
                 acao="APOIO ENVIADO",
                 status=solicitacao.status,
-                observacao=f"Pacote de apoio enviado para {unidade_destino.sigla}. Documentação original e OPO principal permanecem vinculadas ao protocolo.",
+                observacao=f"Apoio operacional compartilhado com {unidade_destino.sigla}. A documentação original permanece vinculada ao protocolo.",
             )
 
-        # A unidade destinatária recebe uma notificação, quando houver e-mail cadastrado.
         if unidade_destino.email:
             link = request.build_absolute_uri(reverse("apoios_recebidos"))
             try:
                 send_mail(
-                    subject=f"Apoio operacional recebido — OPO {solicitacao.protocolo}",
+                    subject=f"Apoio operacional recebido — Protocolo {solicitacao.protocolo}",
                     message=(
                         f"A unidade {unidade_destino.sigla} recebeu um apoio operacional para o evento "
                         f"{solicitacao.nome_evento} ({solicitacao.data_evento:%d/%m/%Y}).\n\n"
-                        f"O pacote contém acesso à documentação original e à OPO principal.\n"
-                        f"Acesse o SiEv para analisar e, se necessário, gerar a OPO própria da unidade:\n{link}"
+                        f"O pacote contém acesso à documentação original e aos dados do evento.\n"
+                        f"Acesse o SiEv para analisar e gerar a OPO própria da unidade:\n{link}"
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[unidade_destino.email],
@@ -98,7 +91,7 @@ def enviar_apoio(request, id):
         else:
             messages.success(request, f"Apoio enviado para {unidade_destino.sigla}.")
 
-        return redirect("detalhe_opo", id=id)
+        return redirect("aprovacoes")
 
     return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "unidades": unidades})
 
@@ -158,8 +151,8 @@ def gerar_opo_apoio(request, id):
         messages.error(request, "Somente o gestor da unidade destinatária pode gerar a OPO própria de apoio.")
         return redirect("apoios_recebidos")
 
-    if not apoio.solicitacao.documentos.exists() or not apoio.solicitacao.opos.exists():
-        messages.error(request, "O apoio precisa ter a documentação original e a OPO principal disponíveis.")
+    if not apoio.solicitacao.documentos.exists():
+        messages.error(request, "O apoio precisa ter a documentação original disponível.")
         return redirect("abrir_apoio", id=id)
 
     if request.method == "GET":
