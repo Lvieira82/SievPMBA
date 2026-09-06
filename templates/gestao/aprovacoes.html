@@ -11,23 +11,27 @@
 </style>
 <div class="card-aprovacoes">
 <h1>Solicitações Pendentes de OPO</h1>
-<p class="aviso-docs">Documentos, transferência, correção, geração de OPO e compartilhamento de apoio ficam disponíveis diretamente nesta tela.</p>
+<p class="aviso-docs">A documentação desta etapa é somente para consulta. Ações de transferência, correção, aprovação, geração de OPO e compartilhamento de apoio ficam disponíveis diretamente nesta tela.</p>
 <div class="tabela-wrap"><table class="tabela-aprovacoes"><thead><tr><th>Protocolo</th><th>Evento</th><th>Solicitante</th><th>Data do Evento</th><th>Documentos anexados</th><th>Ações</th></tr></thead><tbody>
 {% for s in solicitacoes %}
 <tr>
 <td><strong>{{ s.protocolo }}</strong></td><td>{{ s.nome_evento }}</td><td>{{ s.solicitante }}</td><td>{{ s.data_evento|date:'d/m/Y' }}</td>
 <td>
 {% with qtd=s.documentos.all|length %}
-{% if qtd %}
-<span class="docs-ok">✓ {{ qtd }} documento(s) anexado(s)</span>
+{% if qtd or s.oficio_comandante %}
+<span class="docs-ok">✓ Documentação disponível</span>
 <div class="doc-list">
+{% if s.oficio_comandante %}
+<div class="doc-item"><strong>Ofício ao Comandante da Unidade</strong><br><a href="{% url 'abrir_oficio_comandante' s.id %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>
+{% endif %}
 {% for documento in s.documentos.all %}
 <div class="doc-item"><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}<br><a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener">📄 Abrir PDF</a></div>
 {% endfor %}
 </div>
+<a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentos</a>
 {% else %}
-<span class="docs-pendente">⚠ Nenhum registro de documento nesta solicitação.</span>
-<a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📎 Ver / anexar documentos</a>
+<span class="docs-pendente">⚠ Nenhum documento registrado nesta solicitação.</span>
+<a class="btn-documentos" href="{% url 'documentos_solicitacao' s.id %}">📁 Ver documentação</a>
 {% endif %}
 {% endwith %}
 </td>
