@@ -15,8 +15,8 @@ from apps.solicitacoes.models import AnexoOPO, HistoricoSolicitacao, Solicitacao
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
-def _gerar_pdf_opo(request, solicitacao, evento_extra=False):
-    """Gera o PDF usando o mesmo modelo visual da OPO original do SiEv95.3."""
+def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=None):
+    """Gera o PDF da OPO usando o modelo visual operacional do SiEv95.3."""
     data_geracao = timezone.localtime()
 
     url_verificacao = request.build_absolute_uri(
@@ -45,6 +45,7 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False):
             "url_verificacao": url_verificacao,
             "efetivo_opo": efetivo,
             "gerado_por_nome": request.user.get_full_name() or request.user.username,
+            "unidade_executor": unidade_executor,
         },
         request=request,
     )
