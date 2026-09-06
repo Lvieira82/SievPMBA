@@ -4,13 +4,7 @@ from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from apps.solicitacoes.models import (
-    CumprimentoOPO,
-    HistoricoSolicitacao,
-    Solicitacao,
-    TransferenciaSolicitacao,
-    Unidade,
-)
+from apps.solicitacoes.models import CumprimentoOPO, HistoricoSolicitacao, Solicitacao, TransferenciaSolicitacao
 from apps.solicitacoes.permissoes import escopo_unidades, pode_ver_solicitacao, pode_ver_ranking
 
 
@@ -74,7 +68,10 @@ def _grupos_unidades(base, unidades_relatorio):
             "rejeitadas": rejeitadas,
             "respondidas": len(tempos),
             "media_horas": media,
-            **cumprimento,
+            "cumprimento_total": cumprimento["total"],
+            "sim": cumprimento["sim"],
+            "nao": cumprimento["nao"],
+            "percentual": cumprimento["percentual"],
         })
     return grupos
 
@@ -89,8 +86,8 @@ def analise_unidades(request):
     origem = request.GET.get("origem")
     inicio = request.GET.get("inicio")
     fim = request.GET.get("fim")
-
     selecionada = unidades.filter(pk=unidade_id).first() if unidade_id else None
+
     base = Solicitacao.objects.select_related("unidade", "municipio", "bairro").filter(unidade__in=unidades)
     if selecionada:
         base = base.filter(unidade=selecionada)
@@ -103,32 +100,26 @@ def analise_unidades(request):
 
     unidades_relatorio = [selecionada] if selecionada else list(unidades)
     grupos = _grupos_unidades(base, unidades_relatorio)
-
     total_geral = sum(item["total"] for item in grupos)
     respondidas = sum(item["respondidas"] for item in grupos)
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
     media_geral = round(sum(medias) / len(medias), 2) if medias else None
-
     cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
 
+    acesso = getattr(request.user, "acesso_institucional", None)
+    eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
     ranking_cpr = []
-    if getattr(request.user, "acesso_institucional", None) and request.user.acesso_institucional.perfil == "COPPM" and not selecionada:
+    if eh_coppm and not selecionada:
         por_cpr = {}
-        for unidade in unidades_relatorio:
-            item = next((x for x in grupos if x["unidade"].id == unidade.id), None)
-            if not item:
-                continue
-            cpr = unidade.cpr
-            chave = cpr.id
-            if chave not in por_cpr:
-                por_cpr[chave] = {"cpr": cpr, "total": 0, "sim": 0, "nao": 0}
-            por_cpr[chave]["total"] += item["total"]
-            por_cpr[chave]["sim"] += item["sim"]
-            por_cpr[chave]["nao"] += item["nao"]
+        for item in grupos:
+            cpr = item["unidade"].cpr
+            registro = por_cpr.setdefault(cpr.id, {"cpr": cpr, "total": 0, "sim": 0, "nao": 0})
+            registro["total"] += item["total"]
+            registro["sim"] += item["sim"]
+            registro["nao"] += item["nao"]
         for item in por_cpr.values():
-            respondidos = item["sim"] + item["nao"]
-            item["percentual"] = round(item["sim"] * 100 / respondidos, 1) if respondidos else None
-            item["respondidos"] = respondidos
+            item["respondidos"] = item["sim"] + item["nao"]
+            item["percentual"] = round(item["sim"] * 100 / item["respondidos"], 1) if item["respondidos"] else None
         ranking_cpr = sorted(por_cpr.values(), key=lambda x: (x["percentual"] is not None, x["percentual"] or -1), reverse=True)
 
     return render(request, "analise/unidades.html", {
@@ -143,7 +134,7 @@ def analise_unidades(request):
         "media_geral": media_geral,
         "cumprimento_geral": cumprimento_geral,
         "ranking_cpr": ranking_cpr,
-        "eh_coppm": bool(getattr(getattr(request.user, "acesso_institucional", None), "perfil", None) == "COPPM"),
+        "eh_coppm": eh_coppm,
     })
 
 
