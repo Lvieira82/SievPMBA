@@ -66,8 +66,8 @@ def gerar_mapa_eventos_pdf_seguro(request):
     doc = SimpleDocTemplate(
         response,
         pagesize=landscape(A4),
-        rightMargin=12 * mm,
-        leftMargin=12 * mm,
+        rightMargin=10 * mm,
+        leftMargin=10 * mm,
         topMargin=10 * mm,
         bottomMargin=10 * mm,
     )
@@ -98,7 +98,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
         textColor=colors.HexColor("#444444"),
         spaceAfter=8,
     )
-    celula = ParagraphStyle("CelulaMapa", parent=styles["Normal"], fontSize=7.2, leading=8.5)
+    celula = ParagraphStyle("CelulaMapa", parent=styles["Normal"], fontSize=7, leading=8.2)
     cabecalho = ParagraphStyle(
         "CabecalhoMapa",
         parent=celula,
@@ -143,9 +143,14 @@ def gerar_mapa_eventos_pdf_seguro(request):
         periodo_texto = "Todos os eventos do âmbito institucional"
     story.append(Paragraph(periodo_texto, periodo))
 
+    # Mantemos a coluna Hora e acrescentamos as colunas específicas de Início e Fim.
+    # Hora continua representando a hora de referência do evento; Início e Fim
+    # mostram explicitamente o intervalo operacional cadastrado na solicitação.
     rows = [[
         Paragraph("Data", cabecalho),
         Paragraph("Hora", cabecalho),
+        Paragraph("Início", cabecalho),
+        Paragraph("Fim", cabecalho),
         Paragraph("Evento", cabecalho),
         Paragraph("Município", cabecalho),
         Paragraph("Unidade que gerou", cabecalho),
@@ -153,9 +158,14 @@ def gerar_mapa_eventos_pdf_seguro(request):
     ]]
 
     for evento in eventos:
+        inicio = evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-"
+        fim = evento.hora_fim.strftime("%H:%M") if evento.hora_fim else "-"
+        hora_referencia = inicio
         rows.append([
             Paragraph(evento.data_evento.strftime("%d/%m/%Y"), celula),
-            Paragraph(evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-", celula),
+            Paragraph(hora_referencia, celula),
+            Paragraph(inicio, celula),
+            Paragraph(fim, celula),
             Paragraph(str(evento.nome_evento or "-"), celula),
             Paragraph(str(evento.municipio.nome if evento.municipio else "-"), celula),
             Paragraph(str(evento.unidade.nome if evento.unidade else "-"), celula),
@@ -165,15 +175,15 @@ def gerar_mapa_eventos_pdf_seguro(request):
     tabela = Table(
         rows,
         repeatRows=1,
-        colWidths=[25 * mm, 18 * mm, 66 * mm, 42 * mm, 75 * mm, 36 * mm],
+        colWidths=[22 * mm, 16 * mm, 18 * mm, 18 * mm, 55 * mm, 38 * mm, 70 * mm, 34 * mm],
         hAlign="CENTER",
     )
     tabela.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#4b5563")),
         ("GRID", (0, 0), (-1, -1), 0.45, colors.HexColor("#9ca3af")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 4),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("LEFTPADDING", (0, 0), (-1, -1), 3),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 3),
         ("TOPPADDING", (0, 0), (-1, -1), 4),
         ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
     ]))
