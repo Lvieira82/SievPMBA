@@ -2,28 +2,34 @@
 {% block title %}Documentos da Solicitação{% endblock %}
 {% block content %}
 <div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
-<h1 style="color:#907C64">📁 Documentos</h1>
+<h1 style="color:#907C64">📁 Documentação da Solicitação</h1>
 <p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p>
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p>
 <p><strong>Status:</strong> {{ solicitacao.get_status_display }}</p>
 <hr>
 
-{% if solicitacao.oficio_comandante %}
-<div style="border:1px solid #d1d5db;border-radius:10px;padding:14px;margin:18px 0;background:#f8fafc">
-<strong>📄 Ofício ao Comandante da Unidade</strong>
-<a href="{% url 'abrir_oficio_comandante' solicitacao.id %}" target="_blank" rel="noopener" style="float:right;color:#2563eb;font-weight:bold">Abrir PDF</a>
+<h3>📎 Anexos da solicitação</h3>
+{% for documento in documentos %}
+<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0;background:#f8fafc">
+<strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %} — {{ documento.descricao }}{% endif %}
+<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener" style="float:right;color:#907C64;font-weight:bold">📄 Abrir PDF</a>
 <div style="clear:both"></div>
 </div>
-{% endif %}
+{% empty %}
+<p style="color:#6b7280">Nenhum anexo registrado nesta solicitação.</p>
+{% endfor %}
 
-<h3>Documentos anexados</h3>
-{% for documento in documentos %}
-<div style="border:1px solid #e5e7eb;border-radius:10px;padding:14px;margin:10px 0">
-<strong>{{ documento.tipo_documento.nome }}</strong> — {{ documento.descricao|default:'Sem descrição' }}
-<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener" style="float:right;color:#907C64;font-weight:bold">Abrir PDF</a>
+<hr style="margin-top:25px">
+<h3>📑 OPOs geradas</h3>
+{% for opo in opos %}
+<div style="border:1px solid #d6d3d1;border-radius:10px;padding:14px;margin:10px 0;background:#fafaf9">
+<strong>{{ opo.descricao|default:'OPO' }}</strong>
+<span style="margin-left:10px;color:#6b7280">{{ opo.criado_em|date:'d/m/Y H:i' }}</span>
+<a href="{% url 'abrir_opo_gestao' opo.id %}" target="_blank" rel="noopener" style="float:right;color:#2563eb;font-weight:bold">📄 Abrir OPO</a>
+<div style="clear:both"></div>
 </div>
 {% empty %}
-<p style="color:#6b7280">Nenhum documento adicional foi anexado.</p>
+<p style="color:#6b7280">Nenhuma OPO gerada para esta solicitação.</p>
 {% endfor %}
 
 {% if pode_anexar %}
