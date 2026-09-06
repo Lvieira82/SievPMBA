@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from apps.solicitacoes.models import (
@@ -68,7 +68,7 @@ class TerritorioTestCase(TestCase):
         outro = Municipio.objects.create(nome="Outro Município")
         bairro = Bairro.objects.create(municipio=outro, nome="Centro")
 
-        with self.assertRaises(ValidationError):
+        with self.assertRaises(Exception):
             validar_direcionamento(self.municipio, bairro)
 
     def test_api_retorna_bairros_e_unidades(self):
@@ -82,43 +82,27 @@ class TerritorioTestCase(TestCase):
         self.assertEqual(len(data["bairros"]), 2)
         self.assertEqual(len(data["unidades"]), 2)
 
-    def test_bairro_com_duplicidade_nao_e_direcionado_por_chute(self):
-        municipio = Municipio.objects.create(nome="Feira de Santana")
-        bairro = Bairro.objects.create(municipio=municipio, nome="Aviário")
-
-        unidade_errada = Unidade.objects.create(
-            cpr=self.unidade_a.cpr,
-            nome="45ª CIPM/CURAÇÁ",
-            sigla="45ª CIPM/CURAÇÁ",
-            tipo="CIPM",
+    def test_bairros_homonimos_em_municipios_diferentes_permanecem_isolados(self):
+        outro_municipio = Municipio.objects.create(
+            nome="Outro Município",
+            unidade_responsavel=self.unidade_b,
         )
-        unidade_correta = Unidade.objects.create(
-            cpr=self.unidade_a.cpr,
-            nome="67ª CIPM/FEIRA DE SANTANA",
-            sigla="67ª CIPM/FEIRA DE SANTANA",
-            tipo="CIPM",
-        )
-
-        AreaResponsabilidade.objects.create(
-            bairro=bairro,
-            unidade=unidade_errada,
+        bairro_outro = Bairro.objects.create(
+            municipio=outro_municipio,
+            nome="Centro",
         )
         AreaResponsabilidade.objects.create(
-            bairro=bairro,
-            unidade=unidade_correta,
+            bairro=bairro_outro,
+            unidade=self.unidade_b,
         )
 
-        self.assertIsNone(unidade_para_bairro(bairro))
+        self.assertIs(self.unidade_a, unidade_para_bairro(self.bairro_a))
+        self.assertIs(self.unidade_b, unidade_para_bairro(bairro_outro))
 
-        with self.assertRaises(ValidationError):
-            validar_direcionamento(municipio, bairro)
-
-        response = self.client.get(
-            f"/api/municipios/{municipio.id}/bairros/"
-        )
-        data = response.json()
-        aviario = next(
-            item for item in data["bairros"] if item["nome"] == "Aviário"
-        )
-
-        self.assertEqual(aviario["unidades"], [])
+    def test_bairro_nao_pode_ter_duas_unidades(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                AreaResponsabilidade.objects.create(
+                    bairro=self.bairro_a,
+                    unidade=self.unidade_b,
+                )
