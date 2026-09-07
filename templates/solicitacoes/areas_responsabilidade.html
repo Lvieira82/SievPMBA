@@ -1,74 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Áreas de Responsabilidade{% endblock %}
+{% block titulo %}Áreas de Responsabilidade{% endblock %}
 {% block content %}
-<div class="container py-4">
-  <div class="card shadow-sm">
-    <div class="card-body">
-      <h2 class="mb-4">Áreas de Responsabilidade</h2>
-
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-      {% endfor %}
-
-      <form method="post" class="row g-3 mb-4">
-        {% csrf_token %}
-        <div class="col-md-4">
-          <label class="form-label">Município</label>
-          <select id="municipio" name="municipio" class="form-select" required>
-            <option value="">Selecione...</option>
-            {% for municipio in municipios %}
-              <option value="{{ municipio.id }}">{{ municipio.nome }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Bairro / Distrito</label>
-          <input name="bairro" class="form-control" maxlength="150" required placeholder="Ex.: Humildes">
-          <div class="form-text">Use o nome oficial do bairro ou distrito.</div>
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Unidade responsável</label>
-          <select name="unidade" class="form-select" required>
-            <option value="">Selecione...</option>
-            {% for unidade in unidades %}
-              <option value="{{ unidade.id }}">{{ unidade.nome }}{% if unidade.sigla %} ({{ unidade.sigla }}){% endif %}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <div class="col-12">
-          <button class="btn btn-primary">Salvar área</button>
-        </div>
-      </form>
-
-      <hr>
-
-      <h4>Importar em massa</h4>
-      <p class="text-muted">CSV com as colunas: <code>municipio,bairro,unidade</code>.</p>
-      <form method="post" action="{% url 'importar_areas_responsabilidade' %}" enctype="multipart/form-data" class="mb-4">
-        {% csrf_token %}
-        <div class="input-group">
-          <input type="file" name="arquivo" accept=".csv,text/csv" class="form-control" required>
-          <button class="btn btn-outline-primary">Importar CSV</button>
-        </div>
-      </form>
-
-      <div class="table-responsive">
-        <table class="table table-striped align-middle">
-          <thead><tr><th>Município</th><th>Bairro / Distrito</th><th>Unidade</th></tr></thead>
-          <tbody>
-            {% for area in areas %}
-              <tr>
-                <td>{{ area.bairro.municipio.nome }}</td>
-                <td>{{ area.bairro.nome }}</td>
-                <td>{{ area.unidade.nome }}{% if area.unidade.sigla %} ({{ area.unidade.sigla }}){% endif %}</td>
-              </tr>
-            {% empty %}
-              <tr><td colspan="3">Nenhuma área cadastrada.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+<style>
+.wrap{max-width:1250px;margin:30px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo select,.campo input{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;box-sizing:border-box;background:#fff}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 15px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela th{background:#111827;color:#fff}.acao{display:flex;gap:6px;flex-wrap:wrap}.mini{padding:7px 10px;border-radius:6px;border:0;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}.editar{background:#e5e7eb;color:#111827}.ativar{background:#16a34a;color:#fff}.desativar{background:#f59e0b;color:#111}.excluir{background:#dc2626;color:#fff}.ativo{color:#15803d;font-weight:700}.inativo{color:#6b7280;font-weight:700}.importar{margin-top:16px;padding-top:18px;border-top:1px solid #e5e7eb}@media(max-width:800px){.grid{grid-template-columns:1fr}}
+</style>
+<div class="wrap">
+<section class="cardx">
+<h1>🗺️ Cadastrar Área de Responsabilidade</h1>
+<p>O mesmo nome de bairro pode existir em municípios diferentes; o vínculo é sempre pelo bairro dentro do seu município.</p>
+{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<form method="post" class="grid">{% csrf_token %}
+<div class="campo"><label>Município</label><select name="municipio" required><option value="">Selecione...</option>{% for municipio in municipios %}<option value="{{ municipio.id }}">{{ municipio.nome }}</option>{% endfor %}</select></div>
+<div class="campo"><label>Bairro / Distrito</label><input name="bairro" maxlength="150" required placeholder="Ex.: Humildes"></div>
+<div class="campo"><label>Unidade responsável</label><select name="unidade" required><option value="">Selecione...</option>{% for unidade in unidades %}<option value="{{ unidade.id }}">{{ unidade.nome }}{% if unidade.sigla %} ({{ unidade.sigla }}){% endif %}</option>{% endfor %}</select></div>
+<div class="campo" style="grid-column:1/-1"><div class="acoes"><button type="submit" class="btnx prim">+ Salvar área</button><a href="{% url 'painel_gestao' %}" class="btnx sec">← Voltar ao painel</a></div></div>
+</form>
+<div class="importar"><strong>Importação em massa</strong><p class="text-muted mb-2">CSV com <code>municipio,bairro,unidade</code>.</p><form method="post" action="{% url 'importar_areas_responsabilidade' %}" enctype="multipart/form-data" style="display:flex;gap:10px;flex-wrap:wrap">{% csrf_token %}<input type="file" name="arquivo" accept=".csv,text/csv" required><button class="btnx sec" type="submit">Importar CSV</button></form></div>
+</section>
+<section class="cardx"><h2>Áreas cadastradas</h2><div style="overflow:auto"><table class="tabela"><thead><tr><th>Município</th><th>Bairro / Distrito</th><th>Unidade</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+{% for area in areas %}<tr><td>{{ area.bairro.municipio.nome }}</td><td>{{ area.bairro.nome }}</td><td>{{ area.unidade.nome }}{% if area.unidade.sigla %} ({{ area.unidade.sigla }}){% endif %}</td><td>{% if area.ativo %}<span class="ativo">ATIVA</span>{% else %}<span class="inativo">INATIVA</span>{% endif %}</td><td><div class="acao"><a class="mini editar" href="{% url 'editar_area_responsabilidade' area.id %}">Editar</a>{% if area.ativo %}<form method="post" action="{% url 'desativar_area_responsabilidade' area.id %}">{% csrf_token %}<button class="mini desativar" onclick="return confirm('Desativar esta área?')">Desativar</button></form>{% else %}<form method="post" action="{% url 'ativar_area_responsabilidade' area.id %}">{% csrf_token %}<button class="mini ativar">Ativar</button></form>{% endif %}<form method="post" action="{% url 'excluir_area_responsabilidade' area.id %}">{% csrf_token %}<button class="mini excluir" onclick="return confirm('Excluir definitivamente esta área?')">Excluir</button></form></div></td></tr>{% empty %}<tr><td colspan="5" style="text-align:center;padding:24px">Nenhuma área cadastrada.</td></tr>{% endfor %}
+</tbody></table></div></section>
 </div>
 {% endblock %}
