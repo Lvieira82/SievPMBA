@@ -123,8 +123,8 @@ def pode_administrar_usuarios(user):
 
 
 def pode_lancamento_manual(user):
-    """Somente Gestor de Unidade pode lançar evento manual."""
-    return bool(perfil_gestor(user, "UNIDADE"))
+    """Permite lançamento manual somente a Gestor ou Membro de Unidade."""
+    return bool(perfil_gestor(user, "UNIDADE") or eh_membro_unidade(user))
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
