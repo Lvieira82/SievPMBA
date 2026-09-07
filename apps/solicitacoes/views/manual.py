@@ -6,7 +6,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from apps.solicitacoes.models import AnexoOPO, Bairro, HistoricoSolicitacao, Solicitacao
-from apps.solicitacoes.permissoes import perfil_gestor
+from apps.solicitacoes.permissoes import pode_lancamento_manual
 from .geracao_opo import _gerar_pdf_opo
 from .operacional import GestaoManualForm
 
@@ -36,8 +36,8 @@ def _adicionar_tipo_opo(form):
 
 @login_required
 def lancamento_manual(request):
-    if not perfil_gestor(request.user, "UNIDADE"):
-        messages.error(request, "Somente o Gestor de Unidade pode realizar lançamentos manuais.")
+    if not pode_lancamento_manual(request.user):
+        messages.error(request, "O lançamento manual é exclusivo do Gestor e dos Membros da Unidade.")
         return redirect("painel_gestao")
 
     perfil = getattr(request.user, "perfil_siev", None)
@@ -68,7 +68,7 @@ def lancamento_manual(request):
                 solicitacao=obj,
                 usuario=request.user,
                 acao="LANÇAMENTO MANUAL",
-                observacao="Solicitação criada/atualizada pelo Gestor de Unidade no lançamento manual.",
+                observacao="Solicitação criada/atualizada pelo Gestor ou Membro da Unidade no lançamento manual.",
             )
 
             evento_extra = form.cleaned_data["evento_extra"] == "SIM"
