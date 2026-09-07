@@ -351,18 +351,32 @@ footer{
         min-height:0;
         bottom:auto;
         overflow:visible;
+        background:#fff;
+        color:var(--texto);
+        box-shadow:0 2px 12px rgba(0,0,0,.08);
     }
 
-    .sidebar-logo{padding:18px 16px 14px}
-    .sidebar-logo img{width:72px;height:72px;margin-bottom:10px}
-    .sidebar-logo strong{font-size:23px}
-    .sidebar-logo small{font-size:12px}
+    .sidebar-logo{
+        padding:16px 16px 14px;
+        background:#fff;
+        border-bottom:1px solid #e5e7eb;
+    }
+
+    .sidebar-logo img{
+        width:72px;
+        height:72px;
+        margin-bottom:8px;
+    }
+
+    .sidebar-logo strong{font-size:23px;color:#9A8665}
+    .sidebar-logo small{font-size:12px;color:#5b6470}
 
     .portal-sidebar nav{
         display:flex;
         flex-direction:column;
         overflow:visible;
         padding:8px 12px 12px;
+        background:#fff;
     }
 
     .portal-sidebar nav a{
@@ -370,7 +384,20 @@ footer{
         white-space:normal;
         margin:0 0 6px;
         padding:11px 13px;
+        color:#303640;
+        background:#f8f9fb;
+        border:1px solid #e7e9ed;
+        border-radius:10px;
     }
+
+    .portal-sidebar nav a:hover{
+        background:#f1ede7;
+        color:#242424;
+        transform:none;
+    }
+
+    .portal-sidebar nav i{color:#C8A646}
+    .portal-sidebar nav a:hover i{color:#9A8665}
 
     .portal-page{
         margin-left:0;
@@ -436,12 +463,17 @@ footer{
 }
 
 @media(max-width:575px){
+    .sidebar-logo{padding:14px 12px 12px}
+    .sidebar-logo img{width:64px;height:64px}
+    .sidebar-logo strong{font-size:22px}
+    .portal-sidebar nav{padding:8px 10px 10px}
+    .portal-sidebar nav a{font-size:14px;padding:10px 12px}
+
     .portal-card{padding:22px 13px}
     .logo-principal{width:190px;max-width:84%}
     h1{font-size:26px}
     h2{font-size:19px}
     .descricao{font-size:15px}
-    .portal-sidebar nav a{font-size:14px}
     .servico{padding:22px 16px}
     .servico h3{font-size:21px}
     .eventos-dia-icone{width:62px;height:62px;min-width:62px;font-size:28px}
