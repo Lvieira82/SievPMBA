@@ -17,6 +17,15 @@ from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, So
 class GestaoManualForm(SolicitacaoManualForm):
     """Formulário de lançamento manual com escopo territorial da unidade."""
 
+    oficio_origem = forms.FileField(
+        label="Ofício de origem (PDF)",
+        required=False,
+        widget=forms.FileInput(attrs={
+            "class": "form-control",
+            "accept": ".pdf,application/pdf",
+        }),
+    )
+
     def __init__(self, *args, perfil=None, **kwargs):
         super().__init__(*args, **kwargs)
         self.perfil_gestor = perfil
