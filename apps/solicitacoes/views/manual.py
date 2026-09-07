@@ -1,7 +1,7 @@
-from django import forms
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
@@ -21,17 +21,12 @@ def _preparar_bairros(form, municipio_id):
         form.fields["bairro"].queryset = Bairro.objects.none()
 
 
-def _adicionar_tipo_opo(form):
-    """Inclui no lançamento manual o tipo da OPO, pois ela será gerada imediatamente."""
-    form.fields["evento_extra"] = forms.ChoiceField(
-        choices=[
-            ("NAO", "ORDINÁRIO"),
-            ("SIM", "EXTRAORDINÁRIO"),
-        ],
-        required=True,
-        label="Tipo de OPO",
-        widget=forms.Select(attrs={"class": "form-select"}),
-    )
+def _preparar_formulario(form, municipio_id=None):
+    """Ajusta o formulário manual sem criar um conceito separado de tipo de OPO."""
+    if "tipo_evento" in form.fields:
+        form.fields["tipo_evento"].required = True
+        form.fields["tipo_evento"].widget.attrs.update({"class": "form-select"})
+    _preparar_bairros(form, municipio_id)
 
 
 @login_required
@@ -44,75 +39,81 @@ def lancamento_manual(request):
     protocolo = (request.GET.get("protocolo_origem") or "").strip().upper()
     original = Solicitacao.objects.filter(protocolo=protocolo).first() if protocolo else None
 
+    if protocolo and not original:
+        messages.error(request, "Protocolo não encontrado.")
+
     if request.method == "POST":
         protocolo = (request.POST.get("protocolo_origem") or "").strip().upper()
         original = Solicitacao.objects.filter(protocolo=protocolo).first() if protocolo else None
         form = GestaoManualForm(request.POST, request.FILES, instance=original, perfil=perfil)
-        _adicionar_tipo_opo(form)
-        _preparar_bairros(form, request.POST.get("municipio"))
+        _preparar_formulario(form, request.POST.get("municipio"))
 
         if form.is_valid():
-            obj = form.save(commit=False)
-            obj.usuario = request.user
-            obj.municipio = form.cleaned_data["municipio"]
-            obj.bairro = form.cleaned_data.get("bairro")
-            obj.tipo_evento = form.cleaned_data.get("tipo_evento")
-            obj.unidade = form.cleaned_data["unidade"]
-            obj.origem = "MANUAL"
-            obj.status = "APROVADA"
-            obj.aprovado_por = request.user.get_full_name() or request.user.username
-            obj.data_aprovacao = timezone.now()
-            obj.save()
+            try:
+                with transaction.atomic():
+                    obj = form.save(commit=False)
+                    obj.usuario = request.user
+                    obj.municipio = form.cleaned_data["municipio"]
+                    obj.bairro = form.cleaned_data.get("bairro")
+                    obj.tipo_evento = form.cleaned_data["tipo_evento"]
+                    obj.unidade = form.cleaned_data["unidade"]
+                    obj.origem = "MANUAL"
+                    obj.status = "APROVADA"
+                    obj.aprovado_por = request.user.get_full_name() or request.user.username
+                    obj.data_aprovacao = timezone.now()
+                    obj.save()
 
-            HistoricoSolicitacao.objects.create(
-                solicitacao=obj,
-                usuario=request.user,
-                acao="LANÇAMENTO MANUAL",
-                observacao="Solicitação criada/atualizada pelo Gestor ou Membro da Unidade no lançamento manual.",
-            )
+                    HistoricoSolicitacao.objects.create(
+                        solicitacao=obj,
+                        usuario=request.user,
+                        acao="LANÇAMENTO MANUAL",
+                        observacao="Solicitação criada/atualizada pelo Gestor ou Membro da Unidade no lançamento manual.",
+                    )
 
-            evento_extra = form.cleaned_data["evento_extra"] == "SIM"
-            conteudo = _gerar_pdf_opo(
-                request,
-                obj,
-                evento_extra=evento_extra,
-            )
-            nome_arquivo = f"OPO_{obj.protocolo}.pdf"
+                    # Lançamento manual não passa por aprovação: a OPO é gerada imediatamente.
+                    conteudo = _gerar_pdf_opo(
+                        request,
+                        obj,
+                        evento_extra=False,
+                    )
+                    nome_arquivo = f"OPO_{obj.protocolo}.pdf"
 
-            # Ao editar o mesmo lançamento, elimina a OPO manual anterior para evitar duplicidade.
-            AnexoOPO.objects.filter(
-                solicitacao=obj,
-                descricao__icontains="lançamento manual",
-            ).delete()
+                    AnexoOPO.objects.filter(
+                        solicitacao=obj,
+                        descricao__icontains="lançamento manual",
+                    ).delete()
 
-            anexo = AnexoOPO(
-                solicitacao=obj,
-                descricao=(
-                    "OPO gerada pelo lançamento manual — Evento extra: "
-                    f"{'SIM' if evento_extra else 'NÃO'}"
-                ),
-            )
-            anexo.arquivo.save(nome_arquivo, ContentFile(conteudo), save=True)
+                    anexo = AnexoOPO(
+                        solicitacao=obj,
+                        descricao="OPO gerada pelo lançamento manual",
+                    )
+                    anexo.arquivo.save(nome_arquivo, ContentFile(conteudo), save=True)
 
-            HistoricoSolicitacao.objects.create(
-                solicitacao=obj,
-                usuario=request.user,
-                acao="OPO GERADA",
-                observacao=(
-                    f"OPO {nome_arquivo} gerada imediatamente pelo lançamento manual. "
-                    f"Evento extra: {'SIM' if evento_extra else 'NÃO'}."
-                ),
-            )
+                    HistoricoSolicitacao.objects.create(
+                        solicitacao=obj,
+                        usuario=request.user,
+                        acao="OPO GERADA",
+                        observacao=(
+                            f"OPO {nome_arquivo} gerada imediatamente pelo lançamento manual. "
+                            f"Tipo de evento: {obj.tipo_evento}."
+                        ),
+                    )
 
-            messages.success(
-                request,
-                f"Lançamento manual salvo e OPO {obj.protocolo} gerada imediatamente.",
-            )
-            return redirect("detalhe_opo", id=obj.id)
+                messages.success(
+                    request,
+                    f"Lançamento manual salvo e OPO {obj.protocolo} gerada imediatamente.",
+                )
+                return redirect("detalhe_opo", id=obj.id)
+            except Exception as exc:
+                print("ERRO NO LANÇAMENTO MANUAL:", repr(exc))
+                messages.error(
+                    request,
+                    "Não foi possível salvar o lançamento manual e gerar a OPO. "
+                    "Verifique os campos informados e tente novamente.",
+                )
     else:
         form = GestaoManualForm(instance=original, perfil=perfil)
-        _adicionar_tipo_opo(form)
-        _preparar_bairros(form, original.municipio_id if original else None)
+        _preparar_formulario(form, original.municipio_id if original else None)
 
     return render(
         request,
