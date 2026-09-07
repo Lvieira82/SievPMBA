@@ -98,17 +98,21 @@ def _salvar_comprovacao_no_protocolo(solicitacao, imagem):
     return default_storage.save(caminho, ContentFile(dados))
 
 
-def _salvar_justificativa_txt_no_protocolo(solicitacao, operador, justificativa):
-    """Cria um TXT da justificativa na mesma pasta dos documentos do protocolo."""
-    protocolo = solicitacao.protocolo or "SEM_PROTOCOLO"
+def _nome_justificativa(operador, respondido_em):
     identificador = getattr(operador, "username", "operador") or "operador"
     seguro = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in identificador)
-    nome = f"justificativa_opo_{seguro}_{timezone.localtime():%Y%m%d_%H%M%S_%f}.txt"
+    return f"justificativa_opo_{seguro}_{timezone.localtime(respondido_em):%Y%m%d_%H%M%S_%f}.txt"
+
+
+def _salvar_justificativa_txt_no_protocolo(solicitacao, operador, justificativa, respondido_em):
+    """Cria um TXT da justificativa na mesma pasta dos documentos do protocolo."""
+    protocolo = solicitacao.protocolo or "SEM_PROTOCOLO"
+    nome = _nome_justificativa(operador, respondido_em)
     caminho = str(_pasta_protocolo(protocolo) / nome)
     conteudo = (
         f"PROTOCOLO: {protocolo}\n"
-        f"OPERADOR: {identificador}\n"
-        f"DATA/HORA: {timezone.localtime():%d/%m/%Y %H:%M:%S}\n\n"
+        f"OPERADOR: {getattr(operador, 'username', 'operador') or 'operador'}\n"
+        f"DATA/HORA: {timezone.localtime(respondido_em):%d/%m/%Y %H:%M:%S}\n\n"
         f"JUSTIFICATIVA:\n{justificativa}\n"
     )
     return default_storage.save(caminho, ContentFile(conteudo.encode("utf-8")))
@@ -196,19 +200,35 @@ def cumprimento_opo(request, solicitacao_id):
             elif len(justificativa) > _MAX_JUSTIFICATIVA:
                 messages.error(request, "A justificativa deve ter no máximo 150 caracteres.")
             else:
-                if registro.imagem:
-                    try:
-                        registro.imagem.delete(save=False)
-                    except Exception:
-                        pass
-                _salvar_justificativa_txt_no_protocolo(solicitacao, request.user, justificativa)
-                registro.cumprida = False
-                registro.imagem = None
-                registro.justificativa = justificativa
-                registro.respondido_em = timezone.now()
-                registro.save()
-                messages.success(request, "Registro de não cumprimento salvo com justificativa.")
-                return redirect("cumprimento_opo", solicitacao_id=solicitacao_id)
+                respondido_em = timezone.now()
+                try:
+                    caminho_justificativa = _salvar_justificativa_txt_no_protocolo(
+                        solicitacao,
+                        request.user,
+                        justificativa,
+                        respondido_em,
+                    )
+                except Exception:
+                    messages.error(request, "Não foi possível salvar a justificativa. Tente novamente.")
+                else:
+                    if registro.imagem:
+                        try:
+                            registro.imagem.delete(save=False)
+                        except Exception:
+                            pass
+                    registro.cumprida = False
+                    registro.imagem = None
+                    registro.justificativa = justificativa
+                    registro.respondido_em = respondido_em
+                    registro.save()
+                    LogSistema.objects.create(
+                        usuario=request.user,
+                        solicitacao=solicitacao,
+                        acao="CUMPRIMENTO OPO",
+                        detalhes=f"OPO não cumprida. Justificativa salva em: {caminho_justificativa}.",
+                    )
+                    messages.success(request, "Registro de não cumprimento salvo com justificativa.")
+                    return redirect("eventos_dia")
 
     return render(request, "solicitacoes/cumprimento_opo.html", {
         "solicitacao": solicitacao,
