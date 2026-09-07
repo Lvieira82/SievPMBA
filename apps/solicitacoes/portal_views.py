@@ -131,6 +131,30 @@ def nova_solicitacao(request):
 
 
 def _salvar_documentos(request, solicitacao):
+    oficio = request.FILES.get("oficio_comandante")
+    if oficio:
+        try:
+            validar_pdf_upload(oficio)
+            tipo_oficio, _ = TipoDocumento.objects.get_or_create(
+                nome="Ofício ao Comandante",
+                defaults={
+                    "descricao": "Ofício ao Comandante da Unidade",
+                    "extensoes_permitidas": "pdf",
+                    "ativo": True,
+                },
+            )
+            if not tipo_oficio.ativo:
+                tipo_oficio.ativo = True
+                tipo_oficio.save(update_fields=["ativo"])
+            DocumentoSolicitacao.objects.create(
+                solicitacao=solicitacao,
+                tipo_documento=tipo_oficio,
+                descricao="Ofício ao Comandante da Unidade",
+                arquivo=oficio,
+            )
+        except Exception as erro:
+            messages.error(request, f"Documento rejeitado: {erro}")
+
     tipos = request.POST.getlist("tipo_documento")
     descricoes = request.POST.getlist("descricao_documento")
     arquivos = request.FILES.getlist("documentos")
