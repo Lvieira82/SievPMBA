@@ -47,7 +47,7 @@
                         <li><a href="{% url 'administracao_unidade_membro' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                     {% endif %}
                 {% endif %}
-                <li><a href="/logout/" title="Sair da sessão"><i class="bi bi-box-arrow-right"></i><span>Sair da sessão</span></a></li>
+                <li><a href="{% url 'logout_gestao' %}" title="Sair da sessão"><i class="bi bi-box-arrow-right"></i><span>Sair da sessão</span></a></li>
             {% endif %}
         </ul>
     </aside>
@@ -56,7 +56,7 @@
             <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2></div>
             <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
         </header>
-        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</section>
+        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}{% block content %}{% endblock %}</section>
         <footer class="rodape">Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
     </div>
 </div>
