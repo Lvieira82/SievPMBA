@@ -90,7 +90,11 @@ def _salvar_anexos_manuais(request, solicitacao):
 
 
 def _salvar_oficio_origem(request, solicitacao):
-    oficio = request.FILES.get("oficio_origem")
+    # O formulário manual possui o campo específico "oficio_origem" e também
+    # mantém o campo herdado "oficio_comandante". Aceitamos os dois nomes para
+    # garantir que o PDF efetivamente anexado seja gravado em DocumentoSolicitacao
+    # e, portanto, seja recuperado pela aba Documentação/OPOs Geradas.
+    oficio = request.FILES.get("oficio_origem") or request.FILES.get("oficio_comandante")
     if not oficio:
         return False
 
