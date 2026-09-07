@@ -194,6 +194,12 @@ def verificar_novo_navegador(request):
             user_agent=request.META.get("HTTP_USER_AGENT", ""),
         )
         resposta = _finalizar_login(request, usuario, acesso, request.session.get("siev_next"))
+
+        # Remove cookies antigas que possam ter sido criadas antes de o
+        # atributo Path="/" ser definido. Sem esta limpeza, o navegador pode
+        # enviar dois cookies com o mesmo nome e o login volta a pedir código.
+        resposta.delete_cookie(COOKIE_DISPOSITIVO, path="/gestao")
+        resposta.delete_cookie(COOKIE_DISPOSITIVO, path="/gestao/verificar-navegador")
         resposta.set_cookie(
             COOKIE_DISPOSITIVO,
             token,
