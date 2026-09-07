@@ -7,6 +7,7 @@ from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.contrib.staticfiles import finders
 
 from qrcode import make as make_qr
 from weasyprint import HTML
@@ -15,8 +16,24 @@ from apps.solicitacoes.models import AnexoOPO, HistoricoSolicitacao, Solicitacao
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
+def _logo_pmba_base64():
+    caminho = finders.find("logos/logo_pmba.png")
+    if not caminho:
+        return ""
+    try:
+        with open(caminho, "rb") as arquivo:
+            return "data:image/png;base64," + base64.b64encode(arquivo.read()).decode("utf-8")
+    except OSError:
+        return ""
+
+
+def _unidade_executor(request, solicitacao):
+    acesso = getattr(request.user, "acesso_institucional", None)
+    unidade = getattr(acesso, "unidade", None)
+    return unidade or solicitacao.unidade
+
+
 def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=None):
-    """Gera o PDF da OPO usando o modelo visual operacional do SiEv95.3."""
     data_geracao = timezone.localtime()
 
     url_verificacao = request.build_absolute_uri(
@@ -46,6 +63,7 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=No
             "efetivo_opo": efetivo,
             "gerado_por_nome": request.user.get_full_name() or request.user.username,
             "unidade_executor": unidade_executor,
+            "logo_pmba_base64": _logo_pmba_base64(),
         },
         request=request,
     )
@@ -84,7 +102,13 @@ def gerar_opo_com_evento_extra(request, id):
         )
 
     evento_extra = request.POST.get("evento_extra") == "SIM"
-    conteudo = _gerar_pdf_opo(request, solicitacao, evento_extra=evento_extra)
+    unidade_executor = _unidade_executor(request, solicitacao)
+    conteudo = _gerar_pdf_opo(
+        request,
+        solicitacao,
+        evento_extra=evento_extra,
+        unidade_executor=unidade_executor,
+    )
     nome = f"OPO_{solicitacao.protocolo}.pdf"
 
     anexo = AnexoOPO.objects.create(
@@ -101,8 +125,9 @@ def gerar_opo_com_evento_extra(request, id):
         usuario=request.user,
         acao="OPO GERADA",
         observacao=(
-            f"Arquivo {nome} gerado. Evento extra: "
-            f"{'SIM' if evento_extra else 'NÃO'}."
+            f"Arquivo {nome} gerado pela unidade "
+            f"{unidade_executor.nome if unidade_executor else 'não definida'}. "
+            f"Evento extra: {'SIM' if evento_extra else 'NÃO'}."
         ),
     )
 
