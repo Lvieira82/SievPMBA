@@ -8,7 +8,7 @@
     <link rel="icon" href="{% static 'logos/logo_pm_200.png' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=8">
     {% block css %}{% endblock %}
 </head>
 <body>
@@ -22,7 +22,6 @@
                     <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
                     <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                     <li><a href="{% url 'areas_responsabilidade' %}" title="Área de Responsabilidade"><i class="bi bi-diagram-3"></i><span>Áreas</span></a></li>
-                    <li><a href="{% url 'cadastro_municipios' %}" title="Cidades"><i class="bi bi-buildings"></i><span>Cidades</span></a></li>
                     <li><a href="{% url 'cadastro_bairros' %}" title="Bairros / Distritos"><i class="bi bi-geo-alt"></i><span>Bairros / Distritos</span></a></li>
                     <li><a href="{% url 'cadastro_unidades' %}" title="Unidades"><i class="bi bi-building"></i><span>Unidades</span></a></li>
                 {% elif user.acesso_institucional and user.acesso_institucional.perfil == "OPERADOR" %}
@@ -54,7 +53,12 @@
     <div class="main">
         <header class="topbar">
             <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2></div>
-            <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
+            <div class="d-flex align-items-center gap-3">
+                {% if user.is_authenticated and request.path != '/painel/' %}
+                    <a href="{% url 'painel_gestao' %}" class="btn btn-sm btn-light border" title="Voltar ao painel"><i class="bi bi-arrow-left"></i> Painel</a>
+                {% endif %}
+                <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
+            </div>
         </header>
         <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}{% block content %}{% endblock %}</section>
         <footer class="rodape">Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
