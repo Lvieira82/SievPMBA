@@ -1,1 +1,34 @@
-{% extends 'base.html' %}{% block title %}Cadastro de Bairros{% endblock %}{% block content %}<div class="container py-4"><div class="card p-4"><h2>📍 Cadastro de Bairros e Distritos</h2>{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}<form method="post" class="row g-3">{% csrf_token %}<div class="col-md-6"><label>Município</label><select name="municipio" class="form-select" required><option value="">Selecione</option>{% for m in municipios %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}</select></div><div class="col-md-6"><label>Bairro / Distrito</label><input name="nome" class="form-control" required maxlength="120"></div><div class="col-12"><button class="btn btn-primary">Cadastrar Bairro</button> <a href="{% url 'painel_gestao' %}" class="btn btn-secondary">Voltar</a></div></form><hr><div class="table-responsive"><table class="table"><thead><tr><th>Município</th><th>Bairro/Distrito</th></tr></thead><tbody>{% for b in bairros %}<tr><td>{{ b.municipio.nome }}</td><td>{{ b.nome }}</td></tr>{% endfor %}</tbody></table></div></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block title %}Bairros e Distritos{% endblock %}
+{% block titulo %}Bairros / Distritos{% endblock %}
+{% block content %}
+<style>
+.territorio-wrap{max-width:1250px;margin:30px auto;padding:0 16px}.territorio-card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.territorio-card h1,.territorio-card h2{color:#907C64}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input,.campo select{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;background:#fff;box-sizing:border-box}.campo.full{grid-column:1/-1}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 17px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela th{background:#111827;color:#fff}.status{font-weight:700}.ativo{color:#15803d}.inativo{color:#6b7280}.acao{display:flex;gap:6px;flex-wrap:wrap}.mini{padding:7px 10px;border-radius:6px;border:0;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}.editar{background:#e5e7eb;color:#111827}.ativar{background:#16a34a;color:#fff}.desativar{background:#f59e0b;color:#111}.excluir{background:#dc2626;color:#fff}@media(max-width:700px){.grid{grid-template-columns:1fr}.campo.full{grid-column:auto}}
+</style>
+<div class="territorio-wrap">
+  <section class="territorio-card">
+    <h1>🏘️ Cadastrar Bairro / Distrito</h1>
+    <p>Cadastre o bairro sempre dentro do município correto. Bairros com o mesmo nome em municípios diferentes continuam sendo registros distintos.</p>
+    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+    <form method="post" class="grid">
+      {% csrf_token %}
+      <div class="campo"><label>Município</label><select name="municipio" required><option value="">Selecione</option>{% for m in municipios %}<option value="{{ m.id }}">{{ m.nome }}</option>{% endfor %}</select></div>
+      <div class="campo"><label>Bairro / Distrito</label><input name="nome" maxlength="120" required></div>
+      <div class="campo full"><div class="acoes"><button class="btnx prim" type="submit">+ Cadastrar Bairro</button><a href="{% url 'painel_gestao' %}" class="btnx sec">← Voltar ao painel</a></div></div>
+    </form>
+  </section>
+
+  <section class="territorio-card">
+    <h2>Bairros / Distritos cadastrados</h2>
+    <div style="overflow:auto"><table class="tabela"><thead><tr><th>Município</th><th>Bairro / Distrito</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+    {% for b in bairros %}
+      <tr>
+        <td>{{ b.municipio.nome }}</td><td>{{ b.nome }}</td>
+        <td>{% if b.ativo %}<span class="status ativo">ATIVO</span>{% else %}<span class="status inativo">INATIVO</span>{% endif %}</td>
+        <td><div class="acao"><a class="mini editar" href="{% url 'editar_bairro' b.id %}">Editar</a>{% if b.ativo %}<form method="post" action="{% url 'desativar_bairro' b.id %}">{% csrf_token %}<button class="mini desativar" onclick="return confirm('Desativar este bairro/distrito?')">Desativar</button></form>{% else %}<form method="post" action="{% url 'ativar_bairro' b.id %}">{% csrf_token %}<button class="mini ativar">Ativar</button></form>{% endif %}<form method="post" action="{% url 'excluir_bairro' b.id %}">{% csrf_token %}<button class="mini excluir" onclick="return confirm('Excluir definitivamente este bairro/distrito? Se houver histórico vinculado, a exclusão será bloqueada.')">Excluir</button></form></div></td>
+      </tr>
+    {% empty %}<tr><td colspan="4" style="text-align:center;padding:24px">Nenhum bairro/distrito cadastrado.</td></tr>{% endfor %}
+    </tbody></table></div>
+  </section>
+</div>
+{% endblock %}
