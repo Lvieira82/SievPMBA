@@ -22,7 +22,9 @@
 {% empty %}<span class="sem-documento">Nenhum documento original encontrado no banco.</span>{% endfor %}
 </div>
 <div class="bloco-documentos"><span class="titulo-documentos">📑 OPO gerada</span>
-{% for arquivo in protocolo.arquivos %}{% if arquivo.arquivo %}<a class="btn" href="{% url 'abrir_opo_gestao' arquivo.id %}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>
+{% for arquivo in protocolo.arquivos %}
+{% if arquivo.arquivo %}
+<a class="btn" href="{% url 'abrir_opo_gestao' arquivo.id %}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>
 {% for cumprimento in arquivo.cumprimentos.all %}
 <div class="cumprimento">
   {% if cumprimento.cumprida is True %}
@@ -35,7 +37,10 @@
   {% if cumprimento.respondido_em %}<div class="sem-documento">Registrado em {{ cumprimento.respondido_em|date:'d/m/Y H:i' }}{% if cumprimento.operador %} por {{ cumprimento.operador.get_full_name|default:cumprimento.operador.username }}{% endif %}</div>{% endif %}
 </div>
 {% endfor %}
-{% endfor %}{% empty %}<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>{% endfor %}
+{% endif %}
+{% empty %}
+<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>
+{% endfor %}
 </div>
 <div class="acoes-op">
 <a class="btn btn-detalhes" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
