@@ -45,6 +45,37 @@ def cadastro_unidades(request):
 
 
 @login_required
+def editar_unidade(request, id):
+    if not _dev(request):
+        return _deny(request)
+    unidade = get_object_or_404(Unidade, pk=id)
+    if request.method == "POST":
+        cpr = get_object_or_404(CPR, pk=request.POST.get("cpr"), ativo=True)
+        nome = (request.POST.get("nome") or "").strip()
+        sigla = (request.POST.get("sigla") or "").strip()
+        tipo = (request.POST.get("tipo") or "BPM").strip()
+        if not nome or not sigla:
+            messages.error(request, "Nome e sigla são obrigatórios.")
+        elif Unidade.objects.filter(sigla__iexact=sigla).exclude(pk=unidade.pk).exists():
+            messages.error(request, "Já existe outra unidade com esta sigla.")
+        else:
+            unidade.cpr = cpr
+            unidade.nome = nome
+            unidade.sigla = sigla
+            unidade.tipo = tipo
+            unidade.telefone = (request.POST.get("telefone") or "").strip()
+            unidade.email = (request.POST.get("email") or "").strip()
+            unidade.save()
+            messages.success(request, f"Unidade {sigla} atualizada com sucesso.")
+            return redirect("cadastro_unidades")
+    return render(request, "solicitacoes/editar_unidade.html", {
+        "unidade": unidade,
+        "cprs": CPR.objects.filter(ativo=True).order_by("sigla"),
+        "tipos": Unidade.TIPOS,
+    })
+
+
+@login_required
 @require_POST
 def ativar_unidade(request, id):
     if not _dev(request):
@@ -108,3 +139,71 @@ def cadastro_bairros(request):
         "municipios": Municipio.objects.filter(ativo=True).order_by("nome"),
         "bairros": Bairro.objects.select_related("municipio").order_by("municipio__nome", "nome"),
     })
+
+
+@login_required
+def editar_bairro(request, id):
+    if not _dev(request):
+        return _deny(request)
+    bairro = get_object_or_404(Bairro, pk=id)
+    if request.method == "POST":
+        municipio = get_object_or_404(Municipio, pk=request.POST.get("municipio"), ativo=True)
+        nome = (request.POST.get("nome") or "").strip()
+        if not nome:
+            messages.error(request, "Informe o nome do bairro ou distrito.")
+        elif Bairro.objects.filter(municipio=municipio, nome__iexact=nome).exclude(pk=bairro.pk).exists():
+            messages.error(request, "Este bairro já está cadastrado neste município.")
+        else:
+            bairro.municipio = municipio
+            bairro.nome = nome
+            bairro.save(update_fields=["municipio", "nome"])
+            messages.success(request, f"Bairro/distrito {nome} atualizado com sucesso.")
+            return redirect("cadastro_bairros")
+    return render(request, "solicitacoes/editar_bairro.html", {
+        "bairro": bairro,
+        "municipios": Municipio.objects.filter(ativo=True).order_by("nome"),
+    })
+
+
+@login_required
+@require_POST
+def ativar_bairro(request, id):
+    if not _dev(request):
+        return _deny(request)
+    bairro = get_object_or_404(Bairro, pk=id)
+    bairro.ativo = True
+    bairro.save(update_fields=["ativo"])
+    messages.success(request, f"Bairro/distrito {bairro.nome} ativado.")
+    return redirect("cadastro_bairros")
+
+
+@login_required
+@require_POST
+def desativar_bairro(request, id):
+    if not _dev(request):
+        return _deny(request)
+    bairro = get_object_or_404(Bairro, pk=id)
+    bairro.ativo = False
+    bairro.save(update_fields=["ativo"])
+    messages.success(request, f"Bairro/distrito {bairro.nome} desativado.")
+    return redirect("cadastro_bairros")
+
+
+@login_required
+@require_POST
+def excluir_bairro(request, id):
+    if not _dev(request):
+        return _deny(request)
+    bairro = get_object_or_404(Bairro, pk=id)
+    nome = bairro.nome
+    try:
+        bairro.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"O bairro/distrito {nome} não pode ser excluído porque possui registros vinculados. "
+            "Desative-o para preservar o histórico.",
+        )
+        return redirect("cadastro_bairros")
+    messages.success(request, f"Bairro/distrito {nome} excluído definitivamente.")
+    return redirect("cadastro_bairros")
