@@ -72,6 +72,7 @@ from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
 )
+from apps.solicitacoes.views.pesquisa import responder_pesquisa
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
@@ -91,6 +92,7 @@ urlpatterns = [
     path("confirmar-datas/", confirmar_multiplas, name="confirmar_datas"),
     path("consultar/", consultar_protocolo, name="consultar"),
     path("corrigir/<str:protocolo>/", corrigir_solicitacao, name="corrigir_solicitacao"),
+    path("pesquisa/<str:token>/", responder_pesquisa, name="responder_pesquisa"),
     path("api/municipios/", lista_municipios, name="lista_municipios"),
     path("api/municipios/<int:municipio_id>/bairros/", lista_bairros, name="lista_bairros"),
     path("api/unidades/<int:cpr_id>/", listar_unidades, name="listar_unidades"),
