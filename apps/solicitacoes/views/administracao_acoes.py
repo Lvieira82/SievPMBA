@@ -3,13 +3,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
-from django.views.decorators.http import require_POST
 
 from .administracao_sistema import _escopo, _pode_gerenciar
 
 
 @login_required
-@require_POST
 def usuario_ativar(request, id):
     scope = _escopo(request)
     user = get_object_or_404(User, pk=id)
@@ -22,13 +20,11 @@ def usuario_ativar(request, id):
     acesso.save(update_fields=["ativo", "atualizado_em"])
     user.is_active = True
     user.save(update_fields=["is_active"])
-
     messages.success(request, "Usuário ativado.")
     return redirect("administracao_sistema")
 
 
 @login_required
-@require_POST
 def usuario_excluir(request, id):
     scope = _escopo(request)
     user = get_object_or_404(User, pk=id)
@@ -43,7 +39,6 @@ def usuario_excluir(request, id):
 
     matricula = acesso.matricula
     nome = user.get_full_name() or user.username
-
     try:
         user.delete()
     except ProtectedError:
