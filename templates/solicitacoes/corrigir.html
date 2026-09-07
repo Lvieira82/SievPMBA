@@ -35,7 +35,16 @@
 <strong>Município:</strong> {{ solicitacao.municipio }}<br>
 <strong>Data do evento:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }}
 </div>
-<div class="motivo"><strong>Motivo da correção informado pela gestão:</strong><br>{{ solicitacao.motivo_correcao|default:'Consulte a equipe responsável.'|linebreaksbr }}</div>
+<div class="motivo">
+<strong>Motivo da correção informado pela gestão:</strong><br>
+{% for historico in solicitacao.historicosolicitacao_set.all %}
+    {% if historico.acao == "CORRECAO" %}
+        {{ historico.detalhes|linebreaksbr }}
+    {% endif %}
+{% empty %}
+    Consulte a equipe responsável.
+{% endfor %}
+</div>
 <h3>Documentos atualmente cadastrados</h3>
 {% for documento in documentos %}
 <div class="doc"><span><strong>{{ documento.tipo_documento.nome }}</strong>{% if documento.descricao %}<br>{{ documento.descricao }}{% endif %}</span><a class="btn btn-doc" href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank">Abrir PDF</a></div>
