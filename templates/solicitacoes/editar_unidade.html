@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+{% block title %}Editar Unidade{% endblock %}
+{% block titulo %}Editar Unidade{% endblock %}
+{% block content %}
+<style>
+.wrap{max-width:920px;margin:32px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}h1{color:#907C64}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input,.campo select{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;box-sizing:border-box}.full{grid-column:1/-1}.erro{margin:12px 0;padding:10px 12px;background:#fff0f0;border:1px solid #efb0b0;color:#a21d1d;border-radius:8px;font-weight:600}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 18px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}@media(max-width:700px){.grid{grid-template-columns:1fr}.full{grid-column:auto}}
+</style>
+<div class="wrap"><section class="cardx">
+<h1>✏️ Editar Unidade</h1><p>Atualize os dados da unidade mantendo seu vínculo correto com o CPR.</p>
+{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<form method="post" class="grid">{% csrf_token %}
+<div class="campo"><label>CPR</label><select name="cpr" required>{% for cpr in cprs %}<option value="{{ cpr.id }}" {% if cpr.id == unidade.cpr_id %}selected{% endif %}>{{ cpr.sigla }}</option>{% endfor %}</select></div>
+<div class="campo"><label>Tipo</label><select name="tipo">{% for valor,label in tipos %}<option value="{{ valor }}" {% if valor == unidade.tipo %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div class="campo"><label>Nome oficial</label><input name="nome" maxlength="150" value="{{ unidade.nome }}" required></div>
+<div class="campo"><label>Sigla</label><input name="sigla" maxlength="30" value="{{ unidade.sigla }}" required></div>
+<div class="campo"><label>Telefone</label><input name="telefone" maxlength="20" value="{{ unidade.telefone }}"></div>
+<div class="campo"><label>E-mail</label><input name="email" type="email" maxlength="254" value="{{ unidade.email }}"></div>
+<div class="campo full"><div class="acoes"><button class="btnx prim" type="submit">Salvar alterações</button><a href="{% url 'cadastro_unidades' %}" class="btnx sec">← Voltar às unidades</a></div></div>
+</form>
+</section></div>
+{% endblock %}
