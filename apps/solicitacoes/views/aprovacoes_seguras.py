@@ -13,7 +13,6 @@ from .geracao_opo import gerar_opo_com_evento_extra
 
 @login_required
 def aprovacoes(request):
-    # Nesta etapa, aprovação e geração de OPO pertencem exclusivamente ao Gestor de Unidade.
     if not perfil_gestor(request.user, "UNIDADE"):
         messages.error(request, "Somente o Gestor de Unidade pode acessar as aprovações.")
         return redirect("painel_gestao")
@@ -69,7 +68,35 @@ def aprovar_solicitacao(request, id):
         status="APROVADA",
         observacao="Solicitação aprovada pelo gestor após conferência da documentação.",
     )
-    messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. Escolha o tipo de efetivo para gerar a OPO.")
+
+    destinatario = solicitacao.email or (solicitacao.usuario.email if solicitacao.usuario else "")
+    if destinatario:
+        mensagem = f"""Olá, {solicitacao.solicitante}!
+
+Sua solicitação foi APROVADA pela unidade responsável.
+
+PROTOCOLO: {solicitacao.protocolo}
+EVENTO: {solicitacao.nome_evento}
+DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
+
+A Ordem de Policiamento (OPO) será gerada pela unidade responsável.
+
+PMBA - Sistema de Informações de Eventos (SiEvPM).
+"""
+        try:
+            send_mail(
+                subject=f"Solicitação aprovada - Protocolo {solicitacao.protocolo}",
+                message=mensagem,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[destinatario],
+                fail_silently=False,
+            )
+            messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada e e-mail de aprovação enviado.")
+        except Exception:
+            messages.warning(request, f"Solicitação {solicitacao.protocolo} aprovada, mas o e-mail de aprovação não pôde ser enviado.")
+    else:
+        messages.success(request, f"Solicitação {solicitacao.protocolo} aprovada. Escolha o tipo de efetivo para gerar a OPO.")
+
     return redirect("gerar_opo", id=id)
 
 
@@ -84,16 +111,44 @@ def solicitar_correcao_gestao(request, id):
         if not motivo:
             messages.error(request, "Informe o motivo da correção.")
             return render(request, "gestao/solicitar_correcao.html", {"solicitacao": solicitacao})
+
         solicitacao.status = "CORRECAO"
-        solicitacao.motivo_correcao = motivo
-        solicitacao.save(update_fields=["status", "motivo_correcao", "atualizado_em"])
-        HistoricoSolicitacao.objects.create(solicitacao=solicitacao, usuario=request.user, status="CORRECAO", observacao=motivo)
+        solicitacao.save(update_fields=["status", "atualizado_em"])
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            usuario=request.user,
+            status="CORRECAO",
+            observacao=motivo,
+        )
+
         link = request.build_absolute_uri(reverse("corrigir_solicitacao", kwargs={"protocolo": solicitacao.protocolo}))
         destinatario = solicitacao.email or (solicitacao.usuario.email if solicitacao.usuario else "")
         if destinatario:
-            mensagem = f"""Olá, {solicitacao.solicitante}!\n\nSua solicitação de evento foi devolvida para correção.\n\nPROTOCOLO: {solicitacao.protocolo}\nEVENTO: {solicitacao.nome_evento}\n\nMOTIVO DA CORREÇÃO:\n{motivo}\n\nPara corrigir, abra o link abaixo:\n{link}\n\nDepois de enviar a correção, o protocolo retornará para análise.\n\nPMBA - Sistema de Informações de Eventos (SiEv).\n"""
+            mensagem = f"""Olá, {solicitacao.solicitante}!
+
+Sua solicitação de evento foi devolvida para correção.
+
+PROTOCOLO: {solicitacao.protocolo}
+EVENTO: {solicitacao.nome_evento}
+
+MOTIVO DA CORREÇÃO:
+{motivo}
+
+Para corrigir, abra o link abaixo:
+{link}
+
+Depois de enviar a correção, o protocolo retornará para análise.
+
+PMBA - Sistema de Informações de Eventos (SiEvPM).
+"""
             try:
-                send_mail(subject=f"Correção necessária - Protocolo {solicitacao.protocolo}", message=mensagem, from_email=settings.DEFAULT_FROM_EMAIL, recipient_list=[destinatario], fail_silently=False)
+                send_mail(
+                    subject=f"Correção necessária - Protocolo {solicitacao.protocolo}",
+                    message=mensagem,
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[destinatario],
+                    fail_silently=False,
+                )
                 messages.success(request, "Solicitação enviada para correção e e-mail encaminhado ao solicitante.")
             except Exception:
                 messages.warning(request, "A solicitação foi enviada para correção, mas o e-mail não pôde ser enviado.")
