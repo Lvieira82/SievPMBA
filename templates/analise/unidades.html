@@ -2,18 +2,60 @@
 {% block title %}Análise Operacional{% endblock %}
 {% block content %}
 <style>
-.analise{max-width:1250px;margin:35px auto;padding:0 15px}.box{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.box h1,.box h2{color:#907C64}.filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;align-items:end}.filtros label{font-weight:700;color:#374151}.filtros input,.filtros select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px}.btn{display:inline-block;padding:11px 17px;background:#907C64;color:#fff;border:0;border-radius:8px;text-decoration:none;font-weight:700}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}.mini{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:18px}.mini b{display:block;font-size:25px;color:#111827}.table-wrap{overflow:auto}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:13px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap}.tabela th{background:#111827;color:#fff}.media{font-weight:800;color:#907C64}.sim{color:#15803d;font-weight:800}.nao{color:#b91c1c;font-weight:800}.percentual{font-weight:800;color:#2563eb}.nota{color:#6b7280;font-size:13px}.ranking-num{font-weight:800;width:55px}.vazio{text-align:center;padding:18px;color:#6b7280}@media(max-width:900px){.filtros{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+.analise{max-width:1250px;margin:35px auto;padding:0 15px}
+.box{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}
+.box h1,.box h2{color:#907C64}
+.filtros{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:12px;align-items:end}
+.filtros label{font-weight:700;color:#374151}
+.filtros input,.filtros select{width:100%;padding:11px;border:1px solid #d1d5db;border-radius:8px}
+.btn{display:inline-block;padding:11px 17px;background:#907C64;color:#fff;border:0;border-radius:8px;text-decoration:none;font-weight:700}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.mini{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:18px}
+.mini b{display:block;font-size:25px;color:#111827}
+.table-wrap{overflow:auto}
+.tabela{width:100%;border-collapse:collapse}
+.tabela th,.tabela td{padding:13px;border-bottom:1px solid #e5e7eb;text-align:left;white-space:nowrap}
+.tabela th{background:#111827;color:#fff}
+.media{font-weight:800;color:#907C64}
+.cumprida{color:#15803d;font-weight:800}
+.justificada{color:#a16207;font-weight:800}
+.descumprida{color:#b91c1c;font-weight:800}
+.percentual{font-weight:800;color:#2563eb}
+.nota{color:#6b7280;font-size:13px}
+.ranking-num{font-weight:800;width:55px}
+.vazio{text-align:center;padding:18px;color:#6b7280}
+.legenda{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:13px}
+@media(max-width:900px){.filtros{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
 </style>
 <div class="analise">
-<div class="box"><h1>📊 Análise Operacional</h1><p>Filtre o período e, quando permitido, a unidade. O cumprimento das OPOs considera as respostas dos Operadores: SIM com evidência em imagem e NÃO com justificativa.</p>
-<form class="filtros" method="get"><div><label>Unidade</label><select name="unidade"><option value="">Todas permitidas</option>{% for u in unidades %}<option value="{{ u.id }}" {% if selecionada and selecionada.id == u.id %}selected{% endif %}>{{ u.nome }}</option>{% endfor %}</select></div><div><label>Origem</label><select name="origem"><option value="">Todas</option><option value="EXTERNA" {% if origem == 'EXTERNA' %}selected{% endif %}>Externa</option><option value="TRANSFERIDA" {% if origem == 'TRANSFERIDA' %}selected{% endif %}>Transferida</option><option value="MANUAL" {% if origem == 'MANUAL' %}selected{% endif %}>Manual</option></select></div><div><label>Desde</label><input type="date" name="inicio" value="{{ inicio }}"></div><div><label>Até</label><input type="date" name="fim" value="{{ fim }}"></div><button class="btn" type="submit">Filtrar</button></form></div>
-<div class="cards"><div class="mini">Solicitações analisadas<b>{{ total_geral }}</b></div><div class="mini">Respostas de atendimento<b>{{ respondidas }}</b></div><div class="mini">Cumprimento geral<b>{% if cumprimento_geral.percentual is not None %}{{ cumprimento_geral.percentual }}%{% else %}—{% endif %}</b><span class="nota">SIM {{ cumprimento_geral.sim }} · NÃO {{ cumprimento_geral.nao }}</span></div></div>
+<div class="box">
+<h1>📊 Análise Operacional</h1>
+<p>Filtre o período e, quando permitido, a unidade. Cada OPO é classificada conforme o retorno do Operador.</p>
+<div class="legenda">
+<span class="cumprida">● Cumprida (SIM)</span>
+<span class="justificada">● Justificada (NÃO)</span>
+<span class="descumprida">● Descumprida (sem resposta)</span>
+</div>
+<form class="filtros" method="get" style="margin-top:20px">
+<div><label>Unidade</label><select name="unidade"><option value="">Todas permitidas</option>{% for u in unidades %}<option value="{{ u.id }}" {% if selecionada and selecionada.id == u.id %}selected{% endif %}>{{ u.nome }}</option>{% endfor %}</select></div>
+<div><label>Origem</label><select name="origem"><option value="">Todas</option><option value="EXTERNA" {% if origem == 'EXTERNA' %}selected{% endif %}>Externa</option><option value="TRANSFERIDA" {% if origem == 'TRANSFERIDA' %}selected{% endif %}>Transferida</option><option value="MANUAL" {% if origem == 'MANUAL' %}selected{% endif %}>Manual</option></select></div>
+<div><label>Desde</label><input type="date" name="inicio" value="{{ inicio }}"></div>
+<div><label>Até</label><input type="date" name="fim" value="{{ fim }}"></div>
+<button class="btn" type="submit">Filtrar</button>
+</form>
+</div>
+
+<div class="cards">
+<div class="mini">Solicitações analisadas<b>{{ total_geral }}</b></div>
+<div class="mini">OPOs respondidas<b>{{ respondidas }}</b><span class="nota">de {{ cumprimento_geral.total }} OPOs</span></div>
+<div class="mini">Cumprimento geral<b>{% if cumprimento_geral.percentual is not None %}{{ cumprimento_geral.percentual }}%{% else %}—{% endif %}</b><span class="nota">{{ cumprimento_geral.cumpridas }} cumpridas · {{ cumprimento_geral.justificadas }} justificadas · {{ cumprimento_geral.descumpridas }} descumpridas</span></div>
+</div>
 
 {% if eh_coppm %}
-<div class="box"><h2>🏆 Ranking por CPR</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>CPR</th><th>Solicitações</th><th>SIM</th><th>NÃO</th><th>Respostas</th><th>Cumprimento</th></tr></thead><tbody>{% for item in ranking_cpr %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.cpr.sigla }}</strong><br><span class="nota">{{ item.cpr.nome }}</span></td><td>{{ item.total }}</td><td class="sim">{{ item.sim }}</td><td class="nao">{{ item.nao }}</td><td>{{ item.respondidos }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="7" class="vazio">Nenhuma resposta de cumprimento no período.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="box"><h2>🏆 Ranking por CPR</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>CPR</th><th>Solicitações</th><th>OPOs</th><th>Cumpridas</th><th>Justificadas</th><th>Descumpridas</th><th>Cumprimento</th></tr></thead><tbody>{% for item in ranking_cpr %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.cpr.sigla }}</strong><br><span class="nota">{{ item.cpr.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.opo_total }}</td><td class="cumprida">{{ item.cumpridas }}</td><td class="justificada">{{ item.justificadas }}</td><td class="descumprida">{{ item.descumpridas }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="8" class="vazio">Nenhuma OPO encontrada no período.</td></tr>{% endfor %}</tbody></table></div></div>
 {% endif %}
 
-<div class="box"><h2>🏆 Ranking por Unidade</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>Unidade</th><th>Solicitações</th><th>Pendentes</th><th>Aprovadas</th><th>Rejeitadas</th><th>SIM</th><th>NÃO</th><th>Respostas OPO</th><th>Cumprimento</th><th>Tempo médio</th></tr></thead><tbody>{% for item in grupos %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.unidade.sigla }}</strong><br><span class="nota">{{ item.unidade.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.pendentes }}</td><td>{{ item.aprovadas }}</td><td>{{ item.rejeitadas }}</td><td class="sim">{{ item.sim }}</td><td class="nao">{{ item.nao }}</td><td>{{ item.cumprimento_total }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td><td class="media">{% if item.media_horas is not None %}{{ item.media_horas }} h{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="11" class="vazio">Nenhuma solicitação encontrada para os filtros.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="box"><h2>🏆 Ranking por Unidade</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>Unidade</th><th>Solicitações</th><th>Pendentes</th><th>Aprovadas</th><th>OPOs</th><th>Cumpridas</th><th>Justificadas</th><th>Descumpridas</th><th>Cumprimento</th><th>Tempo médio</th></tr></thead><tbody>{% for item in grupos %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.unidade.sigla }}</strong><br><span class="nota">{{ item.unidade.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.pendentes }}</td><td>{{ item.aprovadas }}</td><td>{{ item.cumprimento_total }}</td><td class="cumprida">{{ item.cumpridas }}</td><td class="justificada">{{ item.justificadas }}</td><td class="descumprida">{{ item.descumpridas }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td><td class="media">{% if item.media_horas is not None %}{{ item.media_horas }} h{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="11" class="vazio">Nenhuma solicitação encontrada para os filtros.</td></tr>{% endfor %}</tbody></table></div></div>
 <div><a class="btn" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a></div>
 </div>
 {% endblock %}
