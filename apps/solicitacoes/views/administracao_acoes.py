@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 
 from .administracao_sistema import _escopo, _pode_gerenciar
 
