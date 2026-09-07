@@ -42,11 +42,23 @@ def _rotulo_navegador(request):
     return "Navegador"
 
 
+def _conexao_segura(request):
+    """Considera HTTPS real tanto no acesso direto quanto atrás do proxy do Render."""
+    if request.is_secure():
+        return True
+    proto = (request.META.get("HTTP_X_FORWARDED_PROTO") or "").split(",")[0].strip().lower()
+    return proto == "https"
+
+
 def _dispositivo_autorizado(request, usuario):
     token = request.COOKIES.get(COOKIE_DISPOSITIVO)
     if not token:
         return None
-    dispositivo = DispositivoAutorizado.objects.filter(usuario=usuario, token_hash=_hash_token(token), ativo=True).first()
+    dispositivo = DispositivoAutorizado.objects.filter(
+        usuario=usuario,
+        token_hash=_hash_token(token),
+        ativo=True,
+    ).first()
     if dispositivo:
         dispositivo.save(update_fields=["ultimo_acesso"])
     return dispositivo
@@ -55,7 +67,11 @@ def _dispositivo_autorizado(request, usuario):
 def _enviar_codigo_novo_navegador(request, usuario):
     CodigoNovoNavegador.objects.filter(usuario=usuario, usado=False).update(usado=True)
     codigo = f"{secrets.randbelow(10000):04d}"
-    registro = CodigoNovoNavegador.objects.create(usuario=usuario, codigo_hash=make_password(codigo), expira_em=timezone.now() + timedelta(minutes=EXPIRACAO_CODIGO_MINUTOS))
+    registro = CodigoNovoNavegador.objects.create(
+        usuario=usuario,
+        codigo_hash=make_password(codigo),
+        expira_em=timezone.now() + timedelta(minutes=EXPIRACAO_CODIGO_MINUTOS),
+    )
     nome = usuario.get_full_name() or usuario.username
     send_mail(
         "Código de acesso ao SiEvPM",
@@ -80,7 +96,11 @@ def _finalizar_login(request, usuario, acesso, next_url=None):
     request.session.pop("siev_next", None)
     if acesso.primeiro_acesso:
         return redirect("trocar_senha_primeiro_acesso")
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=_conexao_segura(request),
+    ):
         return redirect(next_url)
     return redirect(_destino_principal(acesso))
 
@@ -89,6 +109,7 @@ def login_gestao(request):
     if request.user.is_authenticated:
         acesso = getattr(request.user, "acesso_institucional", None)
         return redirect(_destino_principal(acesso))
+
     if request.method == "POST":
         matricula = request.POST.get("username", "").strip()
         password = request.POST.get("password", "")
@@ -116,8 +137,12 @@ def login_gestao(request):
         if not usuario.email:
             messages.error(request, "O cadastro não possui e-mail para validação de segurança.")
             return render(request, "gestao/login.html", {"next": next_url})
+
+        # Se este navegador já foi previamente autorizado para este usuário,
+        # não solicita novo código a cada login.
         if _dispositivo_autorizado(request, usuario):
             return _finalizar_login(request, usuario, acesso, next_url)
+
         try:
             codigo = _enviar_codigo_novo_navegador(request, usuario)
         except Exception:
@@ -128,6 +153,7 @@ def login_gestao(request):
         request.session["siev_next"] = next_url
         request.session.set_expiry(10 * 60)
         return redirect("verificar_novo_navegador")
+
     return render(request, "gestao/login.html", {"next": request.GET.get("next", "")})
 
 
@@ -161,9 +187,22 @@ def verificar_novo_navegador(request):
         codigo.usado = True
         codigo.save(update_fields=["usado"])
         token = secrets.token_urlsafe(32)
-        DispositivoAutorizado.objects.create(usuario=usuario, token_hash=_hash_token(token), rotulo=_rotulo_navegador(request), user_agent=request.META.get("HTTP_USER_AGENT", ""))
+        DispositivoAutorizado.objects.create(
+            usuario=usuario,
+            token_hash=_hash_token(token),
+            rotulo=_rotulo_navegador(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        )
         resposta = _finalizar_login(request, usuario, acesso, request.session.get("siev_next"))
-        resposta.set_cookie(COOKIE_DISPOSITIVO, token, max_age=EXPIRACAO_DISPOSITIVO, httponly=True, secure=request.is_secure(), samesite="Lax")
+        resposta.set_cookie(
+            COOKIE_DISPOSITIVO,
+            token,
+            max_age=EXPIRACAO_DISPOSITIVO,
+            httponly=True,
+            secure=_conexao_segura(request),
+            samesite="Lax",
+            path="/",
+        )
         return resposta
     return render(request, "gestao/verificar_navegador.html")
 
