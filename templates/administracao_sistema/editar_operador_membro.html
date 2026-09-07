@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}Editar Operador{% endblock %}
+{% block titulo %}Editar Operador{% endblock %}
+{% block content %}
+<style>
+.wrap{max-width:900px;margin:32px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}h1{color:#907C64}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field.full{grid-column:1/-1}.field label{display:block;font-weight:700;margin-bottom:7px}.field input{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;box-sizing:border-box}.erro{color:#a21d1d;font-size:.88rem;font-weight:600;margin-top:5px}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 18px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}@media(max-width:700px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+</style>
+<div class="wrap"><section class="cardx"><h1>✏️ Editar Operador</h1><p>Atualize os dados do operador da unidade.</p>
+{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<form method="post" class="grid">{% csrf_token %}{% if form.non_field_errors %}<div class="field full erro">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="field {% if field.name == 'email' %}full{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="erro">{{ error }}</div>{% endfor %}</div>{% endfor %}<div class="field full"><div class="acoes"><button type="submit" class="btnx prim">Salvar alterações</button><a href="{% url 'administracao_unidade_membro' %}" class="btnx sec">← Voltar aos operadores</a></div></div></form>
+</section></div>
+{% endblock %}
