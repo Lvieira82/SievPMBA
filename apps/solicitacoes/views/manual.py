@@ -8,10 +8,13 @@ from django.utils import timezone
 from apps.solicitacoes.models import (
     AnexoOPO,
     Bairro,
+    DocumentoSolicitacao,
     HistoricoSolicitacao,
     Solicitacao,
+    TipoDocumento,
     TipoEvento,
 )
+from apps.solicitacoes.pdf_security import validar_pdf_upload
 from apps.solicitacoes.permissoes import pode_lancamento_manual
 from .geracao_opo import _gerar_pdf_opo
 from .operacional import GestaoManualForm
@@ -60,6 +63,32 @@ def _preparar_formulario(form, municipio_id=None):
     _preparar_bairros(form, municipio_id)
 
 
+def _salvar_anexos_manuais(request, solicitacao):
+    """Anexos são opcionais; se enviados, devem ser PDFs e usar um tipo ativo."""
+    arquivos = request.FILES.getlist("anexos_manuais")
+    if not arquivos:
+        return 0
+
+    tipo_id = (request.POST.get("tipo_documento_manual") or "").strip()
+    if not tipo_id:
+        raise ValueError("Selecione o tipo dos anexos enviados.")
+
+    tipo = TipoDocumento.objects.filter(pk=tipo_id, ativo=True).first()
+    if not tipo:
+        raise ValueError("O tipo de documento selecionado é inválido.")
+
+    for arquivo in arquivos:
+        validar_pdf_upload(arquivo)
+        DocumentoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            tipo_documento=tipo,
+            descricao="Anexo do lançamento manual",
+            arquivo=arquivo,
+        )
+
+    return len(arquivos)
+
+
 @login_required
 def lancamento_manual(request):
     if not pode_lancamento_manual(request.user):
@@ -69,6 +98,7 @@ def lancamento_manual(request):
     perfil = getattr(request.user, "perfil_siev", None)
     protocolo = (request.GET.get("protocolo_origem") or "").strip().upper()
     original = Solicitacao.objects.filter(protocolo=protocolo).first() if protocolo else None
+    tipos_documento = TipoDocumento.objects.filter(ativo=True).order_by("nome")
 
     if protocolo and not original:
         messages.error(request, "Protocolo não encontrado.")
@@ -94,14 +124,18 @@ def lancamento_manual(request):
                     obj.data_aprovacao = timezone.now()
                     obj.save()
 
+                    quantidade_anexos = _salvar_anexos_manuais(request, obj)
+
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
                         usuario=request.user,
                         acao="LANÇAMENTO MANUAL",
-                        observacao="Solicitação criada/atualizada pelo Gestor ou Membro da Unidade no lançamento manual.",
+                        observacao=(
+                            "Solicitação criada/atualizada pelo Gestor ou Membro da Unidade "
+                            "no lançamento manual."
+                        ),
                     )
 
-                    # O tipo de evento define o tratamento operacional da OPO.
                     evento_extra = obj.tipo_evento.nome.strip().upper() == "EXTRAORDINÁRIO"
                     conteudo = _gerar_pdf_opo(
                         request,
@@ -134,10 +168,17 @@ def lancamento_manual(request):
                         ),
                     )
 
-                messages.success(
-                    request,
-                    f"Lançamento manual salvo e OPO {obj.protocolo} gerada imediatamente.",
-                )
+                if quantidade_anexos:
+                    messages.success(
+                        request,
+                        f"Lançamento manual salvo, {quantidade_anexos} anexo(s) incluído(s) e "
+                        f"OPO {obj.protocolo} gerada imediatamente.",
+                    )
+                else:
+                    messages.success(
+                        request,
+                        f"Lançamento manual salvo e OPO {obj.protocolo} gerada imediatamente.",
+                    )
                 return redirect("detalhe_opo", id=obj.id)
             except Exception as exc:
                 print("ERRO NO LANÇAMENTO MANUAL:", repr(exc))
@@ -156,5 +197,6 @@ def lancamento_manual(request):
             "form": form,
             "solicitacao_original": original,
             "protocolo_origem": protocolo,
+            "tipos_documento": tipos_documento,
         },
     )
