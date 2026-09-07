@@ -30,10 +30,10 @@ from apps.solicitacoes.views.administracao_sistema import (
 from apps.solicitacoes.views.administracao_acoes import usuario_ativar, usuario_excluir
 from apps.solicitacoes.views.administracao_unidade_membro import administracao_unidade_membro
 from apps.solicitacoes.views.cadastro_territorio import (
-    cadastro_bairros, cadastro_unidades, ativar_unidade, desativar_unidade,
-    excluir_unidade,
+    cadastro_bairros, cadastro_unidades, editar_bairro, editar_unidade,
+    ativar_bairro, desativar_bairro, excluir_bairro,
+    ativar_unidade, desativar_unidade, excluir_unidade,
 )
-from apps.solicitacoes.views.cadastro_municipios import cadastro_municipios, alternar_municipio
 from apps.solicitacoes.views.compat import (
     alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
     minhas_solicitacoes, verificar_autenticidade,
@@ -108,12 +108,15 @@ urlpatterns = [
     path("gestao/administracao/usuario/<int:id>/ativar/", usuario_ativar, name="administracao_usuario_ativar"),
     path("gestao/administracao/usuario/<int:id>/excluir/", usuario_excluir, name="administracao_usuario_excluir"),
     path("gestao/cadastro/unidades/", cadastro_unidades, name="cadastro_unidades"),
+    path("gestao/cadastro/unidades/<int:id>/editar/", editar_unidade, name="editar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/ativar/", ativar_unidade, name="ativar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/desativar/", desativar_unidade, name="desativar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/excluir/", excluir_unidade, name="excluir_unidade"),
     path("gestao/cadastro/bairros/", cadastro_bairros, name="cadastro_bairros"),
-    path("gestao/cadastro/municipios/", cadastro_municipios, name="cadastro_municipios"),
-    path("gestao/cadastro/municipios/<int:id>/alternar/", alternar_municipio, name="alternar_municipio"),
+    path("gestao/cadastro/bairros/<int:id>/editar/", editar_bairro, name="editar_bairro"),
+    path("gestao/cadastro/bairros/<int:id>/ativar/", ativar_bairro, name="ativar_bairro"),
+    path("gestao/cadastro/bairros/<int:id>/desativar/", desativar_bairro, name="desativar_bairro"),
+    path("gestao/cadastro/bairros/<int:id>/excluir/", excluir_bairro, name="excluir_bairro"),
     path("gestao/usuarios/", usuarios_unidade, name="usuarios_unidade"),
     path("gestao/usuarios/cadastrar/", cadastrar_usuario_unidade, name="cadastrar_usuario_unidade"),
     path("gestao/usuarios/<int:id>/editar/", editar_usuario_unidade, name="editar_usuario_unidade"),
