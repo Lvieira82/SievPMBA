@@ -1,41 +1,19 @@
-import csv
-import io
-from datetime import timedelta
+"""Camada de compatibilidade das views operacionais antigas.
 
-import openpyxl
-from django.contrib import messages
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.core.files.base import ContentFile
-from django.http import FileResponse, Http404, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
+As rotas novas usam views segmentadas/seguras. Este módulo mantém os nomes
+históricos importados por compat.py sem duplicar a implementação.
+"""
+
 from django import forms
-
-from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import redirect
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
-from apps.solicitacoes.models import (
-    AnexoOPO,
-    Bairro,
-    DocumentoSolicitacao,
-    HistoricoSolicitacao,
-    MatriculaAutorizada,
-    Municipio,
-    PerfilUsuario,
-    Solicitacao,
-    TipoDocumento,
-    TipoEvento,
-    Unidade,
-)
-from apps.solicitacoes.pdf_security import validar_pdf_upload
+from apps.solicitacoes.models import Bairro, Municipio, TipoEvento, Unidade
 
 
 class GestaoManualForm(SolicitacaoManualForm):
-    """Formulário manual com os dados territoriais definidos pelo usuário da unidade."""
+    """Formulário de lançamento manual com escopo territorial da unidade."""
 
     def __init__(self, *args, perfil=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -92,87 +70,91 @@ class GestaoManualForm(SolicitacaoManualForm):
         return bairro
 
 
+def _delegar(nome, modulo, request, *args, **kwargs):
+    func = getattr(__import__(modulo, fromlist=[nome]), nome)
+    return func(request, *args, **kwargs)
+
+
+def lancamento_manual(request, *args, **kwargs):
+    from .manual import lancamento_manual as view
+    return view(request, *args, **kwargs)
+
+
+def documentos_solicitacao(request, id, *args, **kwargs):
+    from .escopo_gestao import documentos_solicitacao_seguro
+    return documentos_solicitacao_seguro(request, id, *args, **kwargs)
+
+
+def abrir_documento_solicitacao(request, id, tipo="arquivo", *args, **kwargs):
+    from .escopo_gestao import abrir_documento_solicitacao_seguro
+    return abrir_documento_solicitacao_seguro(request, id, tipo=tipo, *args, **kwargs)
+
+
+def opos_geradas(request, *args, **kwargs):
+    from .escopo_gestao import opos_geradas_seguro
+    return opos_geradas_seguro(request, *args, **kwargs)
+
+
+def detalhe_opo(request, id, *args, **kwargs):
+    from .escopo_gestao import detalhe_opo_seguro
+    return detalhe_opo_seguro(request, id, *args, **kwargs)
+
+
+def gerar_opo(request, id, *args, **kwargs):
+    from .escopo_gestao import gerar_opo_seguro
+    return gerar_opo_seguro(request, id, *args, **kwargs)
+
+
+def mapa_eventos(request, *args, **kwargs):
+    from .escopo_gestao import mapa_eventos_seguro
+    return mapa_eventos_seguro(request, *args, **kwargs)
+
+
+def gerar_mapa_eventos_pdf(request, *args, **kwargs):
+    from .mapa_eventos_pdf import gerar_mapa_eventos_pdf_seguro
+    return gerar_mapa_eventos_pdf_seguro(request, *args, **kwargs)
+
+
+def validar_matricula_opo_publica(request, id, *args, **kwargs):
+    from .public_opo import validar_matricula_opo_publica as view
+    return view(request, id, *args, **kwargs)
+
+
+def detalhe_opo_publica(request, id, *args, **kwargs):
+    from .public_opo import detalhe_opo_publica as view
+    return view(request, id, *args, **kwargs)
+
+
+def importar_matriculas_painel(request, *args, **kwargs):
+    """Compatibilidade: a administração atual não usa mais esta rota antiga."""
+    return redirect("painel_gestao")
+
+
 @login_required
-def lancamento_manual(request):
-    perfil = getattr(request.user, "perfil_siev", None)
-    protocolo = request.GET.get("protocolo_origem", "").strip().upper()
-    original = Solicitacao.objects.filter(protocolo=protocolo).first() if protocolo else None
-
-    if protocolo and not original:
-        messages.error(request, "Protocolo não encontrado.")
-
-    if request.method == "POST":
-        protocolo = request.POST.get("protocolo_origem", "").strip().upper()
-        original = Solicitacao.objects.filter(protocolo=protocolo).first() if protocolo else None
-        form = GestaoManualForm(request.POST, request.FILES, instance=original, perfil=perfil)
-
-        if form.is_valid():
-            obj = form.save(commit=False)
-            obj.usuario = request.user
-            obj.municipio = form.cleaned_data["municipio"]
-            obj.bairro = form.cleaned_data.get("bairro")
-            obj.tipo_evento = form.cleaned_data["tipo_evento"]
-            obj.unidade = form.cleaned_data["unidade"]
-            obj.origem = "MANUAL"
-            obj.status = "PENDENTE"
-            obj.save()
-
-            HistoricoSolicitacao.objects.create(
-                solicitacao=obj,
-                usuario=request.user,
-                acao="LANÇAMENTO MANUAL",
-                detalhes="Solicitação criada/atualizada pelo módulo de lançamento manual.",
-            )
-
-            messages.success(request, f"Informação salva com o protocolo {obj.protocolo}.")
-            return redirect("documentos_solicitacao", id=obj.id)
-    else:
-        form = GestaoManualForm(instance=original, perfil=perfil)
-
-    return render(
-        request,
-        "gestao/lancamento_manual.html",
-        {
-            "form": form,
-            "solicitacao_original": original,
-            "protocolo_origem": protocolo,
-        },
-    )
+def importar_municipios(request, *args, **kwargs):
+    """Compatibilidade: cadastro de municípios foi retirado do painel."""
+    return redirect("painel_gestao")
 
 
 @login_required
-def documentos_solicitacao(request, id):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("municipio", "bairro", "unidade"),
-        pk=id,
-    )
-    documentos = DocumentoSolicitacao.objects.filter(solicitacao=solicitacao).select_related("tipo_documento")
-    tipos = TipoDocumento.objects.filter(ativo=True).order_by("nome")
+def verificar_autenticidade(request, protocolo, *args, **kwargs):
+    """Compatibilidade para QR/links antigos; encaminha para a consulta pública."""
+    return redirect(f"/consultar/?protocolo={protocolo}")
 
-    if request.method == "POST":
-        arquivo = request.FILES.get("arquivo")
-        tipo_id = request.POST.get("tipo_documento")
-        descricao = request.POST.get("descricao", "").strip()
 
-        if not arquivo or not tipo_id:
-            messages.error(request, "Informe o PDF e o tipo do documento.")
-        else:
-            try:
-                validar_pdf_upload(arquivo)
-                tipo = get_object_or_404(TipoDocumento, pk=tipo_id, ativo=True)
-                DocumentoSolicitacao.objects.create(
-                    solicitacao=solicitacao,
-                    tipo_documento=tipo,
-                    descricao=descricao,
-                    arquivo=arquivo,
-                )
-                messages.success(request, "Documento anexado com sucesso.")
-                return redirect("documentos_solicitacao", id=id)
-            except Exception as exc:
-                messages.error(request, f"Documento rejeitado: {exc}")
-
-    return render(
-        request,
-        "gestao/documentos_solicitacao.html",
-        {"solicitacao": solicitacao, "documentos": documentos, "tipos_documento": tipos},
-    )
+__all__ = [
+    "GestaoManualForm",
+    "lancamento_manual",
+    "documentos_solicitacao",
+    "abrir_documento_solicitacao",
+    "opos_geradas",
+    "detalhe_opo",
+    "gerar_opo",
+    "mapa_eventos",
+    "gerar_mapa_eventos_pdf",
+    "validar_matricula_opo_publica",
+    "detalhe_opo_publica",
+    "importar_matriculas_painel",
+    "importar_municipios",
+    "verificar_autenticidade",
+]
