@@ -8,16 +8,13 @@ from .administracao_sistema import _escopo, _pode_gerenciar
 
 
 @login_required
+@require_POST
 def usuario_ativar(request, id):
     scope = _escopo(request)
-    if not scope or not scope["desenvolvedor"]:
-        messages.error(request, "Somente o desenvolvedor pode ativar usuários.")
-        return redirect("administracao_sistema")
-
     user = get_object_or_404(User, pk=id)
     acesso = getattr(user, "acesso_institucional", None)
-    if not acesso or not _pode_gerenciar(scope, acesso):
-        messages.error(request, "Este cadastro não possui vínculo institucional válido.")
+    if not scope or not _pode_gerenciar(scope, acesso):
+        messages.error(request, "Você não pode ativar este cadastro.")
         return redirect("administracao_sistema")
 
     acesso.ativo = True
@@ -30,20 +27,17 @@ def usuario_ativar(request, id):
 
 
 @login_required
+@require_POST
 def usuario_excluir(request, id):
     scope = _escopo(request)
-    if not scope or not scope["desenvolvedor"]:
-        messages.error(request, "Somente o desenvolvedor pode excluir usuários.")
-        return redirect("administracao_sistema")
-
     user = get_object_or_404(User, pk=id)
     if user.is_superuser:
         messages.error(request, "O usuário desenvolvedor não pode ser excluído por esta tela.")
         return redirect("administracao_sistema")
 
     acesso = getattr(user, "acesso_institucional", None)
-    if not acesso or not _pode_gerenciar(scope, acesso):
-        messages.error(request, "Este cadastro não possui vínculo institucional válido.")
+    if not scope or not _pode_gerenciar(scope, acesso):
+        messages.error(request, "Você não pode excluir este cadastro.")
         return redirect("administracao_sistema")
 
     matricula = acesso.matricula
@@ -54,8 +48,8 @@ def usuario_excluir(request, id):
     except ProtectedError:
         messages.error(
             request,
-            "Este usuário possui registros históricos vinculados e não pode ser excluído "
-            "sem preservar esses registros. Desative o acesso para impedir novos logins."
+            "Este usuário possui registros históricos vinculados e não pode ser excluído. "
+            "Desative o acesso para impedir novos logins."
         )
         return redirect("administracao_sistema")
 
