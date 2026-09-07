@@ -19,84 +19,10 @@ body{
     overflow-y:auto;
 }
 
-.portal-sidebar{
-    position:fixed;
-    z-index:1100;
-    left:0;
-    top:0;
-    bottom:0;
-    width:280px;
-    background:var(--marrom);
-    color:#fff;
-    box-shadow:4px 0 18px rgba(0,0,0,.16);
-    display:flex;
-    flex-direction:column;
-    overflow-y:auto;
-}
-
-.sidebar-logo{
-    padding:30px 20px;
-    text-align:center;
-    border-bottom:1px solid rgba(255,255,255,.18);
-}
-
-.sidebar-logo img{
-    width:90px;
-    height:90px;
-    object-fit:contain;
-    display:block;
-    margin:0 auto 14px;
-}
-
-.sidebar-logo strong{
-    display:block;
-    color:#C8A646;
-    font-size:26px;
-    font-weight:700;
-}
-
-.sidebar-logo small{
-    display:block;
-    margin-top:4px;
-    color:#eee;
-    font-size:13px;
-}
-
-.portal-sidebar nav{padding:18px 10px}
-
-.portal-sidebar nav a{
-    display:flex;
-    align-items:center;
-    gap:14px;
-    color:#fff;
-    text-decoration:none;
-    padding:14px;
-    border-radius:10px;
-    margin-bottom:8px;
-    font-weight:600;
-    transition:.25s;
-}
-
-.portal-sidebar nav a:hover{
-    background:var(--dourado);
-    color:#000;
-    transform:translateX(4px);
-}
-
-.portal-sidebar nav i{
-    width:28px;
-    min-width:28px;
-    text-align:center;
-    color:#C8A646;
-    font-size:20px;
-}
-
-.portal-sidebar nav a:hover i{color:#000}
-
 .portal-page{
-    margin-left:280px;
+    margin-left:0;
     min-height:100vh;
-    width:calc(100% - 280px);
+    width:100%;
 }
 
 .overlay{
@@ -127,9 +53,7 @@ body{
     margin:0 auto 25px;
 }
 
-.logo-principal + h1{
-    margin-top:0;
-}
+.logo-principal + h1{margin-top:0}
 
 .logo{
     width:160px;
@@ -236,16 +160,8 @@ hr{margin:40px 0}
 }
 
 #areaBairro{display:none;margin-top:12px;text-align:left}
-
-#areaBairro label{
-    display:block;
-    margin-bottom:6px;
-    color:#374151;
-    font-weight:600;
-}
-
+#areaBairro label{display:block;margin-bottom:6px;color:#374151;font-weight:600}
 .bairro-autocomplete{position:relative}
-
 #pesquisaMunicipio,#pesquisaBairro{width:100%}
 
 #listaMunicipios,#listaBairros{
@@ -268,13 +184,7 @@ hr{margin:40px 0}
 
 #listaBairros .list-group-item{cursor:pointer}
 #listaBairros .list-group-item:hover{background:#f1ede7}
-
-.bairro-status{
-    display:none;
-    margin-top:6px;
-    font-size:13px;
-    color:#6b7280;
-}
+.bairro-status{display:none;margin-top:6px;font-size:13px;color:#6b7280}
 
 .eventos-dia-acesso{
     width:100%;
@@ -291,184 +201,39 @@ hr{margin:40px 0}
     transition:.2s;
 }
 
-.eventos-dia-acesso:hover{
-    box-shadow:0 8px 22px rgba(0,0,0,.08);
-    transform:translateY(-2px);
-}
-
-.eventos-dia-icone{
-    width:70px;
-    height:70px;
-    min-width:70px;
-    border-radius:50%;
-    background:#907C64;
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:32px;
-}
-
+.eventos-dia-acesso:hover{box-shadow:0 8px 22px rgba(0,0,0,.08);transform:translateY(-2px)}
+.eventos-dia-icone{width:70px;height:70px;min-width:70px;border-radius:50%;background:#907C64;color:white;display:flex;align-items:center;justify-content:center;font-size:32px}
 .eventos-dia-conteudo{flex:1}
-
-.eventos-dia-conteudo h2{
-    margin:0 0 8px;
-    color:#907C64;
-    font-size:25px;
-}
-
-.eventos-dia-conteudo p{
-    margin:0 0 16px;
-    color:#536174;
-    font-size:15px;
-}
-
-.btn-eventos-dia{
-    display:inline-block;
-    padding:11px 25px;
-    background:#212529;
-    color:white;
-    text-decoration:none;
-    border-radius:7px;
-    font-weight:bold;
-    transition:.2s;
-}
-
+.eventos-dia-conteudo h2{margin:0 0 8px;color:#907C64;font-size:25px}
+.eventos-dia-conteudo p{margin:0 0 16px;color:#536174;font-size:15px}
+.btn-eventos-dia{display:inline-block;padding:11px 25px;background:#212529;color:white;text-decoration:none;border-radius:7px;font-weight:bold;transition:.2s}
 .btn-eventos-dia:hover{background:#907C64;color:white}
 
-footer{
-    margin-top:35px;
-    color:#777;
-    font-size:15px;
-    padding-bottom:20px;
-}
+footer{margin-top:35px;color:#777;font-size:15px;padding-bottom:20px}
 
 @media(max-width:991px){
-    .portal-sidebar{
-        position:relative;
-        width:100%;
-        height:auto;
-        min-height:0;
-        bottom:auto;
-        overflow:visible;
-        background:#fff;
-        color:var(--texto);
-        box-shadow:0 2px 12px rgba(0,0,0,.08);
-    }
-
-    .sidebar-logo{
-        padding:16px 16px 14px;
-        background:#fff;
-        border-bottom:1px solid #e5e7eb;
-    }
-
-    .sidebar-logo img{
-        width:72px;
-        height:72px;
-        margin-bottom:8px;
-    }
-
-    .sidebar-logo strong{font-size:23px;color:#9A8665}
-    .sidebar-logo small{font-size:12px;color:#5b6470}
-
-    .portal-sidebar nav{
-        display:flex;
-        flex-direction:column;
-        overflow:visible;
-        padding:8px 12px 12px;
-        background:#fff;
-    }
-
-    .portal-sidebar nav a{
-        width:100%;
-        white-space:normal;
-        margin:0 0 6px;
-        padding:11px 13px;
-        color:#303640;
-        background:#f8f9fb;
-        border:1px solid #e7e9ed;
-        border-radius:10px;
-    }
-
-    .portal-sidebar nav a:hover{
-        background:#f1ede7;
-        color:#242424;
-        transform:none;
-    }
-
-    .portal-sidebar nav i{color:#C8A646}
-    .portal-sidebar nav a:hover i{color:#9A8665}
-
-    .portal-page{
-        margin-left:0;
-        width:100%;
-    }
-
     .overlay{padding:12px 10px 22px}
-
     .container{max-width:100%}
-
-    .portal-card{
-        padding:28px 16px;
-        border-radius:16px;
-    }
-
-    .logo-principal{
-        width:205px;
-        max-width:76%;
-        margin-bottom:20px;
-    }
-
+    .portal-card{padding:28px 16px;border-radius:16px}
+    .logo-principal{width:205px;max-width:76%;margin-bottom:20px}
     h1{font-size:30px}
     h2{font-size:21px;margin-bottom:22px}
     .descricao{font-size:16px;line-height:1.65;margin-bottom:25px}
-
-    .row.g-4{
-        display:flex;
-        flex-direction:column;
-        gap:18px;
-    }
-
-    .row.g-4 > [class*="col-"]{
-        width:100%;
-        max-width:100%;
-    }
-
-    .servico{
-        min-height:0;
-        height:auto;
-        padding:24px 20px;
-        margin-bottom:0;
-    }
-
+    .row.g-4{display:flex;flex-direction:column;gap:18px}
+    .row.g-4 > [class*="col-"]{width:100%;max-width:100%}
+    .servico{min-height:0;height:auto;padding:24px 20px;margin-bottom:0}
     .servico i{font-size:44px;margin-bottom:14px}
     .servico h3{min-height:0;font-size:23px}
     .servico p{min-height:0;font-size:15px}
-
-    .eventos-dia-acesso{
-        flex-direction:column;
-        width:100%;
-        text-align:center;
-        gap:16px;
-        padding:24px 18px;
-        margin-top:18px;
-    }
-
+    .eventos-dia-acesso{flex-direction:column;width:100%;text-align:center;gap:16px;padding:24px 18px;margin-top:18px}
     .eventos-dia-conteudo{width:100%}
     .eventos-dia-conteudo h2{font-size:22px}
     .eventos-dia-conteudo p{font-size:14px;line-height:1.5}
     .btn-eventos-dia{width:100%;text-align:center}
-
     hr{margin:28px 0}
 }
 
 @media(max-width:575px){
-    .sidebar-logo{padding:14px 12px 12px}
-    .sidebar-logo img{width:64px;height:64px}
-    .sidebar-logo strong{font-size:22px}
-    .portal-sidebar nav{padding:8px 10px 10px}
-    .portal-sidebar nav a{font-size:14px;padding:10px 12px}
-
     .portal-card{padding:22px 13px}
     .logo-principal{width:190px;max-width:84%}
     h1{font-size:26px}
