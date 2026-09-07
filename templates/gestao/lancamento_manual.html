@@ -4,294 +4,139 @@
 {% block content %}
 
 <style>
-
 .container-formulario{
     max-width:1100px;
     margin:40px auto;
     padding:0 15px;
 }
-
 .card-formulario{
     background:#fff;
     border-radius:16px;
     padding:35px;
     box-shadow:0 5px 20px rgba(0,0,0,.08);
 }
-
-h1{
-    margin-bottom:5px;
-    color:#111827;
-}
-
-.subtitulo{
-    color:#6b7280;
-    margin-bottom:30px;
-}
-
-.busca-card{
+h1{margin-bottom:5px;color:#111827;}
+.subtitulo{color:#6b7280;margin-bottom:30px;}
+.busca-card,.anexos-card{
     background:#f8fafc;
     border:1px solid #e5e7eb;
     border-radius:12px;
     padding:20px;
     margin-bottom:30px;
 }
-
-.busca-grid{
-    display:flex;
-    gap:12px;
-    align-items:end;
-}
-
-.busca-grid div{
-    flex:1;
-}
-
-label{
-    display:block;
-    margin-bottom:8px;
-    font-weight:bold;
-    color:#111827;
-}
-
-input,
-select,
-textarea{
-
+.anexos-card h3{margin:0 0 6px;color:#111827;font-size:20px;}
+.anexos-card p{margin:0 0 18px;color:#6b7280;}
+.anexos-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:end;}
+.busca-grid{display:flex;gap:12px;align-items:end;}
+.busca-grid div{flex:1;}
+label{display:block;margin-bottom:8px;font-weight:bold;color:#111827;}
+input,select,textarea{
     width:100%;
     padding:12px;
     border:1px solid #d1d5db;
     border-radius:8px;
     font-size:15px;
     box-sizing:border-box;
-
 }
-
-textarea{
-    min-height:120px;
-}
-
+input[type="file"]{background:#fff;}
+textarea{min-height:120px;}
 .btn-buscar{
-
-    background:#374151;
-    color:#fff;
-    border:none;
-    padding:13px 28px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-
+    background:#374151;color:#fff;border:none;padding:13px 28px;border-radius:8px;cursor:pointer;font-weight:bold;
 }
-
-.btn-buscar:hover{
-
-    background:#1f2937;
-
-}
-
+.btn-buscar:hover{background:#1f2937;}
 .btn-salvar{
-
-    background:#907C64;
-    color:#fff;
-    border:none;
-    padding:14px 30px;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:bold;
-
+    background:#907C64;color:#fff;border:none;padding:14px 30px;border-radius:8px;cursor:pointer;font-weight:bold;
 }
-
-.btn-salvar:hover{
-
-    background:#7c694f;
-
-}
-
+.btn-salvar:hover{background:#7c694f;}
 .btn-voltar{
-
-    display:inline-block;
-    text-decoration:none;
-    background:#6b7280;
-    color:#fff;
-    padding:14px 30px;
-    border-radius:8px;
-    font-weight:bold;
-
+    display:inline-block;text-decoration:none;background:#6b7280;color:#fff;padding:14px 30px;border-radius:8px;font-weight:bold;
 }
-
-.btn-voltar:hover{
-
-    background:#4b5563;
-
-}
-
-.acoes{
-
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:35px;
-
-}
-
-.alerta{
-
-    background:#fee2e2;
-    color:#991b1b;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:20px;
-
-}
-
-.info{
-
-    background:#ecfdf5;
-    color:#065f46;
-    padding:15px;
-    border-radius:10px;
-    margin-bottom:20px;
-
-}
-
+.btn-voltar:hover{background:#4b5563;}
+.acoes{display:flex;justify-content:space-between;align-items:center;margin-top:35px;}
+.alerta{background:#fee2e2;color:#991b1b;padding:15px;border-radius:10px;margin-bottom:20px;}
+.info{background:#ecfdf5;color:#065f46;padding:15px;border-radius:10px;margin-bottom:20px;}
 @media(max-width:768px){
-
-    .card-formulario{
-
-        padding:20px;
-
-    }
-
-    .busca-grid{
-
-        flex-direction:column;
-
-    }
-
-    .btn-buscar{
-
-        width:100%;
-
-    }
-
-    .acoes{
-
-        flex-direction:column-reverse;
-        gap:15px;
-
-    }
-
-    .btn-voltar,
-    .btn-salvar{
-
-        width:100%;
-        text-align:center;
-
-    }
-
+    .card-formulario{padding:20px;}
+    .busca-grid,.anexos-grid{flex-direction:column;display:flex;align-items:stretch;}
+    .btn-buscar{width:100%;}
+    .acoes{flex-direction:column-reverse;gap:15px;}
+    .btn-voltar,.btn-salvar{width:100%;text-align:center;}
 }
-
 </style>
 
 <div class="container-formulario">
-
 <div class="card-formulario">
 
 <h1>📝 Lançamento Manual</h1>
-
-<p class="subtitulo">
-Utilize esta área para cadastrar eventos presenciais.
-</p>
+<p class="subtitulo">Utilize esta área para cadastrar eventos presenciais.</p>
 
 {% if messages %}
     {% for message in messages %}
-        <div class="alerta">
-            {{ message }}
-        </div>
+        <div class="alerta">{{ message }}</div>
     {% endfor %}
 {% endif %}
 
 {% if solicitacao_original %}
 <div class="info">
-Protocolo localizado:
-<strong>{{ solicitacao_original.protocolo }}</strong>
-<br>
-Os dados foram carregados e serão atualizados mantendo o mesmo protocolo.
+    Protocolo localizado: <strong>{{ solicitacao_original.protocolo }}</strong><br>
+    Os dados foram carregados e serão atualizados mantendo o mesmo protocolo.
 </div>
 {% endif %}
 
-<!-- BUSCA DO PROTOCOLO -->
-
 <form method="get">
-
-<div class="busca-card">
-
-<label>Número do Protocolo (opcional)</label>
-
-<div class="busca-grid">
-
-<div>
-
-<input
-type="text"
-name="protocolo_origem"
-value="{{ protocolo_origem }}"
-placeholder="Ex.: 8572A600">
-
-<small>
-Informe o protocolo caso deseje atualizar uma solicitação existente.
-</small>
-
-</div>
-
-<button
-type="submit"
-class="btn-buscar">
-
-Buscar
-
-</button>
-
-</div>
-
-</div>
-
+    <div class="busca-card">
+        <label>Número do Protocolo (opcional)</label>
+        <div class="busca-grid">
+            <div>
+                <input type="text" name="protocolo_origem" value="{{ protocolo_origem }}" placeholder="Ex.: 8572A600">
+                <small>Informe o protocolo caso deseje atualizar uma solicitação existente.</small>
+            </div>
+            <button type="submit" class="btn-buscar">Buscar</button>
+        </div>
+    </div>
 </form>
-
-<!-- FORMULÁRIO -->
 
 <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="hidden" name="protocolo_origem" value="{{ protocolo_origem }}">
 
-{% csrf_token %}
-<input
-    type="hidden"
-    name="protocolo_origem"
-    value="{{ protocolo_origem }}">
-{{ form.as_p }}
+    {{ form.as_p }}
 
-<div class="acoes">
+    <div class="anexos-card">
+        <h3>📎 Anexos</h3>
+        <p>Anexos são <strong>opcionais</strong>. Quando necessários, podem ser incluídos aqui em PDF.</p>
 
-<a
-href="{% url 'painel_gestao' %}"
-class="btn-voltar">
+        <div class="anexos-grid">
+            <div>
+                <label for="tipo_documento_manual">Tipo do documento</label>
+                <select id="tipo_documento_manual" name="tipo_documento_manual">
+                    <option value="">Selecione o tipo (somente se enviar anexo)</option>
+                    {% for tipo in tipos_documento %}
+                        <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="anexos_manuais">Arquivo(s) PDF</label>
+                <input
+                    id="anexos_manuais"
+                    type="file"
+                    name="anexos_manuais"
+                    accept="application/pdf,.pdf"
+                    multiple
+                >
+                <small>Você pode selecionar um ou vários PDFs. Nenhum anexo é obrigatório.</small>
+            </div>
+        </div>
+    </div>
 
-← Voltar
-
-</a>
-
-<button
-type="submit"
-class="btn-salvar">
-
-💾 Salvar Informação
-
-</button>
-
-</div>
-
+    <div class="acoes">
+        <a href="{% url 'painel_gestao' %}" class="btn-voltar">← Voltar</a>
+        <button type="submit" class="btn-salvar">💾 Salvar Informação</button>
+    </div>
 </form>
 
 </div>
-
 </div>
 
 {% endblock %}
