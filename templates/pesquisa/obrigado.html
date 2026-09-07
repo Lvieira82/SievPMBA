@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+{% block title %}Pesquisa de Avaliação{% endblock %}
+{% block content %}
+<div style="max-width:650px;margin:60px auto;background:#fff;padding:40px;border-radius:16px;text-align:center;box-shadow:0 5px 20px rgba(0,0,0,.08)">
+    {% if invalida %}
+        <h1>Link inválido ou expirado</h1>
+        <p>Não foi possível acessar esta pesquisa.</p>
+    {% else %}
+        <h1>Obrigado pela avaliação!</h1>
+        <p>Sua opinião foi registrada e contribuirá para o aprimoramento do atendimento do SiEvPM.</p>
+    {% endif %}
+</div>
+{% endblock %}
