@@ -30,6 +30,10 @@ class GestaoManualForm(SolicitacaoManualForm):
         super().__init__(*args, **kwargs)
         self.perfil_gestor = perfil
 
+        # No lançamento manual, o Ofício ao Comandante não é utilizado.
+        # O documento anexado neste fluxo é o Ofício de origem.
+        self.fields.pop("oficio_comandante", None)
+
         self.fields["municipio"] = forms.ModelChoiceField(
             queryset=Municipio.objects.filter(ativo=True).order_by("nome"),
             required=True,
