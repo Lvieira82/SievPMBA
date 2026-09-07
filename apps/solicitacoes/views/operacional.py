@@ -5,11 +5,13 @@ históricos importados por compat.py sem duplicar a implementação.
 """
 
 from django import forms
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
+from django.utils import timezone
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
-from apps.solicitacoes.models import Bairro, Municipio, TipoEvento, Unidade
+from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, Solicitacao, TipoEvento, Unidade
 
 
 class GestaoManualForm(SolicitacaoManualForm):
@@ -142,6 +144,33 @@ def verificar_autenticidade(request, protocolo, *args, **kwargs):
     return redirect(f"/consultar/?protocolo={protocolo}")
 
 
+@login_required
+def alterar_status(request, id, status, *args, **kwargs):
+    """Compatibilidade com a rota histórica de alteração de status."""
+    solicitacao = Solicitacao.objects.filter(pk=id).first()
+    permitidos = {"PENDENTE", "EM_ANALISE", "CORRECAO", "APROVADA", "REJEITADA", "CONCLUIDA"}
+    if not solicitacao:
+        messages.error(request, "Solicitação não encontrada.")
+        return redirect("painel_gestao")
+    if status not in permitidos:
+        messages.error(request, "Status inválido.")
+        return redirect("painel_gestao")
+
+    solicitacao.status = status
+    if status in {"APROVADA", "REJEITADA", "CONCLUIDA"}:
+        solicitacao.data_aprovacao = timezone.now()
+    solicitacao.save(update_fields=["status", "data_aprovacao", "atualizado_em"])
+
+    HistoricoSolicitacao.objects.create(
+        solicitacao=solicitacao,
+        usuario=request.user,
+        acao=f"STATUS: {status}",
+        observacao="Alteração realizada pela rota de compatibilidade.",
+    )
+    messages.success(request, "Status atualizado.")
+    return redirect("painel_gestao")
+
+
 __all__ = [
     "GestaoManualForm",
     "lancamento_manual",
@@ -157,4 +186,5 @@ __all__ = [
     "importar_matriculas_painel",
     "importar_municipios",
     "verificar_autenticidade",
+    "alterar_status",
 ]
