@@ -19,11 +19,11 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;b
 </head>
 <body>
 <div class="folha">
-    <div class="logo-central"><img src="{% static 'logos/logo_pmba.png' %}"></div>
+    {% if logo_pmba_base64 %}<div class="logo-central"><img src="{{ logo_pmba_base64|safe }}" alt="PMBA"></div>{% endif %}
     <div class="cabecalho">
         <h1>POLÍCIA MILITAR DA BAHIA</h1>
         <h2>COMANDO DE OPERAÇÕES POLICIAIS MILITARES</h2>
-        <h3>95ª CIPM - CATU</h3>
+        <h3>{% if unidade_executor %}{{ unidade_executor.nome }}{% elif solicitacao.unidade %}{{ solicitacao.unidade.nome }}{% else %}UNIDADE RESPONSÁVEL{% endif %}</h3>
     </div>
 
     <div class="numero">
@@ -51,7 +51,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;b
         {% endif %}
     </div>
 
-    <div class="rodape">Ordem de policiamento gerada por <strong>{{ gerado_por_nome }}</strong></div>
+    <div class="rodape">Ordem de policiamento gerada por <strong>{{ gerado_por_nome }}</strong>{% if unidade_executor %} — {{ unidade_executor.nome }}{% endif %}</div>
 
     {% if qr_base64 %}
     <div class="qrcode"><img src="{{ qr_base64|safe }}" alt="QR Code"></div>
