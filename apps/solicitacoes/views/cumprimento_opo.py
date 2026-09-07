@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 
 from django.conf import settings
 from django.contrib import messages
@@ -35,6 +36,35 @@ def _opo_principal(solicitacao):
         .order_by("-criado_em")
         .first()
     )
+
+
+def _pasta_protocolo(protocolo):
+    return Path("protocolos") / protocolo
+
+
+def _salvar_comprovacao_no_protocolo(solicitacao, imagem):
+    """Salva a foto diretamente na mesma pasta dos documentos do protocolo."""
+    protocolo = solicitacao.protocolo or "SEM_PROTOCOLO"
+    extensao = Path(imagem.name).suffix.lower() or ".jpg"
+    nome = f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}{extensao}"
+    caminho = str(_pasta_protocolo(protocolo) / nome)
+    return default_storage.save(caminho, imagem)
+
+
+def _salvar_justificativa_txt_no_protocolo(solicitacao, operador, justificativa):
+    """Cria um TXT da justificativa na mesma pasta dos documentos do protocolo."""
+    protocolo = solicitacao.protocolo or "SEM_PROTOCOLO"
+    identificador = getattr(operador, "username", "operador") or "operador"
+    seguro = "".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in identificador)
+    nome = f"justificativa_opo_{seguro}_{timezone.localtime():%Y%m%d_%H%M%S_%f}.txt"
+    caminho = str(_pasta_protocolo(protocolo) / nome)
+    conteudo = (
+        f"PROTOCOLO: {protocolo}\n"
+        f"OPERADOR: {identificador}\n"
+        f"DATA/HORA: {timezone.localtime():%d/%m/%Y %H:%M:%S}\n\n"
+        f"JUSTIFICATIVA:\n{justificativa}\n"
+    )
+    return default_storage.save(caminho, __import__("django.core.files.base", fromlist=["ContentFile"]).ContentFile(conteudo.encode("utf-8")))
 
 
 @login_required
@@ -77,8 +107,9 @@ def cumprimento_opo(request, solicitacao_id):
                             registro.imagem.delete(save=False)
                         except Exception:
                             pass
+                    caminho_imagem = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
                     registro.cumprida = True
-                    registro.imagem = imagem
+                    registro.imagem.name = caminho_imagem
                     registro.justificativa = ""
                     registro.respondido_em = timezone.now()
                     registro.save()
@@ -93,6 +124,7 @@ def cumprimento_opo(request, solicitacao_id):
                         registro.imagem.delete(save=False)
                     except Exception:
                         pass
+                _salvar_justificativa_txt_no_protocolo(solicitacao, request.user, justificativa)
                 registro.cumprida = False
                 registro.imagem = None
                 registro.justificativa = justificativa
