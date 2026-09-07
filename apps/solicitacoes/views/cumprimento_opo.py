@@ -1,20 +1,24 @@
+from io import BytesIO
 from pathlib import Path
-from datetime import datetime
+
+from PIL import Image, ImageOps
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
-from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, Solicitacao
+from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import eh_operador
 
 _EXTENSOES_IMAGEM = {"jpg", "jpeg", "png", "webp"}
 _MAX_IMAGEM = 5 * 1024 * 1024
+_MAX_JUSTIFICATIVA = 150
 
 
 def _operador_autorizado(request, solicitacao):
@@ -42,13 +46,56 @@ def _pasta_protocolo(protocolo):
     return Path("protocolos") / protocolo
 
 
+def _comprimir_imagem_80_porcento(imagem):
+    """Converte a foto para JPEG e busca reduzir pelo menos 80% do tamanho original."""
+    original_size = max(int(getattr(imagem, "size", 0) or 0), 1)
+    imagem.seek(0)
+    origem = Image.open(imagem)
+    origem = ImageOps.exif_transpose(origem)
+
+    if origem.mode in ("RGBA", "LA", "P"):
+        fundo = Image.new("RGB", origem.size, "white")
+        if origem.mode != "RGBA":
+            origem = origem.convert("RGBA")
+        fundo.paste(origem, mask=origem.getchannel("A"))
+        origem = fundo
+    else:
+        origem = origem.convert("RGB")
+
+    qualidade = 75
+    atual = origem
+    melhor = None
+
+    while True:
+        saida = BytesIO()
+        atual.save(saida, format="JPEG", quality=qualidade, optimize=True, progressive=True)
+        dados = saida.getvalue()
+        melhor = dados
+
+        if len(dados) <= original_size * 0.20 or qualidade <= 20:
+            break
+
+        if qualidade > 35:
+            qualidade -= 10
+        else:
+            largura, altura = atual.size
+            nova_largura = max(640, int(largura * 0.85))
+            nova_altura = max(640, int(altura * 0.85))
+            if nova_largura == largura and nova_altura == altura:
+                qualidade -= 5
+            else:
+                atual = atual.resize((nova_largura, nova_altura), Image.Resampling.LANCZOS)
+
+    return melhor
+
+
 def _salvar_comprovacao_no_protocolo(solicitacao, imagem):
-    """Salva a foto diretamente na mesma pasta dos documentos do protocolo."""
+    """Salva a foto comprimida na mesma pasta dos documentos do protocolo."""
     protocolo = solicitacao.protocolo or "SEM_PROTOCOLO"
-    extensao = Path(imagem.name).suffix.lower() or ".jpg"
-    nome = f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}{extensao}"
+    nome = f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}.jpg"
     caminho = str(_pasta_protocolo(protocolo) / nome)
-    return default_storage.save(caminho, imagem)
+    dados = _comprimir_imagem_80_porcento(imagem)
+    return default_storage.save(caminho, ContentFile(dados))
 
 
 def _salvar_justificativa_txt_no_protocolo(solicitacao, operador, justificativa):
@@ -64,7 +111,7 @@ def _salvar_justificativa_txt_no_protocolo(solicitacao, operador, justificativa)
         f"DATA/HORA: {timezone.localtime():%d/%m/%Y %H:%M:%S}\n\n"
         f"JUSTIFICATIVA:\n{justificativa}\n"
     )
-    return default_storage.save(caminho, __import__("django.core.files.base", fromlist=["ContentFile"]).ContentFile(conteudo.encode("utf-8")))
+    return default_storage.save(caminho, ContentFile(conteudo.encode("utf-8")))
 
 
 @login_required
@@ -89,35 +136,60 @@ def cumprimento_opo(request, solicitacao_id):
         resposta = request.POST.get("cumprida")
         imagem = request.FILES.get("imagem")
         justificativa = (request.POST.get("justificativa") or "").strip()
+        latitude = (request.POST.get("latitude") or "").strip()
+        longitude = (request.POST.get("longitude") or "").strip()
 
         if resposta not in {"SIM", "NAO"}:
             messages.error(request, "Informe se a OPO foi cumprida.")
         elif resposta == "SIM":
             if not imagem:
-                messages.error(request, "Anexe uma imagem para confirmar o cumprimento da OPO.")
+                messages.error(request, "A foto do cumprimento deve ser capturada pela câmera do dispositivo.")
             else:
                 extensao = Path(imagem.name).suffix.lower().lstrip(".")
                 if extensao not in _EXTENSOES_IMAGEM:
                     messages.error(request, "A imagem deve estar em JPG, JPEG, PNG ou WEBP.")
                 elif imagem.size > _MAX_IMAGEM:
                     messages.error(request, "A imagem deve ter no máximo 5 MB.")
+                elif not latitude or not longitude:
+                    messages.error(request, "Não foi possível obter a localização GPS. Autorize a localização do dispositivo e tente novamente.")
                 else:
-                    if registro.imagem:
-                        try:
-                            registro.imagem.delete(save=False)
-                        except Exception:
-                            pass
-                    caminho_imagem = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
-                    registro.cumprida = True
-                    registro.imagem.name = caminho_imagem
-                    registro.justificativa = ""
-                    registro.respondido_em = timezone.now()
-                    registro.save()
-                    messages.success(request, "Cumprimento registrado como SIM.")
-                    return redirect("cumprimento_opo", solicitacao_id=solicitacao_id)
+                    try:
+                        latitude_float = float(latitude)
+                        longitude_float = float(longitude)
+                        if not (-90 <= latitude_float <= 90 and -180 <= longitude_float <= 180):
+                            raise ValueError
+                    except (TypeError, ValueError):
+                        messages.error(request, "As coordenadas GPS recebidas são inválidas.")
+                    else:
+                        if registro.imagem:
+                            try:
+                                registro.imagem.delete(save=False)
+                            except Exception:
+                                pass
+                        caminho_imagem = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
+                        registro.cumprida = True
+                        registro.imagem.name = caminho_imagem
+                        registro.justificativa = ""
+                        registro.respondido_em = timezone.now()
+                        registro.save()
+
+                        LogSistema.objects.create(
+                            usuario=request.user,
+                            solicitacao=solicitacao,
+                            acao="CUMPRIMENTO OPO",
+                            detalhes=(
+                                f"OPO cumprida. Coordenadas GPS: "
+                                f"latitude={latitude_float:.7f}, longitude={longitude_float:.7f}."
+                            ),
+                        )
+
+                        messages.success(request, "Cumprimento registrado como SIM, com foto e localização GPS.")
+                        return redirect("cumprimento_opo", solicitacao_id=solicitacao_id)
         else:
             if not justificativa:
                 messages.error(request, "Informe a justificativa quando a OPO não for cumprida.")
+            elif len(justificativa) > _MAX_JUSTIFICATIVA:
+                messages.error(request, "A justificativa deve ter no máximo 150 caracteres.")
             else:
                 if registro.imagem:
                     try:
