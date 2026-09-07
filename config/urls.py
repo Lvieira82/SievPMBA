@@ -28,7 +28,10 @@ from apps.solicitacoes.views.administracao_sistema import (
     administracao_sistema, usuario_desativar, usuario_editar, usuario_novo, usuario_senha,
 )
 from apps.solicitacoes.views.administracao_acoes import usuario_ativar, usuario_excluir
-from apps.solicitacoes.views.administracao_unidade_membro import administracao_unidade_membro
+from apps.solicitacoes.views.administracao_unidade_membro import (
+    administracao_unidade_membro, editar_operador_membro,
+    ativar_operador_membro, desativar_operador_membro, excluir_operador_membro,
+)
 from apps.solicitacoes.views.cadastro_territorio import (
     cadastro_bairros, cadastro_unidades, editar_bairro, editar_unidade,
     ativar_bairro, desativar_bairro, excluir_bairro,
@@ -106,6 +109,10 @@ urlpatterns = [
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
     path("gestao/administracao/unidade-membro/", administracao_unidade_membro, name="administracao_unidade_membro"),
+    path("gestao/administracao/unidade-membro/operador/<int:id>/editar/", editar_operador_membro, name="editar_operador_membro"),
+    path("gestao/administracao/unidade-membro/operador/<int:id>/ativar/", ativar_operador_membro, name="ativar_operador_membro"),
+    path("gestao/administracao/unidade-membro/operador/<int:id>/desativar/", desativar_operador_membro, name="desativar_operador_membro"),
+    path("gestao/administracao/unidade-membro/operador/<int:id>/excluir/", excluir_operador_membro, name="excluir_operador_membro"),
     path("gestao/administracao/usuario/novo/", usuario_novo, name="administracao_usuario_novo"),
     path("gestao/administracao/usuario/<int:id>/editar/", usuario_editar, name="administracao_usuario_editar"),
     path("gestao/administracao/usuario/<int:id>/senha/", usuario_senha, name="administracao_usuario_senha"),
