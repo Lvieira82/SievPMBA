@@ -123,12 +123,8 @@ def pode_administrar_usuarios(user):
 
 
 def pode_lancamento_manual(user):
-    a = acesso_do_usuario(user)
-    return bool(
-        perfil_gestor(user, "CPR")
-        or perfil_gestor(user, "UNIDADE")
-        or (a and a.ativo and user.is_active and a.funcao == "MEMBRO" and a.perfil in {"CPR", "UNIDADE"})
-    )
+    """Somente Gestor de Unidade pode lançar evento manual."""
+    return bool(perfil_gestor(user, "UNIDADE"))
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
