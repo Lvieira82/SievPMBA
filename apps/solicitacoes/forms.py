@@ -35,6 +35,17 @@ def validar_pdf(arquivo):
 
 class SolicitacaoForm(forms.ModelForm):
 
+    # O ofício não é um campo da tabela Solicitacao. Ele é recebido aqui
+    # e gravado como DocumentoSolicitacao pela view, junto aos demais PDFs.
+    oficio_comandante = forms.FileField(
+        label="Ofício ao Comandante da Unidade (PDF)",
+        required=True,
+        widget=forms.FileInput(attrs={
+            "class": "form-control",
+            "accept": ".pdf,application/pdf",
+        }),
+    )
+
     class Meta:
 
         model = Solicitacao
@@ -91,12 +102,6 @@ class SolicitacaoForm(forms.ModelForm):
             "hora_fim": forms.TimeInput(attrs={
                 "type": "time",
             }),
-
-            # OFÍCIO AO COMANDANTE
-            "oficio_comandante": forms.FileInput(attrs={
-                "class": "form-control",
-                "accept": ".pdf,application/pdf",
-            }),
         }
 
 
@@ -120,7 +125,7 @@ class SolicitacaoForm(forms.ModelForm):
             if campo in self.fields:
 
                 self.fields[campo].widget.attrs.update({
-                    "oninput": "this.value = this.value.toUpperCase();"
+                    "oninput": "this.value = this.value.upper();"
                 })
 
 
@@ -303,7 +308,7 @@ class SolicitacaoManualForm(SolicitacaoForm):
             if campo in self.fields:
 
                 self.fields[campo].widget.attrs.update({
-                    "oninput": "this.value = this.value.toUpperCase();"
+                    "oninput": "this.value = this.value.upper();"
                 })
                 
         for campo in campos_nao_obrigatorios:
@@ -634,4 +639,3 @@ class CorrecaoSolicitacaoForm(forms.ModelForm):
             self.fields["nome_evento"].widget.attrs.update({
                 "oninput": "this.value = this.value.toUpperCase();"
             })
-
