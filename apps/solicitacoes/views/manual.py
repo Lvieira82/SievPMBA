@@ -5,10 +5,22 @@ from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from apps.solicitacoes.models import AnexoOPO, Bairro, HistoricoSolicitacao, Solicitacao
+from apps.solicitacoes.models import (
+    AnexoOPO,
+    Bairro,
+    HistoricoSolicitacao,
+    Solicitacao,
+    TipoEvento,
+)
 from apps.solicitacoes.permissoes import pode_lancamento_manual
 from .geracao_opo import _gerar_pdf_opo
 from .operacional import GestaoManualForm
+
+
+TIPOS_EVENTO_MANUAL = {
+    "ORDINÁRIO": "Emprego ordinário de policiamento.",
+    "EXTRAORDINÁRIO": "Emprego extraordinário de policiamento.",
+}
 
 
 def _preparar_bairros(form, municipio_id):
@@ -22,10 +34,29 @@ def _preparar_bairros(form, municipio_id):
 
 
 def _preparar_formulario(form, municipio_id=None):
-    """Ajusta o formulário manual sem criar um conceito separado de tipo de OPO."""
+    """Prepara o lançamento manual com os dois tipos oficiais de evento."""
+    tipos_ids = []
+    for nome, descricao in TIPOS_EVENTO_MANUAL.items():
+        tipo, _ = TipoEvento.objects.get_or_create(
+            nome=nome,
+            defaults={"descricao": descricao, "ativo": True},
+        )
+        if not tipo.ativo:
+            tipo.ativo = True
+            tipo.descricao = descricao
+            tipo.save(update_fields=["ativo", "descricao"])
+        tipos_ids.append(tipo.pk)
+
     if "tipo_evento" in form.fields:
         form.fields["tipo_evento"].required = True
+        form.fields["tipo_evento"].queryset = TipoEvento.objects.filter(
+            pk__in=tipos_ids,
+            ativo=True,
+        ).order_by("nome")
+        form.fields["tipo_evento"].label = "Tipo de evento"
+        form.fields["tipo_evento"].empty_label = "Selecione o tipo de evento"
         form.fields["tipo_evento"].widget.attrs.update({"class": "form-select"})
+
     _preparar_bairros(form, municipio_id)
 
 
@@ -70,11 +101,12 @@ def lancamento_manual(request):
                         observacao="Solicitação criada/atualizada pelo Gestor ou Membro da Unidade no lançamento manual.",
                     )
 
-                    # Lançamento manual não passa por aprovação: a OPO é gerada imediatamente.
+                    # O tipo de evento define o tratamento operacional da OPO.
+                    evento_extra = obj.tipo_evento.nome.strip().upper() == "EXTRAORDINÁRIO"
                     conteudo = _gerar_pdf_opo(
                         request,
                         obj,
-                        evento_extra=False,
+                        evento_extra=evento_extra,
                     )
                     nome_arquivo = f"OPO_{obj.protocolo}.pdf"
 
@@ -85,7 +117,10 @@ def lancamento_manual(request):
 
                     anexo = AnexoOPO(
                         solicitacao=obj,
-                        descricao="OPO gerada pelo lançamento manual",
+                        descricao=(
+                            "OPO gerada pelo lançamento manual — Tipo de evento: "
+                            f"{obj.tipo_evento.nome}"
+                        ),
                     )
                     anexo.arquivo.save(nome_arquivo, ContentFile(conteudo), save=True)
 
@@ -95,7 +130,7 @@ def lancamento_manual(request):
                         acao="OPO GERADA",
                         observacao=(
                             f"OPO {nome_arquivo} gerada imediatamente pelo lançamento manual. "
-                            f"Tipo de evento: {obj.tipo_evento}."
+                            f"Tipo de evento: {obj.tipo_evento.nome}."
                         ),
                     )
 
@@ -108,8 +143,7 @@ def lancamento_manual(request):
                 print("ERRO NO LANÇAMENTO MANUAL:", repr(exc))
                 messages.error(
                     request,
-                    "Não foi possível salvar o lançamento manual e gerar a OPO. "
-                    "Verifique os campos informados e tente novamente.",
+                    f"Não foi possível concluir o lançamento manual: {exc}",
                 )
     else:
         form = GestaoManualForm(instance=original, perfil=perfil)
