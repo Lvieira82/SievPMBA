@@ -49,7 +49,12 @@ from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
     fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email,
 )
-from apps.solicitacoes.views.territorio_admin import areas_responsabilidade, bairros_por_municipio, importar_areas_responsabilidade
+from apps.solicitacoes.views.territorio_admin import (
+    areas_responsabilidade, editar_area_responsabilidade,
+    ativar_area_responsabilidade, desativar_area_responsabilidade,
+    excluir_area_responsabilidade, bairros_por_municipio,
+    importar_areas_responsabilidade,
+)
 from apps.solicitacoes.views.aprovacoes_seguras import (
     aprovacoes, aprovar_solicitacao, solicitar_correcao_gestao,
 )
@@ -123,6 +128,10 @@ urlpatterns = [
     path("gestao/usuarios/<int:id>/senha/", trocar_senha_usuario, name="trocar_senha_usuario"),
     path("gestao/usuarios/<int:id>/desativar/", desativar_usuario_unidade, name="desativar_usuario_unidade"),
     path("gestao/areas-responsabilidade/", areas_responsabilidade, name="areas_responsabilidade"),
+    path("gestao/areas-responsabilidade/<int:id>/editar/", editar_area_responsabilidade, name="editar_area_responsabilidade"),
+    path("gestao/areas-responsabilidade/<int:id>/ativar/", ativar_area_responsabilidade, name="ativar_area_responsabilidade"),
+    path("gestao/areas-responsabilidade/<int:id>/desativar/", desativar_area_responsabilidade, name="desativar_area_responsabilidade"),
+    path("gestao/areas-responsabilidade/<int:id>/excluir/", excluir_area_responsabilidade, name="excluir_area_responsabilidade"),
     path("gestao/areas-responsabilidade/importar/", importar_areas_responsabilidade, name="importar_areas_responsabilidade"),
     path("gestao/pendentes-opo/", listar_pendentes_opo_seguro, name="listar_pendentes_opo"),
     path("aprovacoes/", aprovacoes, name="aprovacoes"),
