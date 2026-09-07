@@ -1,40 +1,15 @@
 {% extends 'base.html' %}
-{% block title %}Cadastrar Operador{% endblock %}
-{% block titulo %}Administração — Operadores{% endblock %}
+{% block title %}Administração de Operadores{% endblock %}
+{% block titulo %}Administração de Operadores{% endblock %}
 {% block content %}
 <style>
-.wrap{max-width:1050px;margin:32px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field label{display:block;font-weight:700;margin-bottom:6px}.field input{width:100%;padding:11px 13px;border:1px solid #d1d5db;border-radius:8px;box-sizing:border-box}.field.full{grid-column:1/-1}.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;background:#907C64;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.btn2{background:#fff;color:#374151;border:1px solid #bbb}.erro{color:#b91c1c;font-size:13px;font-weight:600;margin-top:5px}.info{background:#f8f9fa;border-left:4px solid #907C64;padding:13px 16px;border-radius:8px;margin-bottom:20px}.table-wrap{overflow:auto}.table{width:100%;border-collapse:collapse}.table th,.table td{padding:12px;border-bottom:1px solid #e5e7eb;text-align:left}.table th{background:#111827;color:#fff}.ativo{color:#15803d;font-weight:700}.inativo{color:#6b7280;font-weight:700}@media(max-width:700px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
+.wrap{max-width:1150px;margin:30px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field label{display:block;font-weight:700;margin-bottom:6px}.field input{width:100%;min-height:44px;padding:10px 13px;border:1px solid #d1d5db;border-radius:8px;box-sizing:border-box}.field.full{grid-column:1/-1}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 17px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:12px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela th{background:#111827;color:#fff}.acao{display:flex;gap:6px;flex-wrap:wrap}.mini{padding:7px 10px;border-radius:6px;border:0;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}.editar{background:#e5e7eb;color:#111827}.ativar{background:#16a34a;color:#fff}.desativar{background:#f59e0b;color:#111}.excluir{background:#dc2626;color:#fff}.ativo{color:#15803d;font-weight:700}.inativo{color:#6b7280;font-weight:700}.erro{color:#b91c1c;font-size:13px;font-weight:600;margin-top:5px}@media(max-width:700px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}}
 </style>
 <div class="wrap">
-  <div class="cardx">
-    <h1>👤 Cadastro de Operadores</h1>
-    <div class="info"><strong>Unidade:</strong> {{ acesso.unidade }}<br><strong>Responsável:</strong> {{ request.user.get_full_name|default:request.user.username }}</div>
-    <p>O operador será criado no seu âmbito institucional, receberá a matrícula como senha inicial e deverá trocá-la no primeiro acesso.</p>
-    <form method="post">
-      {% csrf_token %}
-      {% if form.non_field_errors %}<div class="erro">{{ form.non_field_errors }}</div>{% endif %}
-      <div class="grid">
-        {% for field in form %}
-        <div class="field {% if field.name == 'email' %}full{% endif %}">
-          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
-          {{ field }}
-          {% for error in field.errors %}<div class="erro">{{ error }}</div>{% endfor %}
-        </div>
-        {% endfor %}
-      </div>
-      <div style="margin-top:22px;display:flex;gap:10px;flex-wrap:wrap">
-        <button type="submit" class="btn">Cadastrar operador</button>
-        <a href="{% url 'painel_gestao' %}" class="btn btn2">Voltar ao painel</a>
-      </div>
-    </form>
-  </div>
-  <div class="cardx">
-    <h2>Operadores desta unidade</h2>
-    <div class="table-wrap">
-      <table class="table"><thead><tr><th>Matrícula</th><th>Nome</th><th>Telefone</th><th>Status</th></tr></thead>
-      <tbody>{% for op in operadores %}<tr><td>{{ op.matricula }}</td><td>{{ op.usuario.get_full_name }}</td><td>{{ op.telefone }}</td><td>{% if op.ativo and op.usuario.is_active %}<span class="ativo">ATIVO</span>{% else %}<span class="inativo">INATIVO</span>{% endif %}</td></tr>{% empty %}<tr><td colspan="4">Nenhum operador cadastrado.</td></tr>{% endfor %}</tbody>
-      </table>
-    </div>
-  </div>
+<section class="cardx"><h1>👤 Cadastrar Operador</h1><p>Unidade: <strong>{{ acesso.unidade }}</strong>. O operador receberá a senha inicial por e-mail.</p>
+{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+<form method="post" class="grid">{% csrf_token %}{% if form.non_field_errors %}<div class="field full erro">{{ form.non_field_errors }}</div>{% endif %}{% for field in form %}<div class="field {% if field.name == 'email' %}full{% endif %}"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% for error in field.errors %}<div class="erro">{{ error }}</div>{% endfor %}</div>{% endfor %}<div class="field full"><div style="margin-top:8px;padding-top:18px;border-top:1px solid #e5e7eb;display:flex;gap:10px;flex-wrap:wrap"><button type="submit" class="btnx prim">+ Cadastrar operador</button><a href="{% url 'painel_gestao' %}" class="btnx sec">← Voltar ao painel</a></div></div></form>
+</section>
+<section class="cardx"><h2>Operadores desta unidade</h2><div style="overflow:auto"><table class="tabela"><thead><tr><th>Matrícula</th><th>Nome</th><th>CPF</th><th>Telefone</th><th>Status</th><th>Ações</th></tr></thead><tbody>{% for op in operadores %}<tr><td>{{ op.matricula }}</td><td>{{ op.usuario.get_full_name }}</td><td>{{ op.cpf }}</td><td>{{ op.telefone }}</td><td>{% if op.ativo and op.usuario.is_active %}<span class="ativo">ATIVO</span>{% else %}<span class="inativo">INATIVO</span>{% endif %}</td><td><div class="acao"><a class="mini editar" href="{% url 'editar_operador_membro' op.id %}">Editar</a>{% if op.ativo and op.usuario.is_active %}<a class="mini desativar" href="{% url 'desativar_operador_membro' op.id %}" onclick="return confirm('Desativar este operador?')">Desativar</a>{% else %}<a class="mini ativar" href="{% url 'ativar_operador_membro' op.id %}">Ativar</a>{% endif %}<a class="mini excluir" href="{% url 'excluir_operador_membro' op.id %}" onclick="return confirm('Excluir definitivamente este operador?')">Excluir</a></div></td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:24px">Nenhum operador cadastrado.</td></tr>{% endfor %}</tbody></table></div></section>
 </div>
 {% endblock %}
