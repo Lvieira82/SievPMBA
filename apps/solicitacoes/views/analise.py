@@ -1,11 +1,23 @@
+from collections import defaultdict
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from apps.solicitacoes.models import CumprimentoOPO, HistoricoSolicitacao, Solicitacao, TransferenciaSolicitacao
-from apps.solicitacoes.permissoes import escopo_unidades, pode_ver_solicitacao, pode_ver_ranking
+from apps.solicitacoes.models import (
+    AnexoOPO,
+    CumprimentoOPO,
+    HistoricoSolicitacao,
+    Solicitacao,
+    TransferenciaSolicitacao,
+)
+from apps.solicitacoes.permissoes import (
+    escopo_unidades,
+    pode_ver_ranking,
+    pode_ver_solicitacao,
+)
 
 
 def _unidades_permitidas(request):
@@ -13,12 +25,20 @@ def _unidades_permitidas(request):
 
 
 def _sem_acesso(request):
-    messages.error(request, "A análise e o ranking estão disponíveis para gestores de COPPM, CPR e Unidade.")
+    messages.error(
+        request,
+        "A análise e o ranking estão disponíveis para gestores de COPPM, CPR e Unidade.",
+    )
     return redirect("painel_gestao")
 
 
 def _inicio_atendimento(solicitacao, unidade):
-    transferencia = TransferenciaSolicitacao.objects.filter(solicitacao=solicitacao, unidade_destino=unidade).order_by("-criado_em").first()
+    transferencia = (
+        TransferenciaSolicitacao.objects
+        .filter(solicitacao=solicitacao, unidade_destino=unidade)
+        .order_by("-criado_em")
+        .first()
+    )
     return transferencia.criado_em if transferencia else solicitacao.criado_em
 
 
@@ -37,12 +57,57 @@ def _tempo_horas(solicitacao, unidade):
 
 
 def _resumo_cumprimento(solicitacao_ids):
-    qs = CumprimentoOPO.objects.filter(opo__solicitacao_id__in=solicitacao_ids)
-    sim = qs.filter(cumprida=True).count()
-    nao = qs.filter(cumprida=False).count()
-    total = sim + nao
-    percentual = round(sim * 100 / total, 1) if total else None
-    return {"sim": sim, "nao": nao, "total": total, "percentual": percentual}
+    """Classifica cada OPO e calcula o cumprimento sobre o total de OPOs.
+
+    SIM      -> cumprida (verde)
+    NAO      -> justificada (amarelo)
+    sem resp -> descumprida (vermelho)
+
+    O percentual considera todas as OPOs no denominador, inclusive as sem
+    resposta. Ex.: 6 cumpridas em 10 OPOs = 60%.
+    """
+    opo_ids = list(
+        AnexoOPO.objects
+        .filter(solicitacao_id__in=solicitacao_ids)
+        .values_list("id", flat=True)
+    )
+    total = len(opo_ids)
+    if not total:
+        return {
+            "cumpridas": 0,
+            "justificadas": 0,
+            "descumpridas": 0,
+            "total": 0,
+            "percentual": None,
+        }
+
+    estados = defaultdict(set)
+    registros = CumprimentoOPO.objects.filter(opo_id__in=opo_ids).values_list(
+        "opo_id", "cumprida"
+    )
+    for opo_id, cumprida in registros:
+        if cumprida is True:
+            estados[opo_id].add("SIM")
+        elif cumprida is False:
+            estados[opo_id].add("NAO")
+
+    cumpridas = justificadas = descumpridas = 0
+    for opo_id in opo_ids:
+        respostas = estados.get(opo_id, set())
+        if "SIM" in respostas:
+            cumpridas += 1
+        elif "NAO" in respostas:
+            justificadas += 1
+        else:
+            descumpridas += 1
+
+    return {
+        "cumpridas": cumpridas,
+        "justificadas": justificadas,
+        "descumpridas": descumpridas,
+        "total": total,
+        "percentual": round(cumpridas * 100 / total, 1),
+    }
 
 
 def _grupos_unidades(base, unidades_relatorio):
@@ -50,11 +115,14 @@ def _grupos_unidades(base, unidades_relatorio):
     for unidade in unidades_relatorio:
         qs = base.filter(unidade=unidade)
         total = qs.count()
-        pendentes = qs.filter(status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]).count()
+        pendentes = qs.filter(
+            status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]
+        ).count()
         aprovadas = qs.filter(status__in=["APROVADA", "CONCLUIDA"]).count()
-        rejeitadas = qs.filter(status="REJEITADA").count()
         tempos = []
-        for solicitacao in qs.filter(status__in=["APROVADA", "REJEITADA", "CONCLUIDA"]):
+        for solicitacao in qs.filter(
+            status__in=["APROVADA", "REJEITADA", "CONCLUIDA"]
+        ):
             horas = _tempo_horas(solicitacao, unidade)
             if horas is not None:
                 tempos.append(horas)
@@ -65,13 +133,13 @@ def _grupos_unidades(base, unidades_relatorio):
             "total": total,
             "pendentes": pendentes,
             "aprovadas": aprovadas,
-            "rejeitadas": rejeitadas,
-            "respondidas": len(tempos),
-            "media_horas": media,
             "cumprimento_total": cumprimento["total"],
-            "sim": cumprimento["sim"],
-            "nao": cumprimento["nao"],
+            "cumpridas": cumprimento["cumpridas"],
+            "justificadas": cumprimento["justificadas"],
+            "descumpridas": cumprimento["descumpridas"],
             "percentual": cumprimento["percentual"],
+            "respondidas": cumprimento["cumpridas"] + cumprimento["justificadas"],
+            "media_horas": media,
         })
     return grupos
 
@@ -88,7 +156,11 @@ def analise_unidades(request):
     fim = request.GET.get("fim")
     selecionada = unidades.filter(pk=unidade_id).first() if unidade_id else None
 
-    base = Solicitacao.objects.select_related("unidade", "municipio", "bairro").filter(unidade__in=unidades)
+    base = (
+        Solicitacao.objects
+        .select_related("unidade", "municipio", "bairro")
+        .filter(unidade__in=unidades)
+    )
     if selecionada:
         base = base.filter(unidade=selecionada)
     if origem in {"EXTERNA", "MANUAL", "TRANSFERIDA"}:
@@ -101,7 +173,6 @@ def analise_unidades(request):
     unidades_relatorio = [selecionada] if selecionada else list(unidades)
     grupos = _grupos_unidades(base, unidades_relatorio)
     total_geral = sum(item["total"] for item in grupos)
-    respondidas = sum(item["respondidas"] for item in grupos)
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
     media_geral = round(sum(medias) / len(medias), 2) if medias else None
     cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
@@ -113,29 +184,54 @@ def analise_unidades(request):
         por_cpr = {}
         for item in grupos:
             cpr = item["unidade"].cpr
-            registro = por_cpr.setdefault(cpr.id, {"cpr": cpr, "total": 0, "sim": 0, "nao": 0})
+            registro = por_cpr.setdefault(
+                cpr.id,
+                {
+                    "cpr": cpr,
+                    "total": 0,
+                    "cumpridas": 0,
+                    "justificadas": 0,
+                    "descumpridas": 0,
+                    "opo_total": 0,
+                },
+            )
             registro["total"] += item["total"]
-            registro["sim"] += item["sim"]
-            registro["nao"] += item["nao"]
-        for item in por_cpr.values():
-            item["respondidos"] = item["sim"] + item["nao"]
-            item["percentual"] = round(item["sim"] * 100 / item["respondidos"], 1) if item["respondidos"] else None
-        ranking_cpr = sorted(por_cpr.values(), key=lambda x: (x["percentual"] is not None, x["percentual"] or -1), reverse=True)
+            registro["cumpridas"] += item["cumpridas"]
+            registro["justificadas"] += item["justificadas"]
+            registro["descumpridas"] += item["descumpridas"]
+            registro["opo_total"] += item["cumprimento_total"]
 
-    return render(request, "analise/unidades.html", {
-        "grupos": grupos,
-        "unidades": unidades,
-        "selecionada": selecionada,
-        "origem": origem or "",
-        "inicio": inicio or "",
-        "fim": fim or "",
-        "total_geral": total_geral,
-        "respondidas": respondidas,
-        "media_geral": media_geral,
-        "cumprimento_geral": cumprimento_geral,
-        "ranking_cpr": ranking_cpr,
-        "eh_coppm": eh_coppm,
-    })
+        for item in por_cpr.values():
+            item["respondidas"] = item["cumpridas"] + item["justificadas"]
+            item["percentual"] = (
+                round(item["cumpridas"] * 100 / item["opo_total"], 1)
+                if item["opo_total"]
+                else None
+            )
+        ranking_cpr = sorted(
+            por_cpr.values(),
+            key=lambda x: (x["percentual"] is not None, x["percentual"] or -1),
+            reverse=True,
+        )
+
+    return render(
+        request,
+        "analise/unidades.html",
+        {
+            "grupos": grupos,
+            "unidades": unidades,
+            "selecionada": selecionada,
+            "origem": origem or "",
+            "inicio": inicio or "",
+            "fim": fim or "",
+            "total_geral": total_geral,
+            "respondidas": cumprimento_geral["cumpridas"] + cumprimento_geral["justificadas"],
+            "media_geral": media_geral,
+            "cumprimento_geral": cumprimento_geral,
+            "ranking_cpr": ranking_cpr,
+            "eh_coppm": eh_coppm,
+        },
+    )
 
 
 @login_required
@@ -148,24 +244,42 @@ def fila_analise(request):
     if not pode_ver_ranking(request.user):
         return _sem_acesso(request)
     unidades = _unidades_permitidas(request)
-    solicitacoes = Solicitacao.objects.filter(unidade__in=unidades, status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]).select_related("municipio", "bairro", "unidade").order_by("criado_em")
+    solicitacoes = (
+        Solicitacao.objects
+        .filter(
+            unidade__in=unidades,
+            status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"],
+        )
+        .select_related("municipio", "bairro", "unidade")
+        .order_by("criado_em")
+    )
     return render(request, "analise/fila.html", {"solicitacoes": solicitacoes})
 
 
 @login_required
 def detalhes(request, pk):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=pk)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
     if not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta solicitação.")
         return redirect("analise_unidades")
     documentos = solicitacao.documentos.select_related("tipo_documento").all()
     historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
-    return render(request, "analise/detalhes.html", {"solicitacao": solicitacao, "documentos": documentos, "historico": historico})
+    return render(
+        request,
+        "analise/detalhes.html",
+        {"solicitacao": solicitacao, "documentos": documentos, "historico": historico},
+    )
 
 
 @login_required
 def aprovar(request, pk):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=pk)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
     if not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta solicitação.")
         return redirect("fila_analise")
@@ -176,14 +290,22 @@ def aprovar(request, pk):
     solicitacao.data_aprovacao = timezone.now()
     solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
     solicitacao.save(update_fields=["status", "data_aprovacao", "aprovado_por", "atualizado_em"])
-    HistoricoSolicitacao.objects.create(solicitacao=solicitacao, usuario=request.user, acao="APROVADA", observacao="Solicitação aprovada.")
+    HistoricoSolicitacao.objects.create(
+        solicitacao=solicitacao,
+        usuario=request.user,
+        acao="APROVADA",
+        observacao="Solicitação aprovada.",
+    )
     messages.success(request, "Solicitação aprovada com sucesso.")
     return redirect("fila_analise")
 
 
 @login_required
 def solicitar_correcao(request, pk):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=pk)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
     if not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta solicitação.")
         return redirect("fila_analise")
@@ -197,14 +319,22 @@ def solicitar_correcao(request, pk):
     if request.method == "POST":
         solicitacao.status = "CORRECAO"
         solicitacao.save(update_fields=["status", "atualizado_em"])
-        HistoricoSolicitacao.objects.create(solicitacao=solicitacao, usuario=request.user, acao="CORREÇÃO", observacao=motivo)
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            usuario=request.user,
+            acao="CORREÇÃO",
+            observacao=motivo,
+        )
         messages.success(request, "Correção solicitada.")
     return redirect("fila_analise")
 
 
 @login_required
 def indeferir(request, pk):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=pk)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
     if not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta solicitação.")
         return redirect("analise_unidades")
@@ -216,14 +346,22 @@ def indeferir(request, pk):
         solicitacao.status = "REJEITADA"
         solicitacao.data_aprovacao = timezone.now()
         solicitacao.save(update_fields=["status", "data_aprovacao", "atualizado_em"])
-        HistoricoSolicitacao.objects.create(solicitacao=solicitacao, usuario=request.user, acao="REJEITADA", observacao=motivo)
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            usuario=request.user,
+            acao="REJEITADA",
+            observacao=motivo,
+        )
         messages.success(request, "Solicitação rejeitada.")
     return redirect("fila_analise")
 
 
 @login_required
 def historico(request, pk):
-    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=pk)
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
     if not pode_ver_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui acesso a esta solicitação.")
         return redirect("analise_unidades")
@@ -236,5 +374,15 @@ def estatisticas(request):
     if not pode_ver_ranking(request.user):
         return _sem_acesso(request)
     unidades = _unidades_permitidas(request)
-    dados = Solicitacao.objects.filter(unidade__in=unidades).values("status").annotate(total=Count("id")).order_by("status")
-    return render(request, "analise/estatisticas.html", {"dados": dados, "total": sum(item["total"] for item in dados)})
+    dados = (
+        Solicitacao.objects
+        .filter(unidade__in=unidades)
+        .values("status")
+        .annotate(total=Count("id"))
+        .order_by("status")
+    )
+    return render(
+        request,
+        "analise/estatisticas.html",
+        {"dados": dados, "total": sum(item["total"] for item in dados)},
+    )
