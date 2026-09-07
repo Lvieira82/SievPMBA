@@ -332,7 +332,7 @@ class SolicitacaoManualForm(SolicitacaoForm):
             if campo in self.fields:
 
                 self.fields[campo].widget.attrs.update({
-                    "oninput": "this.value = this.value.upper();"
+                    "oninput": "this.value = this.value.toUpperCase();"
                 })
                 
         for campo in campos_nao_obrigatorios:
@@ -381,56 +381,16 @@ class SolicitacaoManualForm(SolicitacaoForm):
 
 
     # ======================================================
-    # TELEFONE NO LANÇAMENTO MANUAL
-    # ======================================================
-
-    def clean_telefone(self):
-
-        telefone = self.cleaned_data.get(
-            "telefone",
-            ""
-        )
-
-        telefone = "".join(
-            filter(str.isdigit, telefone)
-        )
-
-        if len(telefone) not in (10, 11):
-
-            raise forms.ValidationError(
-                "Informe apenas os números do telefone."
-            )
-
-        return telefone
-
-
-    # ======================================================
-    # CPF NO LANÇAMENTO MANUAL
+    # VALIDAÇÃO GERAL DO LANÇAMENTO MANUAL
     # ======================================================
 
     def clean_cpf(self):
-
-        cpf = self.cleaned_data.get(
-            "cpf",
-            ""
-        )
-
-        cpf = "".join(
-            filter(str.isdigit, cpf)
-        )
-
-        if cpf and len(cpf) != 11:
-
-            raise forms.ValidationError(
-                "Informe apenas os 11 números do CPF."
-            )
-
-        return cpf
+        return self.cleaned_data.get("cpf", "")
 
 
-    # ======================================================
-    # VALIDAÇÃO GERAL DO LANÇAMENTO MANUAL
-    # ======================================================
+    def clean_telefone(self):
+        return self.cleaned_data.get("telefone", "")
+
 
     def clean(self):
 
