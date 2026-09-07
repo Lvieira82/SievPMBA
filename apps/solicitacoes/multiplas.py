@@ -148,12 +148,32 @@ def _criar_solicitacao(dados, data_evento, hora_inicio, hora_fim, usuario, arqui
     )
     solicitacao.save()
 
+    # O ofício obrigatório é um documento do protocolo. Como Solicitacao
+    # não possui campo FileField próprio para ele, armazenamos o arquivo
+    # como DocumentoSolicitacao, junto com os demais documentos.
+    tipo_oficio, _ = TipoDocumento.objects.get_or_create(
+        nome="Ofício ao Comandante",
+        defaults={
+            "descricao": "Ofício ao Comandante da Unidade",
+            "extensoes_permitidas": "pdf",
+            "ativo": True,
+        },
+    )
+    if not tipo_oficio.ativo:
+        tipo_oficio.ativo = True
+        tipo_oficio.save(update_fields=["ativo"])
+
     for item in arquivos:
         caminho = item["caminho"]
         campo = item["campo"]
         with default_storage.open(caminho, "rb") as arquivo:
-            if campo == "oficio_comandante" and any(f.name == campo for f in Solicitacao._meta.fields):
-                getattr(solicitacao, campo).save("oficio_comandante.pdf", File(arquivo), save=False)
+            if campo == "oficio_comandante":
+                documento = DocumentoSolicitacao(
+                    solicitacao=solicitacao,
+                    tipo_documento=tipo_oficio,
+                    descricao="Ofício ao Comandante da Unidade",
+                )
+                documento.arquivo.save("oficio_comandante.pdf", File(arquivo), save=True)
                 continue
 
             if campo != "documentos":
