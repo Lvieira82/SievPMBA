@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Pesquisa de Avaliação{% endblock %}
+{% block content %}
+<div style="max-width:720px;margin:40px auto;background:#fff;padding:32px;border-radius:16px;box-shadow:0 5px 20px rgba(0,0,0,.08)">
+    <h1 style="text-align:center">Pesquisa de Avaliação</h1>
+    <p style="text-align:center;color:#6b7280">Protocolo {{ solicitacao.protocolo }} — {{ solicitacao.nome_evento }}</p>
+
+    {% if erro %}<div style="background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px">{{ erro }}</div>{% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        <label><strong>Como você avalia o atendimento do SiEvPM?</strong></label>
+        <div style="display:flex;gap:18px;justify-content:center;margin:24px 0">
+            {% for numero in '12345' %}
+            <label style="text-align:center">
+                <input type="radio" name="nota" value="{{ numero }}" {% if nota|stringformat:'s' == numero %}checked{% endif %} required>
+                <br>{{ numero }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <label for="comentario"><strong>Comentário (opcional)</strong></label>
+        <textarea id="comentario" name="comentario" rows="5" style="width:100%;margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px">{{ comentario|default:'' }}</textarea>
+
+        <button type="submit" style="display:block;margin:24px auto 0;padding:12px 28px;border:0;border-radius:8px;background:#111827;color:#fff;font-weight:bold;cursor:pointer">Enviar avaliação</button>
+    </form>
+</div>
+{% endblock %}
