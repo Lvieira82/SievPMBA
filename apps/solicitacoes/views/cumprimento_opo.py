@@ -161,30 +161,35 @@ def cumprimento_opo(request, solicitacao_id):
                     except (TypeError, ValueError):
                         messages.error(request, "As coordenadas GPS recebidas são inválidas.")
                     else:
-                        if registro.imagem:
-                            try:
-                                registro.imagem.delete(save=False)
-                            except Exception:
-                                pass
-                        caminho_imagem = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
-                        registro.cumprida = True
-                        registro.imagem.name = caminho_imagem
-                        registro.justificativa = ""
-                        registro.respondido_em = timezone.now()
-                        registro.save()
+                        try:
+                            caminho_imagem = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
+                        except Exception:
+                            messages.error(request, "Não foi possível processar a foto capturada. Tente novamente.")
+                        else:
+                            if registro.imagem:
+                                try:
+                                    registro.imagem.delete(save=False)
+                                except Exception:
+                                    pass
 
-                        LogSistema.objects.create(
-                            usuario=request.user,
-                            solicitacao=solicitacao,
-                            acao="CUMPRIMENTO OPO",
-                            detalhes=(
-                                f"OPO cumprida. Coordenadas GPS: "
-                                f"latitude={latitude_float:.7f}, longitude={longitude_float:.7f}."
-                            ),
-                        )
+                            registro.cumprida = True
+                            registro.imagem.name = caminho_imagem
+                            registro.justificativa = ""
+                            registro.respondido_em = timezone.now()
+                            registro.save()
 
-                        messages.success(request, "Cumprimento registrado como SIM, com foto e localização GPS.")
-                        return redirect("cumprimento_opo", solicitacao_id=solicitacao_id)
+                            LogSistema.objects.create(
+                                usuario=request.user,
+                                solicitacao=solicitacao,
+                                acao="CUMPRIMENTO OPO",
+                                detalhes=(
+                                    f"OPO cumprida. Coordenadas GPS: "
+                                    f"latitude={latitude_float:.7f}, longitude={longitude_float:.7f}."
+                                ),
+                            )
+
+                            messages.success(request, "Cumprimento registrado como SIM, com foto e localização GPS.")
+                            return redirect("cumprimento_opo", solicitacao_id=solicitacao_id)
         else:
             if not justificativa:
                 messages.error(request, "Informe a justificativa quando a OPO não for cumprida.")
