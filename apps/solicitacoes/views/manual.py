@@ -89,6 +89,33 @@ def _salvar_anexos_manuais(request, solicitacao):
     return len(arquivos)
 
 
+def _salvar_oficio_origem(request, solicitacao):
+    oficio = request.FILES.get("oficio_origem")
+    if not oficio:
+        return False
+
+    validar_pdf_upload(oficio)
+    tipo_oficio, _ = TipoDocumento.objects.get_or_create(
+        nome="Ofício ao Comandante",
+        defaults={
+            "descricao": "Ofício ao Comandante da Unidade",
+            "extensoes_permitidas": "pdf",
+            "ativo": True,
+        },
+    )
+    if not tipo_oficio.ativo:
+        tipo_oficio.ativo = True
+        tipo_oficio.save(update_fields=["ativo"])
+
+    DocumentoSolicitacao.objects.create(
+        solicitacao=solicitacao,
+        tipo_documento=tipo_oficio,
+        descricao="Ofício ao Comandante da Unidade",
+        arquivo=oficio,
+    )
+    return True
+
+
 @login_required
 def lancamento_manual(request):
     if not pode_lancamento_manual(request.user):
@@ -124,6 +151,7 @@ def lancamento_manual(request):
                     obj.data_aprovacao = timezone.now()
                     obj.save()
 
+                    oficio_origem = _salvar_oficio_origem(request, obj)
                     quantidade_anexos = _salvar_anexos_manuais(request, obj)
 
                     HistoricoSolicitacao.objects.create(
@@ -168,11 +196,15 @@ def lancamento_manual(request):
                         ),
                     )
 
-                if quantidade_anexos:
+                if quantidade_anexos or oficio_origem:
+                    partes = []
+                    if oficio_origem:
+                        partes.append("ofício de origem incluído")
+                    if quantidade_anexos:
+                        partes.append(f"{quantidade_anexos} anexo(s) incluído(s)")
                     messages.success(
                         request,
-                        f"Lançamento manual salvo, {quantidade_anexos} anexo(s) incluído(s) e "
-                        f"OPO {obj.protocolo} gerada imediatamente.",
+                        f"Lançamento manual salvo, {' e '.join(partes)} e OPO {obj.protocolo} gerada imediatamente.",
                     )
                 else:
                     messages.success(
