@@ -28,6 +28,7 @@
       {% if pode_mapa %}<a href="{% url 'mapa_eventos' %}" class="card-painel"><div class="icone">🗺️</div><h2>Mapa de Eventos</h2><p>Consultar e gerar mapas no seu âmbito.</p></a>{% endif %}
       {% if pode_documentacao %}<a href="{% url 'opos_geradas' %}" class="card-painel"><div class="icone">🗂️</div><h2>Documentação / OPO</h2><p>Consultar documentação e OPOs da unidade.</p></a>{% endif %}
       {% if pode_gerar_opo %}<a href="{% url 'listar_pendentes_opo' %}" class="card-painel"><div class="icone">📄</div><h2>Gerar OPO</h2><p>Gerar OPO das solicitações da unidade.{% if pendentes_opo > 0 %}<span class="badge">{{ pendentes_opo }}</span>{% endif %}</p></a>{% endif %}
+      {% if pode_manual %}<a href="{% url 'lancamento_manual' %}" class="card-painel"><div class="icone">✍️</div><h2>Lançamento Manual</h2><p>Cadastrar manualmente um evento da unidade.</p></a>{% endif %}
       {% if pode_dashboard %}<a href="{% url 'dashboard_operacional' %}" class="card-painel"><div class="icone">📈</div><h2>Dashboard</h2><p>Indicadores e visão operacional do seu âmbito.</p></a>{% endif %}
     {% endif %}
   </div>
