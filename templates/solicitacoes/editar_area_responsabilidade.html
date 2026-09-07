@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Editar Área de Responsabilidade{% endblock %}
+{% block titulo %}Editar Área de Responsabilidade{% endblock %}
+{% block content %}
+<style>
+.wrap{max-width:900px;margin:32px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}h1{color:#907C64}.campo{margin-bottom:18px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo select{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;background:#fff}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 18px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}
+</style>
+<div class="wrap"><section class="cardx">
+<h1>✏️ Editar Área de Responsabilidade</h1><p>O bairro/distrito permanece vinculado ao município e a uma única unidade responsável.</p>
+<form method="post">{% csrf_token %}
+<div class="campo"><label>Município</label><select name="municipio" id="municipio" required>{% for m in municipios %}<option value="{{ m.id }}" {% if m.id == area.bairro.municipio_id %}selected{% endif %}>{{ m.nome }}</option>{% endfor %}</select></div>
+<div class="campo"><label>Bairro / Distrito</label><select name="bairro" id="bairro" required>{% for b in bairros %}<option value="{{ b.id }}" {% if b.id == area.bairro_id %}selected{% endif %}>{{ b.nome }}</option>{% endfor %}</select></div>
+<div class="campo"><label>Unidade responsável</label><select name="unidade" required>{% for u in unidades %}<option value="{{ u.id }}" {% if u.id == area.unidade_id %}selected{% endif %}>{{ u.nome }}{% if u.sigla %} ({{ u.sigla }}){% endif %}</option>{% endfor %}</select></div>
+<div class="acoes"><button type="submit" class="btnx prim">Salvar alterações</button><a href="{% url 'areas_responsabilidade' %}" class="btnx sec">← Voltar às áreas</a></div>
+</form>
+</section></div>
+{% endblock %}
