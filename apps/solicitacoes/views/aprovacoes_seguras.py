@@ -81,7 +81,7 @@ DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
 
 A Ordem de Policiamento (OPO) será gerada pela unidade responsável.
 
-PMBA - Sistema de Informações de Eventos (SiEvPM).
+PMBA - Uma Força a serviço do cidadão!
 """
         try:
             send_mail(
