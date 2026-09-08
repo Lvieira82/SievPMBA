@@ -140,16 +140,23 @@ def proximos_eventos_gestao_seguro(request):
     cores = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"]
     cidades_grafico = []
     inicio = 0
+    gradientes = []
     for indice, (nome, quantidade) in enumerate(sorted(cidades.items(), key=lambda x: (-x[1], x[0]))):
-        percentual = round(quantidade * 100 / total, 1) if total else 0
+        percentual = quantidade * 100 / total if total else 0
+        fim = inicio + percentual
+        cor = cores[indice % len(cores)]
         cidades_grafico.append({
             "nome": nome,
             "quantidade": quantidade,
-            "percentual": percentual,
-            "inicio": inicio,
-            "cor": cores[indice % len(cores)],
+            "percentual": round(percentual, 1),
+            "inicio": round(inicio, 2),
+            "fim": round(fim, 2),
+            "cor": cor,
         })
-        inicio += percentual
+        gradientes.append(f"{cor} {inicio:.2f}% {fim:.2f}%")
+        inicio = fim
+
+    pizza_gradient = ", ".join(gradientes) if gradientes else "#e5e7eb 0% 100%"
 
     max_dia = max(dias.values(), default=0)
     dias_grafico = []
@@ -168,6 +175,7 @@ def proximos_eventos_gestao_seguro(request):
         "eventos": eventos,
         "cidades_grafico": cidades_grafico,
         "dias_grafico": dias_grafico,
+        "pizza_gradient": pizza_gradient,
         "total_eventos": total,
         "filtro_inicio": hoje.strftime("%Y-%m-%d"),
         "filtro_fim": limite.strftime("%Y-%m-%d"),
