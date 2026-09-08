@@ -52,6 +52,21 @@ def _salvar_justificativa_txt_no_protocolo(solicitacao,operador,justificativa,re
 @login_required
 @require_http_methods(["GET","POST"])
 def cumprimento_opo(request,solicitacao_id):
+    if request.method=="GET" and request.GET.get("imagem_id"):
+        cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=request.GET.get("imagem_id")); solicitacao= cumprimento.opo.solicitacao
+        if eh_operador(request.user) or not pode_ver_solicitacao(request.user,solicitacao):
+            messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
+        if not cumprimento.imagem: raise Http404("A foto do cumprimento não está disponível.")
+        nome=getattr(cumprimento.imagem,"name","") or ""
+        if not nome: raise Http404("A foto do cumprimento não possui nome de arquivo.")
+        try:
+            if default_storage.exists(nome): arquivo=default_storage.open(nome,"rb")
+            else:
+                caminho=Path(settings.MEDIA_ROOT)/nome
+                if not caminho.is_file(): raise Http404("A foto do cumprimento não foi encontrada no armazenamento.")
+                arquivo=caminho.open("rb")
+        except (OSError,ValueError): raise Http404("A foto do cumprimento não foi encontrada no armazenamento.")
+        resposta=FileResponse(arquivo,content_type="image/jpeg"); resposta["Content-Disposition"]=f'inline; filename="{Path(nome).name}"'; resposta["X-Content-Type-Options"]="nosniff"; return resposta
     solicitacao=get_object_or_404(Solicitacao.objects.select_related("municipio","bairro","unidade"),pk=solicitacao_id)
     if not _operador_autorizado(request,solicitacao): messages.error(request,"Esta OPO não está liberada para o seu acesso de operador."); return redirect("eventos_dia")
     opo=_opo_principal(solicitacao)
@@ -99,22 +114,6 @@ def cumprimento_opo(request,solicitacao_id):
                     messages.success(request,"Registro de não cumprimento salvo com justificativa.")
                     return redirect("eventos_dia")
     return render(request,"solicitacoes/cumprimento_opo.html",{"solicitacao":solicitacao,"opo":opo,"registro":registro})
-
-@login_required
-def abrir_cumprimento_imagem(request,cumprimento_id):
-    cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=cumprimento_id); solicitacao=cumprimento.opo.solicitacao
-    if eh_operador(request.user) or not pode_ver_solicitacao(request.user,solicitacao): messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
-    if not cumprimento.imagem: raise Http404("A foto do cumprimento não está disponível.")
-    nome=getattr(cumprimento.imagem,"name","") or ""
-    if not nome: raise Http404("A foto do cumprimento não possui nome de arquivo.")
-    try:
-        if default_storage.exists(nome): arquivo=default_storage.open(nome,"rb")
-        else:
-            caminho=Path(settings.MEDIA_ROOT)/nome
-            if not caminho.is_file(): raise Http404("A foto do cumprimento não foi encontrada no armazenamento.")
-            arquivo=caminho.open("rb")
-    except (OSError,ValueError): raise Http404("A foto do cumprimento não foi encontrada no armazenamento.")
-    resposta=FileResponse(arquivo,content_type="image/jpeg"); resposta["Content-Disposition"]=f'inline; filename="{Path(nome).name}"'; resposta["X-Content-Type-Options"]="nosniff"; return resposta
 
 @login_required
 def abrir_opo_operador(request,anexo_id):
