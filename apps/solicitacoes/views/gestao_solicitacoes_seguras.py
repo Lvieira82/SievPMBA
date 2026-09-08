@@ -24,7 +24,8 @@ def agenda_gestao_segura(request):
 def proximos_eventos_gestao_seguro(request):
     hoje = timezone.localdate()
     inicio_padrao = hoje
-    fim_padrao = hoje + timedelta(days=30)
+    limite_futuro = hoje + timedelta(days=15)
+    fim_padrao = limite_futuro
 
     inicio_str = request.GET.get("inicio") or inicio_padrao.isoformat()
     fim_str = request.GET.get("fim") or fim_padrao.isoformat()
@@ -33,11 +34,20 @@ def proximos_eventos_gestao_seguro(request):
         fim = date.fromisoformat(fim_str)
     except (ValueError, TypeError):
         inicio, fim = inicio_padrao, fim_padrao
-        inicio_str, fim_str = inicio.isoformat(), fim.isoformat()
 
     if fim < inicio:
         inicio, fim = fim, inicio
-        inicio_str, fim_str = inicio.isoformat(), fim.isoformat()
+
+    # A visão de Eventos da semana trabalha, no máximo, com os próximos 15 dias.
+    if inicio < hoje:
+        inicio = hoje
+    if fim > limite_futuro:
+        fim = limite_futuro
+    if fim < inicio:
+        fim = inicio
+
+    inicio_str = inicio.isoformat()
+    fim_str = fim.isoformat()
 
     eventos = list(
         Solicitacao.objects.filter(
@@ -67,7 +77,6 @@ def proximos_eventos_gestao_seguro(request):
             "nome": nome,
             "quantidade": quantidade,
             "percentual": percentual,
-            "dasharray": f"{percentual:.4f} {100 - percentual:.4f}",
             "inicio": acumulado,
             "cor": cores[indice % len(cores)],
         })
