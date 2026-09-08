@@ -2,8 +2,6 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
-from django.contrib.sessions.models import Session
 from django.db.models import Count
 from django.db.models.functions import TruncDate, TruncHour
 from django.shortcuts import render, redirect
@@ -54,17 +52,20 @@ def dashboard(request):
     proximos_30 = hoje + timedelta(days=30)
     agora = timezone.now()
 
-    # Acessos simultâneos: usuários autenticados com sessão ainda ativa.
-    sessoes_ativas = Session.objects.filter(expire_date__gt=agora)
-    usuarios_simultaneos = set()
-    for sessao in sessoes_ativas:
-        try:
-            dados = sessao.get_decoded()
-            usuario_id = dados.get("_auth_user_id")
-            if usuario_id:
-                usuarios_simultaneos.add(str(usuario_id))
-        except Exception:
-            continue
+    # Considera simultâneos os usuários/clientes que fizeram uma requisição
+    # nos últimos 5 minutos. Isso mede atividade real, e não apenas sessão aberta.
+    janela_simultanea = agora - timedelta(minutes=5)
+    acessos_recentes = LogSistema.objects.filter(
+        acao="ACESSO_SISTEMA",
+        criado_em__gte=janela_simultanea,
+    ).values("usuario_id", "ip")
+    identidades_ativas = set()
+    for acesso in acessos_recentes:
+        if acesso["usuario_id"]:
+            identidades_ativas.add(("usuario", acesso["usuario_id"]))
+        elif acesso["ip"]:
+            identidades_ativas.add(("ip", acesso["ip"]))
+    acessos_simultaneos = len(identidades_ativas)
 
     # Estatísticas históricas de acesso registradas pelo middleware.
     logs_acesso = LogSistema.objects.filter(acao="ACESSO_SISTEMA")
@@ -98,7 +99,7 @@ def dashboard(request):
         "correcao": base.filter(status="CORRECAO").count(),
         "aprovadas": base.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
         "indeferidas": base.filter(status="REJEITADA").count(),
-        "acessos_simultaneos": len(usuarios_simultaneos),
+        "acessos_simultaneos": acessos_simultaneos,
         "dia_mais_acessado": dia_mais_acessado["dia"].strftime("%d/%m/%Y") if dia_mais_acessado else "Sem dados",
         "dia_mais_acessado_total": dia_mais_acessado["total"] if dia_mais_acessado else 0,
         "hora_mais_acessada": hora_mais_acessada["hora"].strftime("%H:%M") if hora_mais_acessada else "Sem dados",
