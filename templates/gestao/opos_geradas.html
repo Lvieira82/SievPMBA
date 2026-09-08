@@ -30,8 +30,8 @@
   {% if cumprimento.cumprida is True %}
     <div class="cumprimento-sim">📸 SIM — Cumprimento registrado</div>
     {% if cumprimento.imagem %}
-      <img src="{{ cumprimento.imagem.url }}" class="foto-cumprimento" alt="Foto do cumprimento da OPO">
-      <a class="btn-documento" href="{{ cumprimento.imagem.url }}" target="_blank" rel="noopener">📷 Abrir foto do cumprimento</a>
+      <img src="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" class="foto-cumprimento" alt="Foto do cumprimento da OPO">
+      <a class="btn-documento" href="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" target="_blank" rel="noopener">📷 Abrir foto do cumprimento</a>
     {% endif %}
     {% for log in protocolo.solicitacao.logsistema_set.all %}
       {% if log.acao == 'CUMPRIMENTO OPO' and 'Coordenadas GPS:' in log.detalhes %}
