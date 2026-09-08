@@ -162,6 +162,18 @@ def _marcar_percentual_tempo(registros, campo="media_horas"):
     return maximo
 
 
+def _chave_ranking(item):
+    """Maior cumprimento primeiro; em empate, menor tempo de atendimento."""
+    percentual = item.get("percentual")
+    tempo = item.get("media_horas")
+    return (
+        percentual is not None,
+        percentual if percentual is not None else -1,
+        tempo is None,
+        -(tempo if tempo is not None else 0),
+    )
+
+
 @login_required
 def analise_unidades(request):
     if not pode_ver_ranking(request.user):
@@ -190,6 +202,7 @@ def analise_unidades(request):
 
     unidades_relatorio = [selecionada] if selecionada else list(unidades)
     grupos = _grupos_unidades(base, unidades_relatorio)
+    grupos = sorted(grupos, key=_chave_ranking, reverse=True)
     max_tempo_unidade = _marcar_percentual_tempo(grupos)
     total_geral = sum(item["total"] for item in grupos)
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
@@ -251,7 +264,7 @@ def analise_unidades(request):
 
         ranking_cpr = sorted(
             por_cpr.values(),
-            key=lambda x: (x["percentual"] is not None, x["percentual"] or -1),
+            key=_chave_ranking,
             reverse=True,
         )
         max_tempo_cpr = _marcar_percentual_tempo(ranking_cpr)
@@ -293,7 +306,7 @@ def painel_analise(request):
 def fila_analise(request):
     if not pode_ver_ranking(request.user):
         return _sem_acesso(request)
-    unidades = _unidades_permitidas(request)
+    unidades = _unidades_permitidas(request.user)
     solicitacoes = (
         Solicitacao.objects
         .filter(
