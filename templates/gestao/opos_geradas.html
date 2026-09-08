@@ -5,8 +5,8 @@
 .opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}
 .btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-apoio{background:#0f766e}.btn-detalhes{background:#2563eb}.btn-back{background:#6b7280}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700}.btn-documento:hover{background:#111827;color:#fff}
-.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px;padding:14px;background:#f8fafc;border-radius:10px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}.cumprimento{margin-top:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.cumprimento-sim{color:#15803d;font-weight:700}.cumprimento-nao{color:#b91c1c;font-weight:700}.justificativa{margin-top:6px;color:#374151;white-space:pre-wrap}
-@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}}
+.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px;padding:14px;background:#f8fafc;border-radius:10px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}.cumprimento{margin-top:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.cumprimento-sim{color:#15803d;font-weight:700}.cumprimento-nao{color:#b91c1c;font-weight:700}.justificativa{margin-top:6px;color:#374151;white-space:pre-wrap}.foto-cumprimento{display:block;max-width:320px;max-height:260px;width:auto;height:auto;margin:10px 0;border-radius:10px;border:1px solid #d1d5db;object-fit:contain}.gps{margin-top:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:.92rem}
+@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}.foto-cumprimento{max-width:100%;max-height:360px}}
 </style>
 <div class="opo-wrap"><div class="opo-card">
 <h1>📁 OPOs Geradas</h1>
@@ -29,7 +29,15 @@
 <div class="cumprimento">
   {% if cumprimento.cumprida is True %}
     <div class="cumprimento-sim">📸 SIM — Cumprimento registrado</div>
-    {% if cumprimento.imagem %}<a class="btn-documento" href="{{ cumprimento.imagem.url }}" target="_blank" rel="noopener">📷 Foto do cumprimento</a>{% endif %}
+    {% if cumprimento.imagem %}
+      <img src="{{ cumprimento.imagem.url }}" class="foto-cumprimento" alt="Foto do cumprimento da OPO">
+      <a class="btn-documento" href="{{ cumprimento.imagem.url }}" target="_blank" rel="noopener">📷 Abrir foto do cumprimento</a>
+    {% endif %}
+    {% for log in protocolo.solicitacao.logsistema_set.all %}
+      {% if log.acao == 'CUMPRIMENTO OPO' and 'Coordenadas GPS:' in log.detalhes %}
+        <div class="gps">📍 <strong>Localização GPS:</strong> {{ log.detalhes }}</div>
+      {% endif %}
+    {% endfor %}
   {% elif cumprimento.cumprida is False %}
     <div class="cumprimento-nao">❌ NÃO — OPO não cumprida</div>
     <div class="justificativa"><strong>Justificativa:</strong> {{ cumprimento.justificativa }}</div>
