@@ -144,6 +144,11 @@ def _grupos_unidades(base, unidades_relatorio):
     return grupos
 
 
+def _media_percentuais(registros):
+    valores = [item["percentual"] for item in registros if item.get("percentual") is not None]
+    return round(sum(valores) / len(valores), 1) if valores else None
+
+
 @login_required
 def analise_unidades(request):
     if not pode_ver_ranking(request.user):
@@ -176,10 +181,12 @@ def analise_unidades(request):
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
     media_geral = round(sum(medias) / len(medias), 2) if medias else None
     cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
+    media_cumprimento_unidades = _media_percentuais(grupos)
 
     acesso = getattr(request.user, "acesso_institucional", None)
     eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
     ranking_cpr = []
+    media_cumprimento_cpr = None
     if eh_coppm and not selecionada:
         por_cpr = {}
         for item in grupos:
@@ -213,6 +220,7 @@ def analise_unidades(request):
             key=lambda x: (x["percentual"] is not None, x["percentual"] or -1),
             reverse=True,
         )
+        media_cumprimento_cpr = _media_percentuais(ranking_cpr)
 
     return render(
         request,
@@ -228,6 +236,8 @@ def analise_unidades(request):
             "respondidas": cumprimento_geral["cumpridas"] + cumprimento_geral["justificadas"],
             "media_geral": media_geral,
             "cumprimento_geral": cumprimento_geral,
+            "media_cumprimento_unidades": media_cumprimento_unidades,
+            "media_cumprimento_cpr": media_cumprimento_cpr,
             "ranking_cpr": ranking_cpr,
             "eh_coppm": eh_coppm,
         },
