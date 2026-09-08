@@ -37,7 +37,7 @@
                 <svg class="pizza" viewBox="0 0 120 120" aria-label="Eventos por cidade">
                     <circle cx="60" cy="60" r="43" fill="none" stroke="#e5e7eb" stroke-width="34"></circle>
                     {% for cidade in cidades_grafico %}
-                    <circle class="pizza-circulo" cx="60" cy="60" r="43" stroke="{{ cidade.cor }}" stroke-dasharray="{{ cidade.percentual }} {{ 100|add:cidade.percentual|floatformat:4|add:'-100' }}" pathLength="100" stroke-dashoffset="-{{ cidade.inicio }}"></circle>
+                    <circle class="pizza-circulo" cx="60" cy="60" r="43" stroke="{{ cidade.cor }}" stroke-dasharray="{{ cidade.dasharray }}" pathLength="100" stroke-dashoffset="-{{ cidade.inicio }}"></circle>
                     {% endfor %}
                 </svg>
                 <div class="legenda">
