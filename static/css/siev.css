@@ -56,19 +56,27 @@ body{
 
 .wrapper{
 
-    display:flex;
-
     min-height:100vh;
 
 }
 
 .main{
 
-    flex:1;
+    min-height:100vh;
 
     display:flex;
 
     flex-direction:column;
+
+    margin-left:280px;
+
+    transition:.35s;
+
+}
+
+.sidebar.collapsed + .main{
+
+    margin-left:90px;
 
 }
 
@@ -78,6 +86,14 @@ body{
 ========================================================== */
 
 .sidebar{
+
+    position:fixed;
+
+    top:0;
+
+    left:0;
+
+    bottom:0;
 
     width:280px;
 
@@ -90,6 +106,10 @@ body{
     box-shadow:3px 0 10px rgba(0,0,0,.25);
 
     z-index:1000;
+
+    overflow-y:auto;
+
+    overflow-x:hidden;
 
 }
 
@@ -255,15 +275,53 @@ body{
 
     gap:10px;
 
-    font-size:18px;
+    color:#ffffff;
+
+    font-size:15px;
+
+    font-weight:600;
 
 }
 
-.usuario i{
+.usuario > i{
 
-    color:var(--dourado);
+    font-size:30px;
 
-    font-size:28px;
+    color:#C9A227;
+
+}
+
+.dados-usuario{
+
+    display:flex;
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    line-height:1.2;
+
+}
+
+.nome-usuario{
+
+    color:#ffffff;
+
+    font-size:15px;
+
+    font-weight:600;
+
+    white-space:nowrap;
+
+}
+
+.perfil-usuario{
+
+    color:#C9A227;
+
+    font-size:12px;
+
+    margin-top:3px;
 
 }
 
@@ -467,58 +525,8 @@ body{
 
 }
 
-.usuario {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #C9A227;
-    font-size: 15px;
-    font-weight: 600;
-}
 
-.usuario i {
-    font-size: 30px;
-}
-
-.nome-usuario {
-    color: #ffffff;
-    white-space: nowrap;
-}
-/* ==========================================================
-   USUÁRIO AUTENTICADO - TOPBAR
-   ========================================================== */
-
-.usuario {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #ffffff;
-}
-
-.usuario > i {
-    font-size: 30px;
-    color: #C9A227;
-}
-
-.dados-usuario {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    line-height: 1.2;
-}
-
-.nome-usuario {
-    color: #ffffff;
-    font-size: 15px;
-    font-weight: 600;
-}
-
-.perfil-usuario {
-    color: #C9A227;
-    font-size: 12px;
-    margin-top: 3px;
-}
-/* ==========================================================
+/*==========================================================
    RESPONSIVO
 ========================================================== */
 
@@ -526,17 +534,28 @@ body{
 
     .sidebar{
 
-        position:fixed;
-
         left:-280px;
 
-        height:100%;
+        width:280px;
 
     }
 
     .sidebar.show{
 
         left:0;
+
+    }
+
+    .sidebar.collapsed{
+
+        width:280px;
+
+    }
+
+    .sidebar.collapsed + .main,
+    .main{
+
+        margin-left:0;
 
     }
 
@@ -554,8 +573,9 @@ body{
 
 }
 
+
 /*==========================================================
-BOTÃO MENU
+   BOTÃO MENU
 ==========================================================*/
 
 .btn-menu{
@@ -578,7 +598,7 @@ BOTÃO MENU
 
 
 /*==========================================================
-MENU FECHADO
+   MENU FECHADO
 ==========================================================*/
 
 .sidebar.collapsed .logo{
@@ -607,24 +627,7 @@ MENU FECHADO
 
 
 /*==========================================================
-ANIMAÇÕES
-==========================================================*/
-
-.sidebar{
-
-    transition:.35s;
-
-}
-
-.main{
-
-    transition:.35s;
-
-}
-
-
-/*==========================================================
-TOOLTIP
+   TOOLTIP
 ==========================================================*/
 
 .sidebar.collapsed .menu a{
