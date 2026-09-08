@@ -117,16 +117,26 @@ def gerar_mapa_eventos_pdf_seguro(request):
 
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
 
-    unidades_titulo = []
-    for evento in eventos:
-        if evento.unidade and evento.unidade.nome not in unidades_titulo:
-            unidades_titulo.append(evento.unidade.nome)
-    if len(unidades_titulo) == 1:
-        unidade_titulo = unidades_titulo[0]
-    elif unidades_titulo:
-        unidade_titulo = " / ".join(unidades_titulo)
+    # O cabeçalho deve identificar a Unidade vinculada ao usuário que está logado,
+    # e não a unidade encontrada nos eventos do mapa.
+    perfil = getattr(request.user, "perfil_siev", None)
+    unidade_login = getattr(perfil, "unidade", None)
+
+    if unidade_login:
+        unidade_titulo = unidade_login.nome
     else:
-        unidade_titulo = "UNIDADE RESPONSÁVEL"
+        # Para perfis que não possuem uma unidade diretamente vinculada (ex.: CPR),
+        # mantém-se o comportamento anterior como fallback.
+        unidades_titulo = []
+        for evento in eventos:
+            if evento.unidade and evento.unidade.nome not in unidades_titulo:
+                unidades_titulo.append(evento.unidade.nome)
+        if len(unidades_titulo) == 1:
+            unidade_titulo = unidades_titulo[0]
+        elif unidades_titulo:
+            unidade_titulo = " / ".join(unidades_titulo)
+        else:
+            unidade_titulo = "UNIDADE RESPONSÁVEL"
 
     story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}", subtitulo))
 
