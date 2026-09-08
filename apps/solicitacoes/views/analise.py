@@ -140,6 +140,10 @@ def _grupos_unidades(base, unidades_relatorio):
             "percentual": cumprimento["percentual"],
             "respondidas": cumprimento["cumpridas"] + cumprimento["justificadas"],
             "media_horas": media,
+            "media_minutos": round(media * 60, 1) if media is not None else None,
+            "media_dias": round(media / 24, 2) if media is not None else None,
+            "tempo_registros": len(tempos),
+            "tempo_total_horas": round(sum(tempos), 2),
         })
     return grupos
 
@@ -147,6 +151,15 @@ def _grupos_unidades(base, unidades_relatorio):
 def _media_percentuais(registros):
     valores = [item["percentual"] for item in registros if item.get("percentual") is not None]
     return round(sum(valores) / len(valores), 1) if valores else None
+
+
+def _marcar_percentual_tempo(registros, campo="media_horas"):
+    valores = [item[campo] for item in registros if item.get(campo) is not None]
+    maximo = max(valores, default=0)
+    for item in registros:
+        valor = item.get(campo)
+        item["tempo_percentual"] = round(valor * 100 / maximo, 1) if valor is not None and maximo else 0
+    return maximo
 
 
 @login_required
@@ -177,16 +190,25 @@ def analise_unidades(request):
 
     unidades_relatorio = [selecionada] if selecionada else list(unidades)
     grupos = _grupos_unidades(base, unidades_relatorio)
+    max_tempo_unidade = _marcar_percentual_tempo(grupos)
     total_geral = sum(item["total"] for item in grupos)
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
     media_geral = round(sum(medias) / len(medias), 2) if medias else None
     cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
     media_cumprimento_unidades = _media_percentuais(grupos)
+    media_tempo_geral_horas = (
+        round(sum(item["tempo_total_horas"] for item in grupos) / sum(item["tempo_registros"] for item in grupos), 2)
+        if sum(item["tempo_registros"] for item in grupos)
+        else None
+    )
+    media_tempo_geral_minutos = round(media_tempo_geral_horas * 60, 1) if media_tempo_geral_horas is not None else None
+    media_tempo_geral_dias = round(media_tempo_geral_horas / 24, 2) if media_tempo_geral_horas is not None else None
 
     acesso = getattr(request.user, "acesso_institucional", None)
     eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
     ranking_cpr = []
     media_cumprimento_cpr = None
+    max_tempo_cpr = 0
     if eh_coppm and not selecionada:
         por_cpr = {}
         for item in grupos:
@@ -200,6 +222,8 @@ def analise_unidades(request):
                     "justificadas": 0,
                     "descumpridas": 0,
                     "opo_total": 0,
+                    "tempo_registros": 0,
+                    "tempo_total_horas": 0,
                 },
             )
             registro["total"] += item["total"]
@@ -207,6 +231,8 @@ def analise_unidades(request):
             registro["justificadas"] += item["justificadas"]
             registro["descumpridas"] += item["descumpridas"]
             registro["opo_total"] += item["cumprimento_total"]
+            registro["tempo_registros"] += item["tempo_registros"]
+            registro["tempo_total_horas"] += item["tempo_total_horas"]
 
         for item in por_cpr.values():
             item["respondidas"] = item["cumpridas"] + item["justificadas"]
@@ -215,11 +241,20 @@ def analise_unidades(request):
                 if item["opo_total"]
                 else None
             )
+            item["media_horas"] = (
+                round(item["tempo_total_horas"] / item["tempo_registros"], 2)
+                if item["tempo_registros"]
+                else None
+            )
+            item["media_minutos"] = round(item["media_horas"] * 60, 1) if item["media_horas"] is not None else None
+            item["media_dias"] = round(item["media_horas"] / 24, 2) if item["media_horas"] is not None else None
+
         ranking_cpr = sorted(
             por_cpr.values(),
             key=lambda x: (x["percentual"] is not None, x["percentual"] or -1),
             reverse=True,
         )
+        max_tempo_cpr = _marcar_percentual_tempo(ranking_cpr)
         media_cumprimento_cpr = _media_percentuais(ranking_cpr)
 
     return render(
@@ -240,6 +275,11 @@ def analise_unidades(request):
             "media_cumprimento_cpr": media_cumprimento_cpr,
             "ranking_cpr": ranking_cpr,
             "eh_coppm": eh_coppm,
+            "max_tempo_unidade": max_tempo_unidade,
+            "max_tempo_cpr": max_tempo_cpr,
+            "media_tempo_geral_horas": media_tempo_geral_horas,
+            "media_tempo_geral_minutos": media_tempo_geral_minutos,
+            "media_tempo_geral_dias": media_tempo_geral_dias,
         },
     )
 
@@ -383,7 +423,7 @@ def historico(request, pk):
 def estatisticas(request):
     if not pode_ver_ranking(request.user):
         return _sem_acesso(request)
-    unidades = _unidades_permitidas(request)
+    unidades = _unidades_permitidas(request.user)
     dados = (
         Solicitacao.objects
         .filter(unidade__in=unidades)
