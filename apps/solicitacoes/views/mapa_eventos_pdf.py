@@ -117,16 +117,15 @@ def gerar_mapa_eventos_pdf_seguro(request):
 
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
 
-    # O cabeçalho deve identificar a Unidade vinculada ao usuário que está logado,
-    # e não a unidade encontrada nos eventos do mapa.
-    perfil = getattr(request.user, "perfil_siev", None)
-    unidade_login = getattr(perfil, "unidade", None)
+    # Usa exatamente o mesmo padrão da geração de OPO das Unidades:
+    # request.user.acesso_institucional -> unidade.
+    acesso = getattr(request.user, "acesso_institucional", None)
+    unidade_login = getattr(acesso, "unidade", None)
 
     if unidade_login:
         unidade_titulo = unidade_login.nome
     else:
-        # Para perfis que não possuem uma unidade diretamente vinculada (ex.: CPR),
-        # mantém-se o comportamento anterior como fallback.
+        # Para perfis sem unidade diretamente vinculada (ex.: CPR), mantém fallback.
         unidades_titulo = []
         for evento in eventos:
             if evento.unidade and evento.unidade.nome not in unidades_titulo:
