@@ -82,11 +82,33 @@ def proximos_eventos_gestao_seguro(request):
         })
         acumulado += percentual
 
+    # Eventos por dia: mantém todos os dias do período, inclusive os dias sem eventos.
+    # A altura é proporcional ao dia mais movimentado e a cor indica a intensidade.
     maior_dia = max(dias.values()) if dias else 1
-    dias_grafico = [
-        {"nome": nome, "quantidade": quantidade, "percentual": (quantidade / maior_dia) * 100}
-        for nome, quantidade in dias.items()
-    ]
+
+    def cor_por_quantidade(quantidade):
+        if quantidade == 0:
+            return "#e5e7eb"      # cinza — sem evento
+        if quantidade <= 2:
+            return "#FFD600"      # amarelo — pouca movimentação
+        if quantidade <= 4:
+            return "#FF9800"      # laranja — movimentação moderada
+        if quantidade <= 6:
+            return "#F44336"      # vermelho — movimentação alta
+        return "#FF1744"          # vermelho flamejante — concentração muito alta
+
+    dias_grafico = []
+    dia_atual = inicio
+    while dia_atual <= fim:
+        quantidade = dias.get(dia_atual.strftime("%d/%m"), 0)
+        percentual = (quantidade / maior_dia) * 100 if maior_dia else 0
+        dias_grafico.append({
+            "nome": dia_atual.strftime("%d/%m"),
+            "quantidade": quantidade,
+            "percentual": percentual,
+            "cor": cor_por_quantidade(quantidade),
+        })
+        dia_atual += timedelta(days=1)
 
     return render(request, "gestao/proximos_eventos.html", {
         "eventos": eventos,
