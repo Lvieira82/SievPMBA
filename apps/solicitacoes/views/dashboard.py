@@ -2,11 +2,14 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.contrib.sessions.models import Session
 from django.db.models import Count
+from django.db.models.functions import TruncDate, TruncHour
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
-from apps.solicitacoes.models import Solicitacao
+from apps.solicitacoes.models import LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import (
     eh_operador,
     escopo_unidades,
@@ -21,6 +24,23 @@ def _negar(request, mensagem="Você não possui permissão para acessar esta ár
     return redirect("painel_gestao")
 
 
+def _formatar_duracao(delta):
+    if not delta:
+        return "Sem dados"
+    segundos = max(0, int(delta.total_seconds()))
+    dias, resto = divmod(segundos, 86400)
+    horas, resto = divmod(resto, 3600)
+    minutos, _ = divmod(resto, 60)
+    partes = []
+    if dias:
+        partes.append(f"{dias}d")
+    if horas:
+        partes.append(f"{horas}h")
+    if minutos or not partes:
+        partes.append(f"{minutos}min")
+    return " ".join(partes)
+
+
 @login_required
 def dashboard(request):
     if not pode_ver_dashboard(request.user):
@@ -32,12 +52,44 @@ def dashboard(request):
     base = Solicitacao.objects.filter(unidade__in=unidades)
     hoje = timezone.localdate()
     proximos_30 = hoje + timedelta(days=30)
+    agora = timezone.now()
 
-    eventos = (
-        base.filter(data_evento__gte=hoje)
-        .select_related("municipio", "bairro", "unidade", "tipo_evento")
-        .order_by("data_evento", "hora_inicio")[:10]
+    # Acessos simultâneos: usuários autenticados com sessão ainda ativa.
+    sessoes_ativas = Session.objects.filter(expire_date__gt=agora)
+    usuarios_simultaneos = set()
+    for sessao in sessoes_ativas:
+        try:
+            dados = sessao.get_decoded()
+            usuario_id = dados.get("_auth_user_id")
+            if usuario_id:
+                usuarios_simultaneos.add(str(usuario_id))
+        except Exception:
+            continue
+
+    # Estatísticas históricas de acesso registradas pelo middleware.
+    logs_acesso = LogSistema.objects.filter(acao="ACESSO_SISTEMA")
+    tz = timezone.get_current_timezone()
+    dia_mais_acessado = (
+        logs_acesso
+        .annotate(dia=TruncDate("criado_em", tzinfo=tz))
+        .values("dia")
+        .annotate(total=Count("id"))
+        .order_by("-total", "dia")
+        .first()
     )
+    hora_mais_acessada = (
+        logs_acesso
+        .annotate(hora=TruncHour("criado_em", tzinfo=tz))
+        .values("hora")
+        .annotate(total=Count("id"))
+        .order_by("-total", "hora")
+        .first()
+    )
+
+    # Tempo médio de processamento: criação da solicitação até a aprovação.
+    tempos = base.filter(data_aprovacao__isnull=False).values_list("criado_em", "data_aprovacao")
+    duracoes = [fim - inicio for inicio, fim in tempos if inicio and fim and fim >= inicio]
+    media_tempo = sum(duracoes, timedelta()) / len(duracoes) if duracoes else None
 
     context = {
         "eventos_hoje": base.filter(data_evento=hoje).count(),
@@ -46,7 +98,13 @@ def dashboard(request):
         "correcao": base.filter(status="CORRECAO").count(),
         "aprovadas": base.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
         "indeferidas": base.filter(status="REJEITADA").count(),
-        "eventos": eventos,
+        "acessos_simultaneos": len(usuarios_simultaneos),
+        "dia_mais_acessado": dia_mais_acessado["dia"].strftime("%d/%m/%Y") if dia_mais_acessado else "Sem dados",
+        "dia_mais_acessado_total": dia_mais_acessado["total"] if dia_mais_acessado else 0,
+        "hora_mais_acessada": hora_mais_acessada["hora"].strftime("%H:%M") if hora_mais_acessada else "Sem dados",
+        "hora_mais_acessada_total": hora_mais_acessada["total"] if hora_mais_acessada else 0,
+        "media_tempo_solicitacoes": _formatar_duracao(media_tempo),
+        "solicitacoes_com_tempo": len(duracoes),
     }
     return render(request, "dashboard/index.html", context)
 
