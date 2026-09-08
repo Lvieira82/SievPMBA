@@ -3,176 +3,93 @@
 {% block title %}Próximos Eventos{% endblock %}
 
 {% block content %}
-
 <style>
-
-.container-eventos {
-    max-width: 1000px;
-    margin: 30px auto;
-    background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 5px 18px rgba(0,0,0,.08);
-}
-
-.titulo {
-    color: #907C64;
-    margin-bottom: 25px;
-}
-
-.evento-item {
-    padding: 18px;
-    border-bottom: 1px solid #e2e2e2;
-}
-
-.evento-item:last-child {
-    border-bottom: none;
-}
-
-.evento-data {
-    font-weight: bold;
-    color: #555;
-    margin-bottom: 5px;
-}
-
-.evento-nome {
-    font-size: 17px;
-    font-weight: 600;
-    margin-bottom: 5px;
-}
-
-.evento-local {
-    color: #555;
-    margin-bottom: 8px;
-}
-
-.protocolo {
-    font-size: 14px;
-    color: #444;
-}
-
-.status {
-    display: inline-block;
-    margin-left: 10px;
-    padding: 5px 10px;
-    border-radius: 7px;
-    font-size: 12px;
-    font-weight: bold;
-}
-
-.status-aprovado {
-    background: #dcfce7;
-    color: #15803d;
-    border: 1px solid #86efac;
-}
-
-.status-correcao {
-    background: #fff7d6;
-    color: #a16207;
-    border: 1px solid #facc15;
-}
-
-.btn-voltar {
-    display: inline-block;
-    margin-top: 25px;
-    padding: 12px 26px;
-    background: #6b7280;
-    color: white;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-}
-
+.container-eventos{max-width:1200px;margin:24px auto;padding:0 12px}
+.cabecalho-eventos,.filtros-eventos,.grafico-card,.lista-eventos{background:#fff;border-radius:16px;box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.cabecalho-eventos{padding:22px 24px;margin-bottom:16px}.cabecalho-eventos h1{margin:0 0 6px;color:#111827}.cabecalho-eventos p{margin:0;color:#6b7280}
+.filtros-eventos{padding:18px 20px;margin-bottom:18px;display:flex;gap:14px;align-items:end;flex-wrap:wrap}.filtro{flex:1;min-width:180px}.filtro label{display:block;font-weight:600;color:#374151;margin-bottom:6px}.filtro input{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid #d1d5db;border-radius:9px}.btn-filtrar{padding:10px 18px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer}.resumo{width:100%;display:flex;gap:8px;flex-wrap:wrap}.tag{background:#eff6ff;color:#1e40af;border-radius:999px;padding:7px 12px;font-size:13px;font-weight:600}
+.graficos{display:grid;grid-template-columns:1fr 1.7fr;gap:18px;margin-bottom:18px}.grafico-card{padding:20px}.grafico-card h2{font-size:18px;margin:0 0 4px;color:#1f2937}.grafico-card p{margin:0 0 12px;color:#6b7280;font-size:13px}.grafico-wrap{position:relative;height:310px}
+.lista-eventos{padding:20px}.lista-eventos h2{margin:0 0 12px;color:#1f2937}.evento-item{padding:16px 4px;border-bottom:1px solid #e5e7eb}.evento-item:last-child{border-bottom:0}.evento-data{font-weight:700;color:#475569}.evento-nome{font-size:17px;font-weight:700;margin-top:5px}.evento-local{color:#6b7280;margin-top:5px}.evento-meta{font-size:13px;color:#64748b;margin-top:7px}.status{display:inline-block;margin-left:8px;padding:4px 8px;border-radius:7px;font-size:11px;font-weight:700}.status-aprovado{background:#dcfce7;color:#15803d}.status-correcao{background:#fff7d6;color:#a16207}.vazio{text-align:center;padding:28px;color:#6b7280}
+.btn-voltar{display:inline-block;margin-top:18px;padding:11px 22px;background:#6b7280;color:#fff;border-radius:9px;text-decoration:none;font-weight:700}
+@media(max-width:800px){.graficos{grid-template-columns:1fr}.filtros-eventos{align-items:stretch}.filtro{min-width:100%}.btn-filtrar{width:100%}.grafico-wrap{height:280px}}
 </style>
 
-
 <div class="container-eventos">
+    <div class="cabecalho-eventos">
+        <h1>📅 Próximos Eventos</h1>
+        <p>Visualização operacional dos eventos dentro do período selecionado.</p>
+    </div>
 
-    <h1 class="titulo">
-        📅 Próximos Eventos
-    </h1>
+    <form method="get" class="filtros-eventos">
+        <div class="filtro">
+            <label for="inicio">Data início</label>
+            <input type="date" id="inicio" name="inicio" value="{{ filtro_inicio }}">
+        </div>
+        <div class="filtro">
+            <label for="fim">Data fim</label>
+            <input type="date" id="fim" name="fim" value="{{ filtro_fim }}">
+        </div>
+        <button type="submit" class="btn-filtrar">🔎 Filtrar</button>
+        <div class="resumo">
+            <span class="tag">📅 Período: {{ filtro_inicio|date:"d/m/Y" }} até {{ filtro_fim|date:"d/m/Y" }}</span>
+            <span class="tag">📊 {{ total_eventos }} evento(s)</span>
+        </div>
+    </form>
 
-
-    {% for evento in eventos %}
-
-        <div class="evento-item">
-
-            <div class="evento-data">
-
-                📅
-                {{ evento.data_evento|date:"d/m/Y" }}
-
-                {% if evento.hora_inicio %}
-                    — {{ evento.hora_inicio|time:"H:i" }}
-                {% endif %}
-
-            </div>
-
-
-            <div class="evento-nome">
-
-                📌
-                {{ evento.nome_evento }}
-
-            </div>
-
-
-            <div class="evento-local">
-
-                📍
-                {{ evento.local }}
-
-            </div>
-
-
-            <div>
-
-                <span class="protocolo">
-
-                    🔖 Protocolo:
-
-                    <strong>
-                        {{ evento.protocolo }}
-                    </strong>
-
-                </span>
-
-
-                {% if evento.status == "APROVADO" %}
-
-                    <span class="status status-aprovado">
-                        ✓ APROVADO
-                    </span>
-
-                {% elif evento.status == "CORRECAO" %}
-
-                    <span class="status status-correcao">
-                        ✏️ EM CORREÇÃO
-                    </span>
-
-                {% endif %}
-
-            </div>
-
+    <div class="graficos">
+        <div class="grafico-card">
+            <h2>Eventos por cidade</h2>
+            <p>Distribuição dos eventos no período e escopo selecionados.</p>
+            <div class="grafico-wrap"><canvas id="graficoCidades"></canvas></div>
         </div>
 
+        <div class="grafico-card">
+            <h2>Eventos por dia</h2>
+            <p>A altura das barras mostra a concentração de eventos em cada dia.</p>
+            <div class="grafico-wrap"><canvas id="graficoDias"></canvas></div>
+        </div>
+    </div>
 
-    {% empty %}
-
-        <p>
-            Não há próximos eventos cadastrados.
-        </p>
-
-    {% endfor %}
-
-
-    <a
-        href="{% url 'painel_gestao' %}"
-        class="btn-voltar"
-    >
-        ← Voltar
-    </a>
-
+    <div class="lista-eventos">
+        <h2>Eventos do período <span class="tag">{{ total_eventos }} eventos</span></h2>
+        {% for evento in eventos %}
+            <div class="evento-item">
+                <div class="evento-data">📅 {{ evento.data_evento|date:"d/m/Y" }}{% if evento.hora_inicio %} — {{ evento.hora_inicio|time:"H:i" }}{% endif %}</div>
+                <div class="evento-nome">📌 {{ evento.nome_evento }}</div>
+                <div class="evento-local">📍 {{ evento.municipio }} — {{ evento.local }}</div>
+                <div class="evento-meta">🔖 Protocolo: <strong>{{ evento.protocolo }}</strong> · 🏢 {{ evento.unidade }}
+                    {% if evento.status == "APROVADA" %}<span class="status status-aprovado">✓ APROVADO</span>{% elif evento.status == "CORRECAO" %}<span class="status status-correcao">✏️ EM CORREÇÃO</span>{% endif %}
+                </div>
+            </div>
+        {% empty %}
+            <div class="vazio">Não há próximos eventos no período selecionado.</div>
+        {% endfor %}
+        <a href="{% url 'painel_gestao' %}" class="btn-voltar">← Voltar</a>
+    </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const cidades = {{ cidades_json|safe }};
+const cidadesValores = {{ cidades_valores_json|safe }};
+const dias = {{ dias_json|safe }};
+const diasValores = {{ dias_valores_json|safe }};
+
+new Chart(document.getElementById('graficoCidades'), {
+    type: 'pie',
+    data: {labels: cidades, datasets: [{data: cidadesValores}]},
+    options: {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}}}
+});
+
+new Chart(document.getElementById('graficoDias'), {
+    type: 'bar',
+    data: {labels: dias, datasets: [{label:'Eventos', data:diasValores}]},
+    options: {
+        responsive:true,
+        maintainAspectRatio:false,
+        scales:{y:{beginAtZero:true, ticks:{precision:0}}, x:{title:{display:true,text:'Dia'}}},
+        plugins:{legend:{display:false}}
+    }
+});
+</script>
 {% endblock %}
