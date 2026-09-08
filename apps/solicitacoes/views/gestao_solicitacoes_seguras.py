@@ -1,4 +1,3 @@
-import json
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -68,8 +67,8 @@ def proximos_eventos_gestao_seguro(request):
             "nome": nome,
             "quantidade": quantidade,
             "percentual": percentual,
+            "dasharray": f"{percentual:.4f} {100 - percentual:.4f}",
             "inicio": acumulado,
-            "fim": acumulado + percentual,
             "cor": cores[indice % len(cores)],
         })
         acumulado += percentual
