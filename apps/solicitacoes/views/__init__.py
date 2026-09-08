@@ -11,7 +11,7 @@ from .analise import detalhes, estatisticas, fila_analise, historico, painel_ana
 from .compat import alterar_status, detalhe_opo_publica, importar_matriculas_painel, importar_municipios, minhas_solicitacoes, validar_matricula_opo_publica, verificar_autenticidade
 from .escopo_gestao import documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro, opos_geradas_seguro, detalhe_opo_seguro, gerar_opo_seguro, mapa_eventos_seguro
 from .mapa_seguro import gerar_mapa_eventos_pdf_seguro
-from .dashboard import calendario, dashboard, eventos_hoje, mapa, por_municipio, por_tipo, por_unidade
+from .dashboard import dashboard, eventos_hoje, proximos_eventos_gestao
 from .eventos import eventos_dia, eventos_dia_resultado
 from .protocolo import cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo, fila_protocolo, historico_protocolo, painel_protocolo, reenviar_email
 painel_gestao=painel_gestao_seguro
