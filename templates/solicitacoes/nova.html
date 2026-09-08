@@ -56,9 +56,9 @@ textarea{min-height:120px}
 <div><label>Nome do Responsável *</label>{{ form.solicitante }}{% if form.solicitante.errors %}<div class="erro-campo">{{ form.solicitante.errors.0 }}</div>{% endif %}</div>
 <div><label>CPF *</label>{{ form.cpf }}{% if form.cpf.errors %}<div class="erro-campo">{{ form.cpf.errors.0 }}</div>{% endif %}</div>
 <div><label>Telefone *</label>{{ form.telefone }}{% if form.telefone.errors %}<div class="erro-campo">{{ form.telefone.errors.0 }}</div>{% endif %}</div>
-<div><label>E-mail *</label>{{ form.email }}{% if form.email.errors %}<div class="erro-campo">{{ form.email.errors.0 }}</div>{% endif %}</div>
+<div><label>E-mail(Utilize um e-mail acessível) *</label>{{ form.email }}{% if form.email.errors %}<div class="erro-campo">{{ form.email.errors.0 }}</div>{% endif %}</div>
 <div class="full"><label>Nome do Evento *</label>{{ form.nome_evento }}{% if form.nome_evento.errors %}<div class="erro-campo">{{ form.nome_evento.errors.0 }}</div>{% endif %}</div>
-<div class="full"><label>Local do Evento *</label>{{ form.local }}{% if form.local.errors %}<div class="erro-campo">{{ form.local.errors.0 }}</div>{% endif %}</div>
+<div class="full"><label>Local do Evento(Rua, Bairro, Localidade, Ponto de Referência) *</label>{{ form.local }}{% if form.local.errors %}<div class="erro-campo">{{ form.local.errors.0 }}</div>{% endif %}</div>
 <div><label>Data do Evento *</label>{{ form.data_evento }}{% if form.data_evento.errors %}<div class="erro-campo">{{ form.data_evento.errors.0 }}</div>{% endif %}</div>
 <div><label>Hora Início *</label>{{ form.hora_inicio }}{% if form.hora_inicio.errors %}<div class="erro-campo">{{ form.hora_inicio.errors.0 }}</div>{% endif %}</div>
 <div><label>Hora Fim *</label>{{ form.hora_fim }}{% if form.hora_fim.errors %}<div class="erro-campo">{{ form.hora_fim.errors.0 }}</div>{% endif %}</div>
