@@ -119,7 +119,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
 
     # Usa exatamente o mesmo padrão da geração de OPO das Unidades:
     # request.user.acesso_institucional -> unidade.
-    acesso = getattr(request.user, "acesso_institucional", None)
+    acesso = getattr(request.user.acesso_institucional, None)
     unidade_login = getattr(acesso, "unidade", None)
 
     if unidade_login:
