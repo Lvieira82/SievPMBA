@@ -183,6 +183,6 @@ def gerar_mapa_eventos_pdf_seguro(request):
     ]))
     story.append(tabela)
     story.append(Spacer(1, 4 * mm))
-    story.append(Paragraph("POLÍCIA MILITAR DA BAHIA - Sistema Inteligente de Eventos", periodo))
+    story.append(Paragraph("POLÍCIA MILITAR DA BAHIA - Sistema Integrado de Eventos", periodo))
     doc.build(story)
     return response
