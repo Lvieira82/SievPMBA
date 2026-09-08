@@ -58,15 +58,35 @@ def proximos_eventos_gestao_seguro(request):
         dia = evento.data_evento.strftime("%d/%m")
         dias[dia] = dias.get(dia, 0) + 1
 
+    total_cidades = sum(cidades.values()) or 1
+    cores = ["#3b9ddd", "#f45b7a", "#ff9f43", "#8e7dff", "#2fcf9d", "#e56b6f", "#4d96ff", "#f7c948"]
+    cidades_grafico = []
+    acumulado = 0
+    for indice, (nome, quantidade) in enumerate(cidades.items()):
+        percentual = (quantidade / total_cidades) * 100
+        cidades_grafico.append({
+            "nome": nome,
+            "quantidade": quantidade,
+            "percentual": percentual,
+            "inicio": acumulado,
+            "fim": acumulado + percentual,
+            "cor": cores[indice % len(cores)],
+        })
+        acumulado += percentual
+
+    maior_dia = max(dias.values()) if dias else 1
+    dias_grafico = [
+        {"nome": nome, "quantidade": quantidade, "percentual": (quantidade / maior_dia) * 100}
+        for nome, quantidade in dias.items()
+    ]
+
     return render(request, "gestao/proximos_eventos.html", {
         "eventos": eventos,
         "filtro_inicio": inicio_str,
         "filtro_fim": fim_str,
         "total_eventos": len(eventos),
-        "cidades_json": json.dumps(list(cidades.keys()), ensure_ascii=False),
-        "cidades_valores_json": json.dumps(list(cidades.values())),
-        "dias_json": json.dumps(list(dias.keys()), ensure_ascii=False),
-        "dias_valores_json": json.dumps(list(dias.values())),
+        "cidades_grafico": cidades_grafico,
+        "dias_grafico": dias_grafico,
     })
 
 
