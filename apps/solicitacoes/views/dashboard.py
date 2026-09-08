@@ -48,8 +48,6 @@ def dashboard(request):
 
     unidades = escopo_unidades(request.user)
     base = Solicitacao.objects.filter(unidade__in=unidades)
-    hoje = timezone.localdate()
-    proximos_30 = hoje + timedelta(days=30)
     agora = timezone.now()
 
     # Considera simultâneos os usuários/clientes que fizeram uma requisição
@@ -87,14 +85,21 @@ def dashboard(request):
         .first()
     )
 
-    # Tempo médio de processamento: criação da solicitação até a aprovação.
-    tempos = base.filter(data_aprovacao__isnull=False).values_list("criado_em", "data_aprovacao")
-    duracoes = [fim - inicio for inicio, fim in tempos if inicio and fim and fim >= inicio]
-    media_tempo = sum(duracoes, timedelta()) / len(duracoes) if duracoes else None
+    # Intervalo médio entre a chegada de uma solicitação e a seguinte.
+    # Usa criado_em, que registra quando a solicitação entrou no sistema.
+    chegadas = list(
+        Solicitacao.objects
+        .order_by("criado_em")
+        .values_list("criado_em", flat=True)
+    )
+    intervalos = [
+        atual - anterior
+        for anterior, atual in zip(chegadas, chegadas[1:])
+        if anterior and atual and atual >= anterior
+    ]
+    intervalo_medio = sum(intervalos, timedelta()) / len(intervalos) if intervalos else None
 
     context = {
-        "eventos_hoje": base.filter(data_evento=hoje).count(),
-        "eventos_futuros": base.filter(data_evento__range=[hoje, proximos_30]).count(),
         "pendentes": base.filter(status__in=["PENDENTE", "EM_ANALISE"]).count(),
         "correcao": base.filter(status="CORRECAO").count(),
         "aprovadas": base.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
@@ -104,8 +109,8 @@ def dashboard(request):
         "dia_mais_acessado_total": dia_mais_acessado["total"] if dia_mais_acessado else 0,
         "hora_mais_acessada": hora_mais_acessada["hora"].strftime("%H:%M") if hora_mais_acessada else "Sem dados",
         "hora_mais_acessada_total": hora_mais_acessada["total"] if hora_mais_acessada else 0,
-        "media_tempo_solicitacoes": _formatar_duracao(media_tempo),
-        "solicitacoes_com_tempo": len(duracoes),
+        "media_tempo_solicitacoes": _formatar_duracao(intervalo_medio),
+        "solicitacoes_com_tempo": len(intervalos) + 1 if intervalos else len(chegadas),
     }
     return render(request, "dashboard/index.html", context)
 
@@ -128,49 +133,3 @@ def proximos_eventos_gestao(request):
         data_evento__gte=timezone.localdate(),
     ).order_by("data_evento", "hora_inicio")
     return render(request, "dashboard/proximos.html", {"eventos": eventos})
-
-
-@login_required
-def por_municipio(request):
-    if not pode_ver_dashboard(request.user):
-        return _negar(request)
-    dados = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).values("municipio__nome").annotate(total=Count("id")).order_by("-total")
-    return render(request, "dashboard/municipios.html", {"dados": dados})
-
-
-@login_required
-def por_unidade(request):
-    if not pode_ver_dashboard(request.user):
-        return _negar(request)
-    dados = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).values("unidade__sigla").annotate(total=Count("id")).order_by("-total")
-    return render(request, "dashboard/unidades.html", {"dados": dados})
-
-
-@login_required
-def por_tipo(request):
-    if not pode_ver_dashboard(request.user):
-        return _negar(request)
-    dados = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).values("tipo_evento__nome").annotate(total=Count("id")).order_by("-total")
-    return render(request, "dashboard/tipos.html", {"dados": dados})
-
-
-@login_required
-def calendario(request):
-    if not pode_ver_dashboard(request.user):
-        return _negar(request)
-    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).order_by("data_evento", "hora_inicio")
-    return render(request, "dashboard/calendario.html", {"eventos": eventos})
-
-
-@login_required
-def mapa(request):
-    if not pode_ver_mapa_eventos(request.user):
-        return _negar(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
-    municipios = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).values("municipio__nome").annotate(total=Count("id")).order_by("-total")
-    return render(request, "dashboard/mapa.html", {"municipios": municipios})
-
-
-@login_required
-def listar_pendentes_opo(request):
-    solicitacoes = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user), status="PENDENTE").select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
-    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes})
