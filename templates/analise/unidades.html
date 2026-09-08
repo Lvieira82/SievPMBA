@@ -25,98 +25,45 @@
 .ranking-num{font-weight:800;width:55px}
 .vazio{text-align:center;padding:18px;color:#6b7280}
 .legenda{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;font-size:13px}
-.grafico-cumprimento{margin-top:4px}
-.grafico-cumprimento h2{margin-bottom:5px}
-.grafico-cumprimento .subtitulo{color:#6b7280;font-size:13px;margin-bottom:18px}
+.grafico-cumprimento{margin-top:4px}.grafico-cumprimento h2{margin-bottom:5px}.grafico-cumprimento .subtitulo{color:#6b7280;font-size:13px;margin-bottom:18px}
 .media-chart{position:relative;height:330px;padding:18px 18px 55px 48px;box-sizing:border-box;overflow-x:auto}
 .media-chart-area{position:relative;height:255px;min-width:620px;border-left:1px solid #cbd5e1;border-bottom:1px solid #cbd5e1;background:repeating-linear-gradient(to bottom,#fff 0,#fff calc(25% - 1px),#e5e7eb calc(25% - 1px),#e5e7eb 25%)}
 .media-y-labels{position:absolute;left:0;top:18px;height:255px;width:40px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-end;color:#64748b;font-size:11px}
-.media-linha-geral{position:absolute;left:0;right:0;height:2px;background:#f97316;z-index:5}
-.media-legenda-geral{position:absolute;right:8px;top:-25px;font-size:12px;font-weight:700;color:#c2410c;background:#fff;padding:2px 6px;border-radius:5px}
+.media-linha-geral{position:absolute;left:0;right:0;height:2px;background:#f97316;z-index:5}.media-legenda-geral{position:absolute;right:8px;top:-25px;font-size:12px;font-weight:700;color:#c2410c;background:#fff;padding:2px 6px;border-radius:5px}
 .media-barras{position:absolute;left:12px;right:12px;bottom:0;top:0;display:flex;align-items:flex-end;justify-content:space-around;gap:12px;padding:0 10px}
-.media-item{height:100%;min-width:58px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}
-.media-valor{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}
-.media-barra{width:32px;min-height:3px;background:#5b9bd5;border-radius:6px 6px 0 0}
-.media-barra-sem-dado{width:32px;height:3px;background:#cbd5e1;border-radius:6px}
-.media-label{font-size:11px;font-weight:700;color:#334155;white-space:nowrap;position:absolute;bottom:-39px;transform:rotate(-35deg);transform-origin:top center}
-.media-eixo-y{position:absolute;left:-40px;top:50%;transform:rotate(-90deg) translateX(-50%);transform-origin:left top;color:#64748b;font-size:11px;white-space:nowrap}
+.media-item{height:100%;min-width:58px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;position:relative}.media-valor{font-size:11px;font-weight:800;color:#334155;margin-bottom:4px}.media-barra{width:32px;min-height:3px;background:#5b9bd5;border-radius:6px 6px 0 0}.media-barra-sem-dado{width:32px;height:3px;background:#cbd5e1;border-radius:6px}.media-label{font-size:11px;font-weight:700;color:#334155;white-space:nowrap;position:absolute;bottom:-39px;transform:rotate(-35deg);transform-origin:top center}.media-eixo-y{position:absolute;left:-40px;top:50%;transform:rotate(-90deg) translateX(-50%);transform-origin:left top;color:#64748b;font-size:11px;white-space:nowrap}
 @media(max-width:900px){.filtros{grid-template-columns:1fr}.cards{grid-template-columns:1fr}.media-chart-area{min-width:520px}}
 </style>
 <div class="analise">
 <div class="box">
 <h1>📊 Análise Operacional</h1>
 <p>Filtre o período e, quando permitido, a unidade. Cada OPO é classificada conforme o retorno do Operador.</p>
-<div class="legenda">
-<span class="cumprida">● Cumprida (SIM)</span>
-<span class="justificada">● Justificada (NÃO)</span>
-<span class="descumprida">● Descumprida (sem resposta)</span>
-</div>
+<div class="legenda"><span class="cumprida">● Cumprida (SIM)</span><span class="justificada">● Justificada (NÃO)</span><span class="descumprida">● Descumprida (sem resposta)</span></div>
 <form class="filtros" method="get" style="margin-top:20px">
 <div><label>Unidade</label><select name="unidade"><option value="">Todas permitidas</option>{% for u in unidades %}<option value="{{ u.id }}" {% if selecionada and selecionada.id == u.id %}selected{% endif %}>{{ u.nome }}</option>{% endfor %}</select></div>
 <div><label>Origem</label><select name="origem"><option value="">Todas</option><option value="EXTERNA" {% if origem == 'EXTERNA' %}selected{% endif %}>Externa</option><option value="TRANSFERIDA" {% if origem == 'TRANSFERIDA' %}selected{% endif %}>Transferida</option><option value="MANUAL" {% if origem == 'MANUAL' %}selected{% endif %}>Manual</option></select></div>
-<div><label>Desde</label><input type="date" name="inicio" value="{{ inicio }}"></div>
-<div><label>Até</label><input type="date" name="fim" value="{{ fim }}"></div>
-<button class="btn" type="submit">Filtrar</button>
-</form>
-</div>
+<div><label>Desde</label><input type="date" name="inicio" value="{{ inicio }}"></div><div><label>Até</label><input type="date" name="fim" value="{{ fim }}"></div><button class="btn" type="submit">Filtrar</button>
+</form></div>
 
-<div class="cards">
-<div class="mini">Solicitações analisadas<b>{{ total_geral }}</b></div>
-<div class="mini">OPOs respondidas<b>{{ respondidas }}</b><span class="nota">de {{ cumprimento_geral.total }} OPOs</span></div>
-<div class="mini">Cumprimento geral<b>{% if cumprimento_geral.percentual is not None %}{{ cumprimento_geral.percentual }}%{% else %}—{% endif %}</b><span class="nota">{{ cumprimento_geral.cumpridas }} cumpridas · {{ cumprimento_geral.justificadas }} justificadas · {{ cumprimento_geral.descumpridas }} descumpridas</span></div>
-</div>
+<div class="cards"><div class="mini">Solicitações analisadas<b>{{ total_geral }}</b></div><div class="mini">OPOs respondidas<b>{{ respondidas }}</b><span class="nota">de {{ cumprimento_geral.total }} OPOs</span></div><div class="mini">Cumprimento geral<b>{% if cumprimento_geral.percentual is not None %}{{ cumprimento_geral.percentual }}%{% else %}—{% endif %}</b><span class="nota">{{ cumprimento_geral.cumpridas }} cumpridas · {{ cumprimento_geral.justificadas }} justificadas · {{ cumprimento_geral.descumpridas }} descumpridas</span></div></div>
 
 {% if request.user.acesso_institucional.perfil == "CPR" %}
-<div class="box grafico-cumprimento">
-<h2>📊 Média de Cumprimento de OPOs por Unidade</h2>
-<div class="subtitulo">Eixo X: sigla da unidade · Eixo Y: média de cumprimento das OPOs · linha laranja: média geral.</div>
-{% if grupos %}
-<div class="media-chart">
-<div class="media-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
-<div class="media-chart-area">
-{% if cumprimento_geral.percentual is not None %}<div class="media-linha-geral" style="top:calc(100% - {{ cumprimento_geral.percentual }}%);"><span class="media-legenda-geral">Média geral: {{ cumprimento_geral.percentual }}%</span></div>{% endif %}
-<div class="media-barras">
-{% for item in grupos %}
-<div class="media-item">
-{% if item.percentual is not None %}<span class="media-valor">{{ item.percentual }}%</span><div class="media-barra" style="height:{{ item.percentual }}%"></div>{% else %}<span class="media-valor">—</span><div class="media-barra-sem-dado"></div>{% endif %}
-<span class="media-label">{{ item.unidade.sigla }}</span>
-</div>
-{% endfor %}
-</div>
-</div>
-<div class="media-eixo-y">Média de cumprimento (%)</div>
-</div>
-{% else %}<div class="vazio">Nenhuma unidade encontrada para os filtros.</div>{% endif %}
-</div>
+<div class="box grafico-cumprimento"><h2>📊 Média de Cumprimento de OPOs por Unidade</h2><div class="subtitulo">Eixo X: sigla da unidade · Eixo Y: média de cumprimento das OPOs · linha laranja: média geral.</div>
+{% if grupos %}<div class="media-chart"><div class="media-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><div class="media-chart-area">
+{% if media_cumprimento_unidades is not None %}<div class="media-linha-geral" style="top:calc(100% - {{ media_cumprimento_unidades }}%);"><span class="media-legenda-geral">Média geral: {{ media_cumprimento_unidades }}%</span></div>{% endif %}
+<div class="media-barras">{% for item in grupos %}<div class="media-item">{% if item.percentual is not None %}<span class="media-valor">{{ item.percentual }}%</span><div class="media-barra" style="height:{{ item.percentual }}%"></div>{% else %}<span class="media-valor">—</span><div class="media-barra-sem-dado"></div>{% endif %}<span class="media-label">{{ item.unidade.sigla }}</span></div>{% endfor %}</div></div><div class="media-eixo-y">Média de cumprimento (%)</div></div>
+{% else %}<div class="vazio">Nenhuma unidade encontrada para os filtros.</div>{% endif %}</div>
 {% endif %}
 
 {% if eh_coppm %}
-<div class="box grafico-cumprimento">
-<h2>📊 Média de Cumprimento de OPOs por CPR</h2>
-<div class="subtitulo">Eixo X: sigla do CPR · Eixo Y: média de cumprimento das OPOs · linha laranja: média geral.</div>
-{% if ranking_cpr %}
-<div class="media-chart">
-<div class="media-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div>
-<div class="media-chart-area">
-{% if cumprimento_geral.percentual is not None %}<div class="media-linha-geral" style="top:calc(100% - {{ cumprimento_geral.percentual }}%);"><span class="media-legenda-geral">Média geral: {{ cumprimento_geral.percentual }}%</span></div>{% endif %}
-<div class="media-barras">
-{% for item in ranking_cpr %}
-<div class="media-item">
-{% if item.percentual is not None %}<span class="media-valor">{{ item.percentual }}%</span><div class="media-barra" style="height:{{ item.percentual }}%"></div>{% else %}<span class="media-valor">—</span><div class="media-barra-sem-dado"></div>{% endif %}
-<span class="media-label">{{ item.cpr.sigla }}</span>
-</div>
-{% endfor %}
-</div>
-</div>
-<div class="media-eixo-y">Média de cumprimento (%)</div>
-</div>
-{% else %}<div class="vazio">Nenhum CPR encontrado para os filtros.</div>{% endif %}
-</div>
+<div class="box grafico-cumprimento"><h2>📊 Média de Cumprimento de OPOs por CPR</h2><div class="subtitulo">Eixo X: sigla do CPR · Eixo Y: média de cumprimento das OPOs · linha laranja: média geral.</div>
+{% if ranking_cpr %}<div class="media-chart"><div class="media-y-labels"><span>100%</span><span>75%</span><span>50%</span><span>25%</span><span>0%</span></div><div class="media-chart-area">
+{% if media_cumprimento_cpr is not None %}<div class="media-linha-geral" style="top:calc(100% - {{ media_cumprimento_cpr }}%);"><span class="media-legenda-geral">Média geral: {{ media_cumprimento_cpr }}%</span></div>{% endif %}
+<div class="media-barras">{% for item in ranking_cpr %}<div class="media-item">{% if item.percentual is not None %}<span class="media-valor">{{ item.percentual }}%</span><div class="media-barra" style="height:{{ item.percentual }}%"></div>{% else %}<span class="media-valor">—</span><div class="media-barra-sem-dado"></div>{% endif %}<span class="media-label">{{ item.cpr.sigla }}</span></div>{% endfor %}</div></div><div class="media-eixo-y">Média de cumprimento (%)</div></div>
+{% else %}<div class="vazio">Nenhum CPR encontrado para os filtros.</div>{% endif %}</div>
 {% endif %}
 
-{% if eh_coppm %}
-<div class="box"><h2>🏆 Ranking por CPR</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>CPR</th><th>Solicitações</th><th>OPOs</th><th>Cumpridas</th><th>Justificadas</th><th>Descumpridas</th><th>Cumprimento</th></tr></thead><tbody>{% for item in ranking_cpr %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.cpr.sigla }}</strong><br><span class="nota">{{ item.cpr.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.opo_total }}</td><td class="cumprida">{{ item.cumpridas }}</td><td class="justificada">{{ item.justificadas }}</td><td class="descumprida">{{ item.descumpridas }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="8" class="vazio">Nenhuma OPO encontrada no período.</td></tr>{% endfor %}</tbody></table></div></div>
-{% endif %}
+{% if eh_coppm %}<div class="box"><h2>🏆 Ranking por CPR</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>CPR</th><th>Solicitações</th><th>OPOs</th><th>Cumpridas</th><th>Justificadas</th><th>Descumpridas</th><th>Cumprimento</th></tr></thead><tbody>{% for item in ranking_cpr %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.cpr.sigla }}</strong><br><span class="nota">{{ item.cpr.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.opo_total }}</td><td class="cumprida">{{ item.cumpridas }}</td><td class="justificada">{{ item.justificadas }}</td><td class="descumprida">{{ item.descumpridas }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="8" class="vazio">Nenhuma OPO encontrada no período.</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
 
 <div class="box"><h2>🏆 Ranking por Unidade</h2><div class="table-wrap"><table class="tabela"><thead><tr><th>#</th><th>Unidade</th><th>Solicitações</th><th>Pendentes</th><th>Aprovadas</th><th>OPOs</th><th>Cumpridas</th><th>Justificadas</th><th>Descumpridas</th><th>Cumprimento</th><th>Tempo médio</th></tr></thead><tbody>{% for item in grupos %}<tr><td class="ranking-num">{{ forloop.counter }}</td><td><strong>{{ item.unidade.sigla }}</strong><br><span class="nota">{{ item.unidade.nome }}</span></td><td>{{ item.total }}</td><td>{{ item.pendentes }}</td><td>{{ item.aprovadas }}</td><td>{{ item.cumprimento_total }}</td><td class="cumprida">{{ item.cumpridas }}</td><td class="justificada">{{ item.justificadas }}</td><td class="descumprida">{{ item.descumpridas }}</td><td class="percentual">{% if item.percentual is not None %}{{ item.percentual }}%{% else %}—{% endif %}</td><td class="media">{% if item.media_horas is not None %}{{ item.media_horas }} h{% else %}—{% endif %}</td></tr>{% empty %}<tr><td colspan="11" class="vazio">Nenhuma solicitação encontrada para os filtros.</td></tr>{% endfor %}</tbody></table></div></div>
 <div><a class="btn" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a></div>
