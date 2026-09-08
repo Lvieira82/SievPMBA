@@ -17,3 +17,8 @@ class SolicitacoesConfig(AppConfig):
 
         # Registra os modelos auxiliares de apoio operacional.
         from . import models_apoio  # noqa: F401
+
+        # O monitoramento é anexado aqui para evitar alterar o settings.py.
+        middleware = "apps.solicitacoes.middleware.MonitoramentoAcessosMiddleware"
+        if middleware not in settings.MIDDLEWARE:
+            settings.MIDDLEWARE.append(middleware)
