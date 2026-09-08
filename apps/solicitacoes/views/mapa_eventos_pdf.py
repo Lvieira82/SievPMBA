@@ -17,6 +17,11 @@ from apps.solicitacoes.models import Solicitacao, AnexoOPO
 from apps.solicitacoes.permissoes import pode_ver_mapa_eventos, escopo_unidades
 
 
+def _unidade_executor(request, solicitacao):
+    acesso = getattr(request.user, "acesso_institucional", None)
+    unidade = getattr(acesso, "unidade", None)
+    return unidade or solicitacao.unidade
+    
 def _tipo_opo_mapa(solicitacao):
     """Determina o tipo pela OPO mais recente: SIM = extraordinário; NÃO = ordinário."""
     anexo = (
@@ -117,10 +122,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
 
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
 
-    # Usa exatamente o mesmo padrão da geração de OPO das Unidades:
-    # request.user.acesso_institucional -> unidade.
-    acesso = getattr(request.user.acesso_institucional, None)
-    unidade_login = getattr(acesso, "unidade", None)
+    unidade_executor=None
 
     if unidade_login:
         unidade_titulo = unidade_login.nome
