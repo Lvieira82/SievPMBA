@@ -12,17 +12,12 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import eh_operador, pode_ver_solicitacao
-_EXTENSOES_IMAGEM={"jpg","jpeg","png","webp"}
-_MAX_IMAGEM=5*1024*1024
-_MAX_JUSTIFICATIVA=150
+_EXTENSOES_IMAGEM={"jpg","jpeg","png","webp"}; _MAX_IMAGEM=5*1024*1024; _MAX_JUSTIFICATIVA=150
 
-def _operador_autorizado(request, solicitacao):
+def _operador_autorizado(request,solicitacao):
     acesso=getattr(request.user,"acesso_institucional",None)
     return bool(eh_operador(request.user) and acesso and acesso.unidade_id and solicitacao.unidade_id==acesso.unidade_id and solicitacao.status=="APROVADA" and solicitacao.data_evento==timezone.localdate())
-
-def _opo_principal(solicitacao):
-    return AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
-
+def _opo_principal(solicitacao): return AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
 def _pasta_protocolo(protocolo): return Path("protocolos")/protocolo
 
 def _comprimir_imagem_80_porcento(imagem):
@@ -46,11 +41,9 @@ def _comprimir_imagem_80_porcento(imagem):
 def _salvar_comprovacao_no_protocolo(solicitacao,imagem):
     nome=f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}.jpg"; caminho=str(_pasta_protocolo(solicitacao.protocolo or "SEM_PROTOCOLO")/nome)
     return default_storage.save(caminho,ContentFile(_comprimir_imagem_80_porcento(imagem)))
-
 def _nome_justificativa(operador,respondido_em):
     identificador=getattr(operador,"username","operador") or "operador"; seguro="".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in identificador)
     return f"justificativa_opo_{seguro}_{timezone.localtime(respondido_em):%Y%m%d_%H%M%S_%f}.txt"
-
 def _salvar_justificativa_txt_no_protocolo(solicitacao,operador,justificativa,respondido_em):
     protocolo=solicitacao.protocolo or "SEM_PROTOCOLO"; caminho=str(_pasta_protocolo(protocolo)/_nome_justificativa(operador,respondido_em))
     conteudo=f"PROTOCOLO: {protocolo}\nOPERADOR: {getattr(operador,'username','operador') or 'operador'}\nDATA/HORA: {timezone.localtime(respondido_em):%d/%m/%Y %H:%M:%S}\n\nJUSTIFICATIVA:\n{justificativa}\n"
