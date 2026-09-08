@@ -35,7 +35,7 @@
 
   {% if pode_proximos %}
   <div class="proximos">
-    <h2>🗓️ Próximos Eventos</h2>
+    <h2>🗓️ Eventos da semana</h2>
     <div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
       {% for evento in proximos_eventos %}
         <tr><td>{{ evento.data_evento|date:'d/m/Y' }}</td><td>{{ evento.hora_inicio|time:'H:i' }}</td><td>{{ evento.nome_evento }}</td><td>{{ evento.local }}</td><td>{% if evento.status == 'APROVADA' %}<span class="status-aprovada">APROVADA</span>{% else %}<span class="status-pendente">{{ evento.get_status_display }}</span>{% endif %}</td><td>{% if evento.status == 'APROVADA' or evento.status == 'CONCLUIDA' %}{% if pode_documentacao %}<a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 OPO</a>{% endif %}{% elif pode_documentacao %}<a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Documentos</a>{% endif %}</td></tr>
