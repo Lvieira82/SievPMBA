@@ -36,7 +36,7 @@
             <div class="pizza-area">
                 <div class="pizza-css" aria-label="Eventos por cidade">
                     {% for cidade in cidades_grafico %}
-                    <div class="pizza-fatia" style="transform:rotate({{ cidade.inicio|default:'0' }}%);background:conic-gradient(from -90deg, {{ cidade.cor }} 0 {{ cidade.percentual }}%, transparent {{ cidade.percentual }}% 100%);"></div>
+                    <div class="pizza-fatia" style="transform:rotate(calc({{ cidade.inicio|default:'0' }} * 3.6deg));background:conic-gradient(from -90deg, {{ cidade.cor }} 0 {{ cidade.percentual }}%, transparent {{ cidade.percentual }}% 100%);"></div>
                     {% endfor %}
                     <div class="pizza-fatia-miolo"></div>
                 </div>
