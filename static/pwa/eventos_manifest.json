@@ -1,0 +1,10 @@
+{
+  "name": "SIEVPM — Eventos do Dia",
+  "short_name": "SIEVPM Eventos",
+  "start_url": "/eventos-do-dia/",
+  "display": "standalone",
+  "background_color": "#f3f4f6",
+  "theme_color": "#907c64",
+  "lang": "pt-BR",
+  "scope": "/eventos-do-dia/"
+}
