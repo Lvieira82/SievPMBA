@@ -13,6 +13,7 @@ from django.views.decorators.http import require_http_methods
 from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import eh_operador, pode_ver_solicitacao
 _EXTENSOES_IMAGEM={"jpg","jpeg","png","webp"}; _MAX_IMAGEM=5*1024*1024; _MAX_JUSTIFICATIVA=150
+MOTIVOS_NAO={"VIATURA_PROBLEMA":"Viatura apresentou problema","DELEGACIA":"Apresentação na delegacia","OCORRENCIA":"Guarnição em Ocorrência","ENDERECO":"Endereço não encontrado","CANCELADO":"Evento Cancelado","HORARIO":"Horário alterado"}
 
 def _operador_autorizado(request,solicitacao):
     acesso=getattr(request.user,"acesso_institucional",None)
@@ -53,9 +54,8 @@ def _salvar_justificativa_txt_no_protocolo(solicitacao,operador,justificativa,re
 @require_http_methods(["GET","POST"])
 def cumprimento_opo(request,solicitacao_id):
     if request.method=="GET" and request.GET.get("imagem_id"):
-        cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=request.GET.get("imagem_id")); solicitacao= cumprimento.opo.solicitacao
-        if eh_operador(request.user) or not pode_ver_solicitacao(request.user,solicitacao):
-            messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
+        cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=request.GET.get("imagem_id")); solicitacao=cumprimento.opo.solicitacao
+        if eh_operador(request.user) or not pode_ver_solicitacao(request.user,solicitacao): messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
         if not cumprimento.imagem: raise Http404("A foto do cumprimento não está disponível.")
         nome=getattr(cumprimento.imagem,"name","") or ""
         if not nome: raise Http404("A foto do cumprimento não possui nome de arquivo.")
@@ -74,6 +74,7 @@ def cumprimento_opo(request,solicitacao_id):
     registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user)
     if request.method=="POST":
         resposta=request.POST.get("cumprida"); imagem=request.FILES.get("imagem"); justificativa=(request.POST.get("justificativa") or "").strip(); latitude=(request.POST.get("latitude") or "").strip(); longitude=(request.POST.get("longitude") or "").strip()
+        motivos=[m for m in request.POST.getlist("motivos_nao") if m in MOTIVOS_NAO]
         if resposta not in {"SIM","NAO"}: messages.error(request,"Informe se a OPO foi cumprida.")
         elif resposta=="SIM":
             if not imagem: messages.error(request,"A foto do cumprimento deve ser capturada pela câmera do dispositivo.")
@@ -96,23 +97,23 @@ def cumprimento_opo(request,solicitacao_id):
                                 except Exception: pass
                             registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=timezone.now(); registro.save()
                             LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO cumprida. Coordenadas GPS: latitude={latitude_float:.7f}, longitude={longitude_float:.7f}.")
-                            messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS.")
-                            return redirect("eventos_dia")
+                            messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS."); return redirect("eventos_dia")
         else:
-            if not justificativa: messages.error(request,"Informe a justificativa quando a OPO não for cumprida.")
-            elif len(justificativa)>_MAX_JUSTIFICATIVA: messages.error(request,"A justificativa deve ter no máximo 150 caracteres.")
+            if not motivos: messages.error(request,"Selecione pelo menos um motivo para o não cumprimento.")
+            elif len(justificativa)>_MAX_JUSTIFICATIVA: messages.error(request,"As observações devem ter no máximo 150 caracteres.")
             else:
-                respondido_em=timezone.now()
+                respondido_em=timezone.now(); nomes_motivos=[MOTIVOS_NAO[m] for m in motivos]
                 try: caminho_justificativa=_salvar_justificativa_txt_no_protocolo(solicitacao,request.user,justificativa,respondido_em)
-                except Exception: messages.error(request,"Não foi possível salvar a justificativa. Tente novamente.")
+                except Exception: messages.error(request,"Não foi possível salvar as observações. Tente novamente.")
                 else:
                     if registro.imagem:
                         try: registro.imagem.delete(save=False)
                         except Exception: pass
                     registro.cumprida=False; registro.imagem=None; registro.justificativa=justificativa; registro.respondido_em=respondido_em; registro.save()
-                    LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO não cumprida. Justificativa salva em: {caminho_justificativa}.")
-                    messages.success(request,"Registro de não cumprimento salvo com justificativa.")
-                    return redirect("eventos_dia")
+                    detalhes=f"OPO não cumprida. Motivos: {'; '.join(nomes_motivos)}."
+                    if justificativa: detalhes+=f" Observações: {justificativa}"
+                    LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=detalhes+f" Arquivo de observações: {caminho_justificativa}.")
+                    messages.success(request,"Registro de não cumprimento salvo com os motivos selecionados."); return redirect("eventos_dia")
     return render(request,"solicitacoes/cumprimento_opo.html",{"solicitacao":solicitacao,"opo":opo,"registro":registro})
 
 @login_required
