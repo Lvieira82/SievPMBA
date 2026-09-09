@@ -145,6 +145,31 @@ def proximos_eventos_gestao_seguro(request):
         agrupamentos[nome] = agrupamentos.get(nome, 0) + 1
         dias[evento.data_evento] = dias.get(evento.data_evento, 0) + 1
 
+    # Para a COPPM, o detalhamento abaixo dos gráficos é hierárquico:
+    # CPR -> Unidade. Não expõe município, bairro ou povoado nessa visão.
+    cprs_detalhe = {}
+    if perfil == "COPPM":
+        for evento in eventos:
+            unidade = getattr(evento, "unidade", None)
+            cpr = getattr(unidade, "cpr", None) if unidade else None
+            cpr_nome = cpr.sigla if cpr else "CPR não informado"
+            unidade_nome = unidade.sigla if unidade else "Unidade não informada"
+            if cpr_nome not in cprs_detalhe:
+                cprs_detalhe[cpr_nome] = {}
+            cprs_detalhe[cpr_nome][unidade_nome] = cprs_detalhe[cpr_nome].get(unidade_nome, 0) + 1
+
+    cprs_pastas = [
+        {
+            "nome": nome,
+            "quantidade": sum(unidades.values()),
+            "unidades": [
+                {"nome": unidade_nome, "quantidade": quantidade}
+                for unidade_nome, quantidade in sorted(unidades.items())
+            ],
+        }
+        for nome, unidades in sorted(cprs_detalhe.items())
+    ]
+
     total = len(eventos)
     cores = ["#9A8870", "#34475E", "#9CA3AF", "#6B7280", "#7B6A58", "#52657A"]
     categorias_grafico = []
@@ -189,6 +214,7 @@ def proximos_eventos_gestao_seguro(request):
         "total_eventos": total,
         "perfil_proximos": perfil,
         "rotulo_agrupamento": "CPR" if perfil == "COPPM" else "cidade",
+        "cprs_pastas": cprs_pastas,
         "filtro_inicio": hoje.strftime("%Y-%m-%d"),
         "filtro_fim": limite.strftime("%Y-%m-%d"),
     })
