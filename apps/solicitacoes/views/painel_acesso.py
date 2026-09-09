@@ -25,6 +25,7 @@ from apps.solicitacoes.permissoes import (
     pode_ver_documentacao_solicitacao,
     pode_gerar_opo,
     pode_lancamento_manual,
+    perfil_gestor,
 )
 
 
@@ -76,6 +77,7 @@ def painel_gestao(request):
         "pode_proximos": pode_ver_proximos_eventos(user),
         "pode_historico": pode_ver_historico(user),
         "pode_analise": pode_ver_ranking(user),
+        "pode_pesquisas": perfil_gestor(user, "COPPM"),
         "pode_mapa": pode_ver_mapa_eventos(user),
         "pode_dashboard": pode_ver_dashboard(user),
         "pode_documentacao": pode_ver_documentacao_solicitacao(user),
