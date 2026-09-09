@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#907c64">
+<title>Eventos do Dia — Offline</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f3f4f6;color:#111827;font-family:Arial,sans-serif}.wrap{max-width:900px;margin:0 auto;padding:18px}.top{background:#fff;border-radius:16px;padding:20px;box-shadow:0 4px 18px rgba(0,0,0,.08);margin-bottom:16px}.top h1{margin:0 0 8px;font-size:26px}.badge{display:inline-block;padding:6px 10px;border-radius:8px;font-weight:700;background:#fef3c7;color:#92400e}.status{margin-top:10px;font-size:14px}.card{background:#fff;border:1px solid #d1d5db;border-left:5px solid #907c64;border-radius:14px;padding:18px;margin-bottom:14px}.card h2{margin:0 0 12px;color:#907c64;font-size:21px}.card p{margin:7px 0;color:#374151}.btn{width:100%;border:0;border-radius:9px;padding:12px;background:#166534;color:#fff;font-weight:700;font-size:16px;margin-top:14px}.empty{background:#fff;padding:20px;border-radius:12px;font-weight:600}.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:flex-end;justify-content:center;z-index:20}.modal.open{display:flex}.sheet{width:100%;max-width:700px;background:#fff;border-radius:20px 20px 0 0;padding:22px;max-height:92vh;overflow:auto}.sheet h2{margin-top:0}.sheet label{display:block;font-weight:700;margin:14px 0 7px}.sheet input,.sheet textarea{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:8px}.sheet textarea{min-height:90px}.actions{display:flex;gap:10px;margin-top:16px}.actions button{flex:1}.secondary{background:#fff!important;color:#374151!important;border:1px solid #bbb!important}.gps{font-size:14px;font-weight:700;margin-top:8px}.ok{color:#15803d}.err{color:#b91c1c}.foto-preview{max-width:100%;border-radius:10px;margin-top:10px;display:none}.pend{margin-top:12px;padding:10px;border-radius:8px;background:#fff7ed;color:#9a3412;font-weight:700}.online{background:#dcfce7;color:#166534}.sync{margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>📅 Eventos do Dia</h1>
+    <span class="badge">🔴 MODO OFFLINE</span>
+    <div id="info" class="status">Carregando os eventos armazenados neste dispositivo...</div>
+    <div id="sync" class="sync"></div>
+  </div>
+  <div id="lista"></div>
+</div>
+<div id="modal" class="modal">
+  <div class="sheet">
+    <h2 id="modal-titulo">Registrar cumprimento</h2>
+    <div id="modal-info"></div>
+    <label><input id="cumprida" type="checkbox" checked> OPO cumprida</label>
+    <div id="campo-foto">
+      <label for="foto">📷 Foto da execução</label>
+      <input id="foto" type="file" accept="image/*" capture="environment">
+      <img id="preview" class="foto-preview" alt="Prévia da foto">
+      <div id="gps" class="gps">Obtendo localização GPS...</div>
+    </div>
+    <div id="campo-just" style="display:none">
+      <label for="just">Justificativa</label>
+      <textarea id="just" maxlength="150"></textarea>
+    </div>
+    <div class="actions">
+      <button id="salvar" class="btn">Salvar no dispositivo</button>
+      <button id="fechar" class="btn secondary">Cancelar</button>
+    </div>
+  </div>
+</div>
+<script src="/static/pwa/eventos_offline.js"></script>
+</body>
+</html>
