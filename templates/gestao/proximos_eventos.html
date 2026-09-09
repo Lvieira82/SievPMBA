@@ -11,6 +11,7 @@
 .graficos{display:grid;grid-template-columns:1.7fr 1fr;gap:18px;margin-bottom:18px}.grafico-card{padding:20px}.grafico-card h2{font-size:18px;margin:0 0 4px;color:#34475E}.grafico-card p{margin:0 0 12px;color:#6b7280;font-size:13px}
 .pizza-area{height:310px;display:flex;align-items:center;justify-content:center;gap:18px}.pizza-css{width:220px;height:220px;border-radius:50%;position:relative;flex:none;background:#e5e7eb;overflow:hidden}.pizza-fatia{position:absolute;inset:0;border-radius:50%;}.pizza-fatia-miolo{position:absolute;inset:28%;background:#fff;border-radius:50%;z-index:20}.legenda{display:flex;flex-direction:column;gap:7px;max-width:180px}.legenda-item{display:flex;align-items:center;gap:7px;font-size:12px;color:#4b5563}.legenda-cor{width:11px;height:11px;border-radius:50%;flex:none}.legenda-valor{font-weight:700;color:#34475E}
 .barras-area{height:310px;display:flex;align-items:flex-end;gap:9px;overflow-x:auto;padding:20px 8px 38px;border-bottom:1px solid #d1d5db}.barra-item{min-width:34px;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px}.barra-valor{font-size:11px;font-weight:700;color:#34475E}.barra{width:24px;min-height:3px;background:#9A8870;border-radius:6px 6px 0 0}.barra-label{font-size:10px;color:#64748b;white-space:nowrap;transform:rotate(-45deg);transform-origin:top center;margin-top:10px}
+.pastas{display:flex;flex-direction:column;gap:10px;padding:18px 20px 24px}.pasta{border:1px solid #ddd6ce;border-radius:12px;overflow:hidden;background:#faf9f7}.pasta summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;align-items:center;gap:10px;color:#34475E;font-weight:700}.pasta summary::-webkit-details-marker{display:none}.pasta summary:before{content:'📁';font-size:20px}.pasta summary:after{content:'›';margin-left:auto;font-size:22px;color:#907C64;transition:.15s}.pasta[open] summary:after{transform:rotate(90deg)}.pasta-qtd{margin-left:auto;background:#eeeae5;color:#34475E;border-radius:999px;padding:5px 10px;font-size:12px}.unidades-pasta{padding:0 16px 14px 46px;display:flex;flex-direction:column;gap:7px}.unidade-linha{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border-radius:8px;background:#fff;border:1px solid #e5e7eb;color:#4b5563;font-size:13px}.unidade-linha:before{content:'📂';margin-right:8px}.unidade-nome{display:flex;align-items:center}.unidade-qtd{font-weight:700;color:#34475E}
 @media(max-width:800px){.graficos{grid-template-columns:1fr}.filtros-eventos{align-items:stretch}.filtro{min-width:100%}.btn-filtrar{width:100%}.pizza-area{height:auto;min-height:300px;flex-direction:column}.pizza-css{width:200px;height:200px}.legenda{max-width:100%;width:100%}.barras-area{height:300px}}
 </style>
 
@@ -70,14 +71,41 @@
 
     <div class="lista-eventos">
         <h2>Eventos do período <span class="tag">{{ total_eventos }} eventos</span></h2>
-        {% for evento in eventos %}
-        <div class="evento-item">
-            <div class="evento-data">📅 {{ evento.data_evento|date:"d/m/Y" }}{% if evento.hora_inicio %} — {{ evento.hora_inicio|time:"H:i" }}{% endif %}</div>
-            <div class="evento-nome">📌 {{ evento.nome_evento }}</div>
-            <div class="evento-local">📍 {{ evento.municipio }} — {{ evento.local }}</div>
-            <div class="evento-meta">🔖 Protocolo: <strong>{{ evento.protocolo }}</strong> · 🏢 {{ evento.unidade }}{% if evento.status == "APROVADA" %}<span class="status status-aprovado">✓ APROVADO</span>{% elif evento.status == "CORRECAO" %}<span class="status status-correcao">✏️ EM CORREÇÃO</span>{% endif %}</div>
+
+        {% if perfil_proximos == "COPPM" %}
+        <div class="pastas">
+            {% for cpr in cprs_pastas %}
+            <details class="pasta">
+                <summary>
+                    <span>{{ cpr.nome }}</span>
+                    <span class="pasta-qtd">{{ cpr.quantidade }} evento(s)</span>
+                </summary>
+                <div class="unidades-pasta">
+                    {% for unidade in cpr.unidades %}
+                    <div class="unidade-linha">
+                        <span class="unidade-nome">{{ unidade.nome }}</span>
+                        <span class="unidade-qtd">{{ unidade.quantidade }} evento(s)</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+            {% empty %}
+            <div class="vazio">Não há eventos no período selecionado.</div>
+            {% endfor %}
         </div>
-        {% empty %}<div class="vazio">Não há próximos eventos no período selecionado.</div>{% endfor %}
+        {% else %}
+        <div class="pastas">
+            {% for evento in eventos %}
+            <div class="evento-item">
+                <div class="evento-data">📅 {{ evento.data_evento|date:"d/m/Y" }}{% if evento.hora_inicio %} — {{ evento.hora_inicio|time:"H:i" }}{% endif %}</div>
+                <div class="evento-nome">📌 {{ evento.nome_evento }}</div>
+                <div class="evento-local">📍 {{ evento.municipio }} — {{ evento.local }}</div>
+                <div class="evento-meta">🔖 Protocolo: <strong>{{ evento.protocolo }}</strong> · 🏢 {{ evento.unidade }}{% if evento.status == "APROVADA" %}<span class="status status-aprovado">✓ APROVADO</span>{% elif evento.status == "CORRECAO" %}<span class="status status-correcao">✏️ EM CORREÇÃO</span>{% endif %}</div>
+            </div>
+            {% empty %}<div class="vazio">Não há próximos eventos no período selecionado.</div>{% endfor %}
+        </div>
+        {% endif %}
+
         <a href="{% url 'painel_gestao' %}" class="btn-voltar">← Voltar</a>
     </div>
 </div>
