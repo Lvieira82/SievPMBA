@@ -17,7 +17,13 @@
 <div class="container-eventos">
     <div class="cabecalho-eventos">
         <h1>📅 Eventos da semana</h1>
+        {% if perfil_proximos == "COPPM" %}
+        <p>Visão regional dos eventos nos próximos 15 dias, consolidada por CPR.</p>
+        {% elif perfil_proximos == "CPR" %}
+        <p>Visualização dos eventos nos próximos 15 dias, detalhada por município.</p>
+        {% else %}
         <p>Visualização operacional dos eventos nos próximos 15 dias.</p>
+        {% endif %}
     </div>
 
     <form method="get" class="filtros-eventos">
@@ -41,20 +47,24 @@
         </div>
 
         <div class="grafico-card">
-            <h2>Eventos por cidade</h2>
-            <p>Distribuição dos eventos no período e escopo selecionados.</p>
-            {% if cidades_grafico %}
+            <h2>Eventos por {{ rotulo_agrupamento }}</h2>
+            {% if perfil_proximos == "COPPM" %}
+            <p>Distribuição dos eventos entre os CPRs no período selecionado.</p>
+            {% else %}
+            <p>Distribuição dos eventos entre os municípios no período selecionado.</p>
+            {% endif %}
+            {% if categorias_grafico %}
             <div class="pizza-area">
-                <div class="pizza-css" aria-label="Eventos por cidade" style="background:conic-gradient(from -90deg, {{ pizza_gradient }});">
+                <div class="pizza-css" aria-label="Eventos por {{ rotulo_agrupamento }}" style="background:conic-gradient(from -90deg, {{ pizza_gradient }});">
                     <div class="pizza-fatia-miolo"></div>
                 </div>
                 <div class="legenda">
-                    {% for cidade in cidades_grafico %}
-                    <div class="legenda-item"><span class="legenda-cor" style="background:{{ cidade.cor }}"></span><span>{{ cidade.nome }}</span><span class="legenda-valor">{{ cidade.quantidade }}</span></div>
+                    {% for categoria in categorias_grafico %}
+                    <div class="legenda-item"><span class="legenda-cor" style="background:{{ categoria.cor }}"></span><span>{{ categoria.nome }}</span><span class="legenda-valor">{{ categoria.quantidade }}</span></div>
                     {% endfor %}
                 </div>
             </div>
-            {% else %}<div class="vazio">Não há eventos por cidade no período.</div>{% endif %}
+            {% else %}<div class="vazio">Não há eventos no período.</div>{% endif %}
         </div>
     </div>
 
