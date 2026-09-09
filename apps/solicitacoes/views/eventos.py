@@ -1,9 +1,11 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
-from ..models import Solicitacao
+from ..models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
 from ..models_acesso import AcessoInstitucional
 
 
@@ -36,6 +38,19 @@ def _eventos_do_acesso(acesso, hoje):
     return eventos.none()
 
 
+def _eventos_offline_payload(eventos):
+    return [
+        {
+            "id": evento.id,
+            "opo": evento.protocolo or str(evento.id),
+            "endereco": evento.local or "",
+            "telefone": evento.telefone or "",
+            "solicitante": evento.solicitante or "",
+        }
+        for evento in eventos
+    ]
+
+
 @login_required
 def eventos_dia(request):
     acesso_logado = getattr(request.user, "acesso_institucional", None)
@@ -63,6 +78,7 @@ def eventos_dia(request):
     return render(request, "solicitacoes/eventos_dia_resultado.html", {
         "eventos": eventos, "matricula": acesso.matricula, "acesso": acesso,
         "unidade": acesso.unidade, "data": hoje, "data_eventos": hoje,
+        "offline_eventos": _eventos_offline_payload(eventos),
     })
 
 
@@ -91,4 +107,102 @@ def eventos_dia_resultado(request):
         "eventos": eventos, "perfil": acesso, "acesso": acesso,
         "matricula": acesso.matricula, "unidade": acesso.unidade,
         "data": hoje, "data_eventos": hoje,
+        "offline_eventos": _eventos_offline_payload(eventos),
     })
+
+
+@login_required
+@require_POST
+def sincronizar_evento_offline(request):
+    acesso = getattr(request.user, "acesso_institucional", None)
+    if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil != "OPERADOR" or not acesso.unidade_id:
+        return JsonResponse({"ok": False, "erro": "Acesso de operador inválido."}, status=403)
+
+    try:
+        evento_id = int(request.POST.get("evento_id"))
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "erro": "Evento inválido."}, status=400)
+
+    solicitacao = (
+        Solicitacao.objects
+        .select_related("unidade")
+        .filter(id=evento_id, data_evento=timezone.localdate(), status="APROVADA", unidade_id=acesso.unidade_id)
+        .first()
+    )
+    if not solicitacao:
+        return JsonResponse({"ok": False, "erro": "Evento não autorizado para este operador."}, status=403)
+
+    opo = AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
+    if not opo:
+        return JsonResponse({"ok": False, "erro": "OPO não encontrada."}, status=404)
+
+    resposta = request.POST.get("cumprida")
+    if resposta not in {"SIM", "NAO"}:
+        return JsonResponse({"ok": False, "erro": "Resposta inválida."}, status=400)
+
+    registro, _ = CumprimentoOPO.objects.get_or_create(opo=opo, operador=request.user)
+    latitude = (request.POST.get("latitude") or "").strip()
+    longitude = (request.POST.get("longitude") or "").strip()
+    precisao = (request.POST.get("precisao") or "").strip()
+
+    if resposta == "SIM":
+        imagem = request.FILES.get("imagem")
+        if not imagem or not latitude or not longitude:
+            return JsonResponse({"ok": False, "erro": "Foto e GPS são obrigatórios."}, status=400)
+        try:
+            lat = float(latitude)
+            lon = float(longitude)
+            if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                raise ValueError
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "erro": "Coordenadas GPS inválidas."}, status=400)
+        try:
+            from .cumprimento_opo import _salvar_comprovacao_no_protocolo
+            caminho = _salvar_comprovacao_no_protocolo(solicitacao, imagem)
+        except Exception:
+            return JsonResponse({"ok": False, "erro": "Não foi possível salvar a foto."}, status=500)
+        if registro.imagem:
+            try:
+                registro.imagem.delete(save=False)
+            except Exception:
+                pass
+        registro.cumprida = True
+        registro.imagem.name = caminho
+        registro.justificativa = ""
+        registro.respondido_em = timezone.now()
+        registro.save()
+        LogSistema.objects.create(
+            usuario=request.user,
+            solicitacao=solicitacao,
+            acao="CUMPRIMENTO OPO OFFLINE",
+            detalhes=f"Registro sincronizado. Coordenadas GPS: latitude={lat:.7f}, longitude={lon:.7f}, precisão={precisao or 'não informada'}.",
+        )
+    else:
+        justificativa = (request.POST.get("justificativa") or "").strip()
+        if not justificativa or len(justificativa) > 150:
+            return JsonResponse({"ok": False, "erro": "Justificativa obrigatória com até 150 caracteres."}, status=400)
+        respondido_em = timezone.now()
+        if registro.imagem:
+            try:
+                registro.imagem.delete(save=False)
+            except Exception:
+                pass
+        registro.cumprida = False
+        registro.imagem = None
+        registro.justificativa = justificativa
+        registro.respondido_em = respondido_em
+        registro.save()
+        LogSistema.objects.create(
+            usuario=request.user,
+            solicitacao=solicitacao,
+            acao="CUMPRIMENTO OPO OFFLINE",
+            detalhes=f"Registro sincronizado como não cumprida. Justificativa: {justificativa}",
+        )
+
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def eventos_service_worker(request):
+    script = '''const CACHE="sievpm-eventos-v1";\nconst OFFLINE="/static/pwa/eventos_offline.html";\nconst JS="/static/pwa/eventos_offline.js";\nself.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));\nself.addEventListener("activate",event=>event.waitUntil(self.clients.claim()));\nself.addEventListener("fetch",event=>{if(event.request.mode!=="navigate")return;const u=new URL(event.request.url);if(u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});\n'''
+    return HttpResponse(script, content_type="application/javascript")
