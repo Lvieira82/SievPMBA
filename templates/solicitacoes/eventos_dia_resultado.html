@@ -71,12 +71,6 @@
 {{ offline_eventos|json_script:"eventos-offline-data" }}
 <script>
 (function(){
-  const eventos=JSON.parse(document.getElementById('eventos-offline-data').textContent||'[]');
-  const matricula={{ matricula|default:""|escapejs|json_script:"matricula-offline" }};
-})();
-</script>
-<script>
-(function(){
   const dados=JSON.parse(document.getElementById('eventos-offline-data').textContent||'[]');
   const matricula="{{ matricula|escapejs }}";
   const unidadeId="{{ acesso.unidade_id|default:'' }}";
