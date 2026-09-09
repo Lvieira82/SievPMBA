@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Tempo de preenchimento{% endblock %}
+{% block titulo %}Tempo de preenchimento da solicitação{% endblock %}
+{% block content %}
+<style>
+.painel{max-width:1250px;margin:30px auto;padding:0 18px}.topo{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:22px}.topo h1{color:#907C64;margin:0}.voltar{background:#111827;color:#fff;text-decoration:none;padding:11px 18px;border-radius:9px;font-weight:bold}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:18px;margin-bottom:24px}.card{background:#fff;border-radius:15px;padding:22px;text-align:center;box-shadow:0 5px 18px rgba(0,0,0,.08)}.numero{font-size:30px;font-weight:800;color:#907C64}.card h3{font-size:14px;color:#374151;margin:9px 0 0}.card small{display:block;color:#6b7280;margin-top:5px}.bloco{background:#fff;border-radius:15px;padding:24px;box-shadow:0 5px 18px rgba(0,0,0,.08);margin-bottom:24px}.bloco h2{color:#907C64;margin-top:0}.explicacao{color:#4b5563;line-height:1.6}.tabela{width:100%;overflow-x:auto;border:1px solid #e5e7eb;border-radius:10px}.tabela table{width:100%;border-collapse:collapse;min-width:700px}.tabela th,.tabela td{padding:13px 15px;border-bottom:1px solid #e5e7eb;text-align:left}.tabela th{background:#111827;color:#fff}.vazio{text-align:center;color:#6b7280;padding:30px}
+@media(max-width:700px){.topo{align-items:flex-start;flex-direction:column}}
+</style>
+<div class="painel">
+  <div class="topo"><div><h1>⏱️ Tempo de preenchimento</h1><p class="explicacao">Tempo médio que o usuário externo leva desde o aceite da Declaração de Veracidade até o envio efetivo da solicitação.</p></div><a href="{% url 'dashboard_operacional' %}" class="voltar">← Dashboard</a></div>
+  <div class="cards">
+    <div class="card"><div class="numero">{{ media_formatada }}</div><h3>Tempo médio</h3><small>principal indicador</small></div>
+    <div class="card"><div class="numero">{{ mediana_formatada }}</div><h3>Mediana</h3><small>metade abaixo / metade acima</small></div>
+    <div class="card"><div class="numero">{{ total }}</div><h3>Solicitações medidas</h3><small>dados registrados</small></div>
+    <div class="card"><div class="numero">{{ media_hoje_formatada }}</div><h3>Média de hoje</h3><small>{{ total_hoje }} solicitação(ões)</small></div>
+    <div class="card"><div class="numero">{{ minimo_formatado }}</div><h3>Menor tempo</h3></div>
+    <div class="card"><div class="numero">{{ maximo_formatado }}</div><h3>Maior tempo</h3></div>
+  </div>
+  <div class="bloco"><h2>📌 Como a medição é feita</h2><p class="explicacao">O sistema registra o momento em que o usuário externo aceita os termos e, quando a solicitação é efetivamente concluída, calcula o intervalo até o envio. São consideradas somente solicitações de origem externa com medição válida.</p></div>
+  <div class="bloco"><h2>📋 Últimas medições</h2><div class="tabela"><table><thead><tr><th>Data/hora do envio</th><th>Protocolo</th><th>Solicitante</th><th>Tempo</th></tr></thead><tbody>{% for item in registros %}<tr><td>{{ item.data|date:'d/m/Y H:i:s' }}</td><td>{{ item.protocolo }}</td><td>{{ item.solicitante }}</td><td>{{ item.segundos|floatformat:1 }} segundos</td></tr>{% empty %}<tr><td colspan="4" class="vazio">Ainda não há medições registradas.</td></tr>{% endfor %}</tbody></table></div></div>
+</div>
+{% endblock %}
