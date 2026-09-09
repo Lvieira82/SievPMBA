@@ -52,6 +52,9 @@ def dashboard(request):
     # A atividade é atualizada pela sessão, mas não gera um novo acesso histórico.
     acessos_simultaneos = len(MonitoramentoAcessosMiddleware.sessoes_ativas(minutos=5))
 
+    # Visitantes não autenticados com atividade nos últimos 5 minutos.
+    acessos_publico = MonitoramentoAcessosMiddleware.acessos_publicos_ativos(minutos=5)
+
     # Estatísticas históricas: um acesso = uma sessão, e não um refresh.
     logs_acesso = LogSistema.objects.filter(acao="ACESSO_SESSAO")
     tz = timezone.get_current_timezone()
@@ -91,6 +94,7 @@ def dashboard(request):
         "aprovadas": base.filter(status__in=["APROVADA", "CONCLUIDA"]).count(),
         "indeferidas": base.filter(status="REJEITADA").count(),
         "acessos_simultaneos": acessos_simultaneos,
+        "acessos_publico": acessos_publico,
         "dia_mais_acessado": dia_mais_acessado["dia"].strftime("%d/%m/%Y") if dia_mais_acessado else "Sem dados",
         "dia_mais_acessado_total": dia_mais_acessado["total"] if dia_mais_acessado else 0,
         "hora_mais_acessada": hora_mais_acessada["hora"].strftime("%H:%M") if hora_mais_acessada else "Sem dados",
