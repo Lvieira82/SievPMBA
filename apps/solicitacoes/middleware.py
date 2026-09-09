@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
+from django.contrib.auth import logout
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 
@@ -7,11 +8,12 @@ from .models import LogSistema
 
 
 class MonitoramentoAcessosMiddleware:
-    """Registra uma entrada por sessão e mantém a atividade da sessão."""
+    """Registra acessos e encerra sessões autenticadas após 5 min sem atividade."""
 
     CAMINHOS_IGNORADOS = ("/static/", "/media/", "/favicon.ico")
     CHAVE_ACESSO = "siev_acesso_registrado"
     CHAVE_ATIVIDADE = "siev_ultima_atividade"
+    INATIVIDADE_SEGUNDOS = 5 * 60
 
     def __init__(self, get_response):
         self.get_response = get_response
@@ -21,6 +23,15 @@ class MonitoramentoAcessosMiddleware:
 
         if usuario and not request.path.startswith(self.CAMINHOS_IGNORADOS):
             try:
+                agora = timezone.now()
+                ultima_atividade = self._ler_ultima_atividade(request)
+
+                # Se passaram 5 minutos sem nenhuma requisição do usuário,
+                # encerra a sessão. O próximo acesso exigirá login novamente.
+                if ultima_atividade and (agora - ultima_atividade).total_seconds() >= self.INATIVIDADE_SEGUNDOS:
+                    logout(request)
+                    return self.get_response(request)
+
                 # Refreshes and page navigation within the same session do not
                 # create another historical access record.
                 if not request.session.get(self.CHAVE_ACESSO):
@@ -32,9 +43,10 @@ class MonitoramentoAcessosMiddleware:
                     )
                     request.session[self.CHAVE_ACESSO] = True
 
-                # Keep the last activity so simultaneous access can be measured
-                # without turning every refresh into a new historical access.
-                request.session[self.CHAVE_ATIVIDADE] = timezone.now().isoformat()
+                # Sliding expiration: cada atividade renova a sessão por mais
+                # 5 minutos. Assim, 5 minutos sem atividade encerram a sessão.
+                request.session.set_expiry(self.INATIVIDADE_SEGUNDOS)
+                request.session[self.CHAVE_ATIVIDADE] = agora.isoformat()
                 request.session.modified = True
             except Exception:
                 # Monitoring must never prevent the system from working.
@@ -56,7 +68,7 @@ class MonitoramentoAcessosMiddleware:
                 if not user_id or not atividade:
                     continue
                 try:
-                    ultima = timezone.datetime.fromisoformat(atividade)
+                    ultima = datetime.fromisoformat(atividade)
                     if timezone.is_naive(ultima):
                         ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
                     if ultima >= limite:
@@ -66,6 +78,19 @@ class MonitoramentoAcessosMiddleware:
         except Exception:
             pass
         return ativos
+
+    @staticmethod
+    def _ler_ultima_atividade(request):
+        valor = request.session.get(MonitoramentoAcessosMiddleware.CHAVE_ATIVIDADE)
+        if not valor:
+            return None
+        try:
+            ultima = datetime.fromisoformat(valor)
+            if timezone.is_naive(ultima):
+                ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
+            return ultima
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _ip(request):
