@@ -9,19 +9,13 @@
 .indicador .numero{font-size:32px;font-weight:800;color:#907C64;line-height:1.1}
 .indicador h3{font-size:15px;margin:9px 0 0;color:#1f2937}
 .indicador small{display:block;margin-top:6px;color:#6b7280;font-size:12px}
-.blocos{display:grid;grid-template-columns:1fr 1fr;gap:20px}
 .bloco{background:#fff;border-radius:15px;padding:24px;box-shadow:0 5px 18px rgba(0,0,0,.08)}
 .bloco h2{color:#907C64;margin-top:0}
-.acoes{display:grid;gap:10px}
-.acoes a{display:block;padding:11px 14px;border-radius:8px;text-decoration:none;font-weight:bold;background:#907C64;color:#fff}
-.acoes a:hover{background:#111827}
 .resumo-acessos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .resumo-item{padding:14px;border:1px solid #e5e7eb;border-radius:10px;background:#f9fafb}
 .resumo-item strong{display:block;font-size:13px;color:#6b7280;margin-bottom:5px}
 .resumo-item span{font-size:18px;font-weight:800;color:#1f2937}
-.mapa{margin-top:20px;text-align:center}
-.mapa a{display:inline-block;background:#907C64;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:bold}
-@media(max-width:850px){.blocos{grid-template-columns:1fr}.resumo-acessos{grid-template-columns:1fr}}
+@media(max-width:850px){.resumo-acessos{grid-template-columns:1fr}}
 </style>
 
 <div class="dash">
@@ -34,27 +28,13 @@
         <div class="indicador"><div class="numero">{{ media_tempo_solicitacoes }}</div><h3>Intervalo médio entre solicitações</h3><small>{{ solicitacoes_com_tempo }} solicitações consideradas</small></div>
     </div>
 
-    <div class="blocos">
-        <div class="bloco">
-            <h2>📈 Indicadores de Acesso</h2>
-            <div class="resumo-acessos">
-                <div class="resumo-item"><strong>Usuários simultâneos agora</strong><span>{{ acessos_simultaneos }}</span></div>
-                <div class="resumo-item"><strong>Dia de maior movimento</strong><span>{{ dia_mais_acessado }}</span></div>
-                <div class="resumo-item"><strong>Horário de maior movimento</strong><span>{{ hora_mais_acessada }}</span></div>
-                <div class="resumo-item"><strong>Intervalo médio entre novas solicitações</strong><span>{{ media_tempo_solicitacoes }}</span></div>
-            </div>
-        </div>
-
-        <div class="bloco">
-            <h2>⚡ Acesso Rápido</h2>
-            <div class="acoes">
-                <a href="{% url 'nova_solicitacao' %}">➕ Nova Solicitação</a>
-                <a href="{% url 'analise_unidades' %}">📊 Análise</a>
-                <a href="{% url 'agenda_gestao' %}">📅 Planejamento</a>
-                <a href="{% url 'opos_geradas' %}">📄 OPOs Geradas</a>
-                {% if eh_desenvolvedor %}<a href="{% url 'administracao_sistema' %}">⚙️ Administração</a>{% endif %}
-            </div>
-            <div class="mapa"><a href="{% url 'mapa_eventos' %}">🗺️ Mapa de Eventos</a></div>
+    <div class="bloco">
+        <h2>📈 Indicadores de Acesso</h2>
+        <div class="resumo-acessos">
+            <div class="resumo-item"><strong>Usuários simultâneos agora</strong><span>{{ acessos_simultaneos }}</span></div>
+            <div class="resumo-item"><strong>Dia de maior movimento</strong><span>{{ dia_mais_acessado }}</span></div>
+            <div class="resumo-item"><strong>Horário de maior movimento</strong><span>{{ hora_mais_acessada }}</span></div>
+            <div class="resumo-item"><strong>Intervalo médio entre novas solicitações</strong><span>{{ media_tempo_solicitacoes }}</span></div>
         </div>
     </div>
 </div>
