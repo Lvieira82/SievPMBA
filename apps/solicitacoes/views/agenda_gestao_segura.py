@@ -137,7 +137,9 @@ def proximos_eventos_gestao_seguro(request):
         dias[evento.data_evento] = dias.get(evento.data_evento, 0) + 1
 
     total = len(eventos)
-    cores = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#db2777", "#65a30d"]
+    # Paleta institucional inspirada no padrão visual do painel:
+    # marrom/dourado, azul-marinho e cinza (sem verde).
+    cores = ["#9A8870", "#34475E", "#9CA3AF", "#6B7280", "#7B6A58", "#52657A"]
     cidades_grafico = []
     inicio = 0
     gradientes = []
@@ -168,6 +170,7 @@ def proximos_eventos_gestao_seguro(request):
             "nome": cursor.strftime("%d/%m"),
             "quantidade": quantidade,
             "percentual": round(quantidade * 100 / max_dia, 1) if max_dia else 0,
+            "cor": "#9A8870",
         })
         cursor += timedelta(days=1)
 
