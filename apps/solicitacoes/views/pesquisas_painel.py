@@ -1,12 +1,12 @@
 import re
 from datetime import datetime
 
-from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, Unidade
+from apps.solicitacoes.models import HistoricoSolicitacao, Unidade
 from apps.solicitacoes.permissoes import perfil_gestor
 
 
@@ -47,14 +47,12 @@ def painel_pesquisas(request):
 
     if inicio:
         try:
-            data_inicio = datetime.strptime(inicio, "%Y-%m-%d").date()
-            base = base.filter(solicitacao__data_evento__gte=data_inicio)
+            base = base.filter(solicitacao__data_evento__gte=datetime.strptime(inicio, "%Y-%m-%d").date())
         except ValueError:
             inicio = ""
     if fim:
         try:
-            data_fim = datetime.strptime(fim, "%Y-%m-%d").date()
-            base = base.filter(solicitacao__data_evento__lte=data_fim)
+            base = base.filter(solicitacao__data_evento__lte=datetime.strptime(fim, "%Y-%m-%d").date())
         except ValueError:
             fim = ""
     if unidade_id:
@@ -102,16 +100,18 @@ def painel_pesquisas(request):
         })
 
     total_enviadas = len(envios)
-    total_respondidas = len(respostas_por_envio := [r for r in envios if r.solicitacao_id in resposta_por_solicitacao])
+    total_respondidas = sum(1 for envio in envios if envio.solicitacao_id in resposta_por_solicitacao)
     total_pendentes = max(0, total_enviadas - total_respondidas)
+    total_avaliacoes = len(notas)
     participacao = (total_respondidas / total_enviadas * 100) if total_enviadas else 0
-    media = (sum(notas) / len(notas)) if notas else 0
+    media = (sum(notas) / total_avaliacoes) if total_avaliacoes else 0
     satisfacao = (media / 5 * 100) if media else 0
 
-    context = {
+    return render(request, "gestao/pesquisas.html", {
         "total_enviadas": total_enviadas,
         "total_respondidas": total_respondidas,
         "total_pendentes": total_pendentes,
+        "total_avaliacoes": total_avaliacoes,
         "participacao": round(participacao, 1),
         "media": round(media, 2),
         "satisfacao": round(satisfacao, 1),
@@ -123,5 +123,4 @@ def painel_pesquisas(request):
         "fim": fim,
         "unidade_id": unidade_id,
         "ultima_atualizacao": timezone.localtime(),
-    }
-    return render(request, "gestao/pesquisas.html", context)
+    })
