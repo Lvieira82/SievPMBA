@@ -21,7 +21,8 @@ def _unidade_executor(request, solicitacao):
     acesso = getattr(request.user, "acesso_institucional", None)
     unidade = getattr(acesso, "unidade", None)
     return unidade or solicitacao.unidade
-    
+
+
 def _tipo_opo_mapa(solicitacao):
     """Determina o tipo pela OPO mais recente: SIM = extraordinário; NÃO = ordinário."""
     anexo = (
@@ -122,22 +123,29 @@ def gerar_mapa_eventos_pdf_seguro(request):
 
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
 
-    unidade_executor=None
+    # O gestor CPR deve ver no cabeçalho o nome do próprio CPR.
+    acesso = getattr(request.user, "acesso_institucional", None)
+    cpr_login = getattr(acesso, "cpr", None)
 
-    if unidade_login:
-        unidade_titulo = unidade_login.nome
+    if cpr_login:
+        unidade_titulo = cpr_login.nome
     else:
-        # Para perfis sem unidade diretamente vinculada (ex.: CPR), mantém fallback.
-        unidades_titulo = []
-        for evento in eventos:
-            if evento.unidade and evento.unidade.nome not in unidades_titulo:
-                unidades_titulo.append(evento.unidade.nome)
-        if len(unidades_titulo) == 1:
-            unidade_titulo = unidades_titulo[0]
-        elif unidades_titulo:
-            unidade_titulo = " / ".join(unidades_titulo)
+        # Para perfis de Unidade, mantém a unidade vinculada ao acesso.
+        unidade_login = getattr(acesso, "unidade", None)
+        if unidade_login:
+            unidade_titulo = unidade_login.nome
         else:
-            unidade_titulo = "UNIDADE RESPONSÁVEL"
+            # Fallback para perfis sem vínculo direto.
+            unidades_titulo = []
+            for evento in eventos:
+                if evento.unidade and evento.unidade.nome not in unidades_titulo:
+                    unidades_titulo.append(evento.unidade.nome)
+            if len(unidades_titulo) == 1:
+                unidade_titulo = unidades_titulo[0]
+            elif unidades_titulo:
+                unidade_titulo = " / ".join(unidades_titulo)
+            else:
+                unidade_titulo = "UNIDADE RESPONSÁVEL"
 
     story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}", subtitulo))
 
