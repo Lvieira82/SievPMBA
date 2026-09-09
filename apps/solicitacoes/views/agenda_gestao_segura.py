@@ -125,29 +125,36 @@ def proximos_eventos_gestao_seguro(request):
             data_evento__gte=hoje,
             data_evento__lte=limite,
         )
-        .select_related("municipio", "unidade", "bairro")
+        .select_related("municipio", "unidade", "unidade__cpr", "bairro")
         .order_by("data_evento", "hora_inicio")
     )
 
-    cidades = {}
+    acesso = getattr(request.user, "acesso_institucional", None)
+    perfil = getattr(acesso, "perfil", None)
+
+    # A visão territorial acompanha a hierarquia institucional:
+    # COPPM -> CPR; CPR -> município.
+    agrupamentos = {}
     dias = {}
     for evento in eventos:
-        cidade = evento.municipio.nome if evento.municipio else "Não informado"
-        cidades[cidade] = cidades.get(cidade, 0) + 1
+        if perfil == "COPPM":
+            cpr = getattr(getattr(evento, "unidade", None), "cpr", None)
+            nome = cpr.sigla if cpr else "CPR não informado"
+        else:
+            nome = evento.municipio.nome if evento.municipio else "Não informado"
+        agrupamentos[nome] = agrupamentos.get(nome, 0) + 1
         dias[evento.data_evento] = dias.get(evento.data_evento, 0) + 1
 
     total = len(eventos)
-    # Paleta institucional inspirada no padrão visual do painel:
-    # marrom/dourado, azul-marinho e cinza (sem verde).
     cores = ["#9A8870", "#34475E", "#9CA3AF", "#6B7280", "#7B6A58", "#52657A"]
-    cidades_grafico = []
+    categorias_grafico = []
     inicio = 0
     gradientes = []
-    for indice, (nome, quantidade) in enumerate(sorted(cidades.items(), key=lambda x: (-x[1], x[0]))):
+    for indice, (nome, quantidade) in enumerate(sorted(agrupamentos.items(), key=lambda x: (-x[1], x[0]))):
         percentual = quantidade * 100 / total if total else 0
         fim = inicio + percentual
         cor = cores[indice % len(cores)]
-        cidades_grafico.append({
+        categorias_grafico.append({
             "nome": nome,
             "quantidade": quantidade,
             "percentual": round(percentual, 1),
@@ -176,10 +183,12 @@ def proximos_eventos_gestao_seguro(request):
 
     return render(request, "gestao/proximos_eventos.html", {
         "eventos": eventos,
-        "cidades_grafico": cidades_grafico,
-        "dias_grafico": dias_grafico,
+        "categorias_grafico": categorias_grafico,
         "pizza_gradient": pizza_gradient,
+        "dias_grafico": dias_grafico,
         "total_eventos": total,
+        "perfil_proximos": perfil,
+        "rotulo_agrupamento": "CPR" if perfil == "COPPM" else "cidade",
         "filtro_inicio": hoje.strftime("%Y-%m-%d"),
         "filtro_fim": limite.strftime("%Y-%m-%d"),
     })
