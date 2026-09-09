@@ -58,8 +58,6 @@ class MonitoramentoAcessosMiddleware:
 
         response = self.get_response(request)
 
-        # Mede somente quando uma solicitação externa foi realmente criada.
-        # O mesmo aceite pode gerar vários protocolos no fluxo de múltiplas datas.
         if request.method == "POST" and request.path in ("/nova/", "/confirmar-datas/"):
             try:
                 valor = request.session.get(self.CHAVE_ACEITE_TERMOS)
@@ -67,7 +65,10 @@ class MonitoramentoAcessosMiddleware:
                     aceito_em = datetime.fromisoformat(valor)
                     if timezone.is_naive(aceito_em):
                         aceito_em = timezone.make_aware(aceito_em, timezone.get_current_timezone())
-                    segundos = max(0.0, (timezone.now() - aceito_em).total_seconds())
+                    # Usa o início do POST como término da medição: representa
+                    # a chegada do clique/enviado ao servidor, sem incluir OCR,
+                    # gravação de arquivos ou envio de e-mail.
+                    segundos = max(0.0, (inicio_requisicao - aceito_em).total_seconds())
                     if segundos <= 24 * 60 * 60:
                         solicitacoes = Solicitacao.objects.filter(origem="EXTERNA", criado_em__gte=inicio_requisicao).order_by("-criado_em")
                         for solicitacao in solicitacoes:
