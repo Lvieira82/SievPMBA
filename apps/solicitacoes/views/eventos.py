@@ -51,8 +51,24 @@ def _eventos_offline_payload(eventos):
     ]
 
 
+def _service_worker_script():
+    return '''const CACHE="sievpm-eventos-v2";
+const OFFLINE="/static/pwa/eventos_offline.html";
+const JS="/static/pwa/eventos_offline.js";
+self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));
+self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("sievpm-eventos-")&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
+self.addEventListener("fetch",event=>{if(event.request.mode!=="navigate")return;const u=new URL(event.request.url);if(u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});
+'''
+
+
 @login_required
 def eventos_dia(request):
+    if request.GET.get("sw") == "1":
+        return HttpResponse(_service_worker_script(), content_type="application/javascript")
+
+    if request.method == "POST" and request.headers.get("X-Offline-Sync") == "1":
+        return sincronizar_evento_offline(request)
+
     acesso_logado = getattr(request.user, "acesso_institucional", None)
     if not acesso_logado or not acesso_logado.ativo or not request.user.is_active:
         messages.error(request, "Acesso institucional não autorizado.")
@@ -200,9 +216,3 @@ def sincronizar_evento_offline(request):
         )
 
     return JsonResponse({"ok": True})
-
-
-@login_required
-def eventos_service_worker(request):
-    script = '''const CACHE="sievpm-eventos-v1";\nconst OFFLINE="/static/pwa/eventos_offline.html";\nconst JS="/static/pwa/eventos_offline.js";\nself.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));\nself.addEventListener("activate",event=>event.waitUntil(self.clients.claim()));\nself.addEventListener("fetch",event=>{if(event.request.mode!=="navigate")return;const u=new URL(event.request.url);if(u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});\n'''
-    return HttpResponse(script, content_type="application/javascript")
