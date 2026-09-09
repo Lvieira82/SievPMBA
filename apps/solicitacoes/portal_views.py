@@ -21,6 +21,7 @@ from .models import (
     LogSistema,
 )
 from .pdf_security import validar_pdf_upload
+from .documentos_otimizados import compactar_pdf_upload
 from .territorio import (
     bairros_do_municipio,
     lista_bairros as lista_bairros_api,
@@ -170,11 +171,17 @@ def nova_solicitacao(request):
     return _render_nova(request, form, municipio)
 
 
+def _pdf_para_armazenar(arquivo):
+    """Valida e reduz o PDF antes de gravar no armazenamento persistente."""
+    return compactar_pdf_upload(arquivo, nome=getattr(arquivo, "name", None))
+
+
 def _salvar_documentos(request, solicitacao):
     oficio = request.FILES.get("oficio_comandante")
     if oficio:
         try:
             validar_pdf_upload(oficio)
+            oficio = _pdf_para_armazenar(oficio)
             tipo_oficio, _ = TipoDocumento.objects.get_or_create(
                 nome="Ofício ao Comandante",
                 defaults={
@@ -203,6 +210,7 @@ def _salvar_documentos(request, solicitacao):
             continue
         try:
             validar_pdf_upload(arquivo)
+            arquivo = _pdf_para_armazenar(arquivo)
         except Exception as erro:
             messages.error(request, f"Documento rejeitado: {erro}")
             continue
