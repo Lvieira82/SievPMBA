@@ -3,7 +3,7 @@
 {% block titulo %}Cumprimento da OPO{% endblock %}
 {% block content %}
 <style>
-.wrap{max-width:950px;margin:30px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.info{background:#f8f9fa;border-left:4px solid #907C64;padding:14px 16px;border-radius:8px;margin:15px 0}.opcoes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}.opcao{border:1px solid #d1d5db;border-radius:12px;padding:18px}.opcao label{font-weight:700;display:flex;align-items:center;gap:10px;font-size:18px}.opcao input[type=radio]{width:20px;height:20px}.campo{margin-top:15px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input[type=file],.campo textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:8px}.campo textarea{min-height:120px;resize:vertical}.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;background:#907C64;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.btn2{background:#fff;color:#374151;border:1px solid #bbb}.erro{background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.sucesso{background:#dcfce7;color:#166534;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.oculto{display:none}.status{font-weight:700}.pendente{color:#92400e}.sim{color:#15803d}.nao{color:#b91c1c}.gps-status{margin-top:8px;font-size:14px;font-weight:600}.gps-ok{color:#15803d}.gps-erro{color:#b91c1c}.camera-ajuda{margin-top:8px;color:#6b7280;font-size:13px}@media(max-width:700px){.opcoes{grid-template-columns:1fr}}
+.wrap{max-width:950px;margin:30px auto;padding:0 16px}.cardx{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.cardx h1,.cardx h2{color:#907C64}.info{background:#f8f9fa;border-left:4px solid #907C64;padding:14px 16px;border-radius:8px;margin:15px 0}.opcoes{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:20px 0}.opcao{border:1px solid #d1d5db;border-radius:12px;padding:18px}.opcao label{font-weight:700;display:flex;align-items:center;gap:10px;font-size:18px}.opcao input[type=radio]{width:20px;height:20px}.campo{margin-top:15px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input[type=file],.campo textarea{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d1d5db;border-radius:8px}.campo textarea{min-height:120px;resize:vertical}.motivos{display:grid;grid-template-columns:1fr;gap:9px;margin:12px 0}.motivo{display:flex!important;align-items:center;gap:9px;font-size:15px!important;font-weight:600!important;background:#f8f9fa;border:1px solid #e5e7eb;border-radius:8px;padding:10px}.motivo input{width:19px;height:19px;flex:0 0 auto}.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;background:#907C64;color:#fff;text-decoration:none;font-weight:700;cursor:pointer}.btn2{background:#fff;color:#374151;border:1px solid #bbb}.erro{background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.sucesso{background:#dcfce7;color:#166534;padding:12px;border-radius:8px;margin-bottom:15px;font-weight:600}.oculto{display:none}.status{font-weight:700}.pendente{color:#92400e}.sim{color:#15803d}.nao{color:#b91c1c}.gps-status{margin-top:8px;font-size:14px;font-weight:600}.gps-ok{color:#15803d}.gps-erro{color:#b91c1c}.camera-ajuda{margin-top:8px;color:#6b7280;font-size:13px}@media(max-width:700px){.opcoes{grid-template-columns:1fr}}
 </style>
 <div class="wrap">
   <div class="cardx">
@@ -18,144 +18,48 @@
     </div>
     {% for message in messages %}<div class="{% if message.tags == 'success' %}sucesso{% else %}erro{% endif %}">{{ message }}</div>{% endfor %}
     <p><a class="btn" href="{% url 'abrir_opo_operador' opo.id %}" target="_blank">📄 Abrir OPO</a></p>
-
     {% if registro.cumprida is True %}<p class="status sim">Situação registrada: SIM — OPO cumprida.</p>{% elif registro.cumprida is False %}<p class="status nao">Situação registrada: NÃO — OPO não cumprida.</p>{% else %}<p class="status pendente">Situação ainda não registrada.</p>{% endif %}
-
     <form id="form-cumprimento" method="post" enctype="multipart/form-data">
       {% csrf_token %}
-      <input type="hidden" id="latitude" name="latitude">
-      <input type="hidden" id="longitude" name="longitude">
-
+      <input type="hidden" id="latitude" name="latitude"><input type="hidden" id="longitude" name="longitude">
       <div class="opcoes">
         <div class="opcao">
-          <label>
-            <input type="radio" name="cumprida" value="SIM" {% if registro.cumprida is True %}checked{% endif %} onchange="mostrarCampos()">
-            SIM — Cumprida
-          </label>
+          <label><input type="radio" name="cumprida" value="SIM" {% if registro.cumprida is True %}checked{% endif %} onchange="mostrarCampos()"> SIM — Cumprida</label>
           <div id="campo-imagem" class="campo {% if registro.cumprida is not True %}oculto{% endif %}">
-            <label for="imagem">📷 Capturar foto da execução</label>
-            <input id="imagem" name="imagem" type="file" accept="image/*" capture="environment">
-            <div class="camera-ajuda">Ao confirmar SIM, a câmera traseira do celular será solicitada para a captura da foto.</div>
-            <div id="gps-status" class="gps-status">Aguardando localização GPS...</div>
+            <label for="imagem">📷 Capturar foto da execução</label><input id="imagem" name="imagem" type="file" accept="image/*" capture="environment">
+            <div class="camera-ajuda">Ao confirmar SIM, a câmera traseira do celular será solicitada para a captura da foto.</div><div id="gps-status" class="gps-status">Aguardando localização GPS...</div>
           </div>
         </div>
-
         <div class="opcao">
-          <label>
-            <input type="radio" name="cumprida" value="NAO" {% if registro.cumprida is False %}checked{% endif %} onchange="mostrarCampos()">
-            NÃO — Não cumprida
-          </label>
+          <label><input type="radio" name="cumprida" value="NAO" {% if registro.cumprida is False %}checked{% endif %} onchange="mostrarCampos()"> NÃO — Não cumprida</label>
           <div id="campo-justificativa" class="campo {% if registro.cumprida is not False %}oculto{% endif %}">
-            <label for="justificativa">Justificativa</label>
-            <textarea id="justificativa" name="justificativa" maxlength="150" placeholder="Informe por que a OPO não foi cumprida.">{{ registro.justificativa }}</textarea>
+            <label>Principais motivos do não cumprimento <span style="font-weight:400;color:#6b7280;font-size:13px">(selecione um ou mais)</span></label>
+            <div class="motivos">
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="VIATURA_PROBLEMA"> Viatura apresentou problema</label>
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="DELEGACIA"> Apresentação na delegacia</label>
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="OCORRENCIA"> Guarnição em Ocorrência</label>
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="ENDERECO"> Endereço não encontrado</label>
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="CANCELADO"> Evento Cancelado</label>
+              <label class="motivo"><input type="checkbox" name="motivos_nao" value="HORARIO"> Horário alterado</label>
+            </div>
+            <label for="justificativa">Observações / justificativa</label>
+            <textarea id="justificativa" name="justificativa" maxlength="150" placeholder="Acrescente outras informações, se necessário.">{{ registro.justificativa }}</textarea>
             <div style="text-align:right;color:#6b7280;font-size:13px;margin-top:4px"><span id="contador">0</span>/150</div>
           </div>
         </div>
       </div>
-
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button id="btn-salvar" class="btn" type="submit">Salvar resposta</button>
-        <a class="btn btn2" href="{% url 'eventos_dia' %}">Voltar aos eventos</a>
-      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button id="btn-salvar" class="btn" type="submit">Salvar resposta</button><a class="btn btn2" href="{% url 'eventos_dia' %}">Voltar aos eventos</a></div>
     </form>
   </div>
 </div>
 <script>
-const imagemInput = document.getElementById('imagem');
-const latitudeInput = document.getElementById('latitude');
-const longitudeInput = document.getElementById('longitude');
-const gpsStatus = document.getElementById('gps-status');
-const formCumprimento = document.getElementById('form-cumprimento');
-const justificativaInput = document.getElementById('justificativa');
-const contador = document.getElementById('contador');
-let capturaSolicitada = false;
-
-function atualizarContador(){
-  if (justificativaInput && contador) contador.textContent = justificativaInput.value.length;
-}
-
-if (justificativaInput) {
-  justificativaInput.addEventListener('input', atualizarContador);
-  atualizarContador();
-}
-
-function obterGPS(){
-  gpsStatus.textContent = 'Obtendo localização GPS do dispositivo...';
-  gpsStatus.className = 'gps-status';
-
-  if (!navigator.geolocation) {
-    gpsStatus.textContent = 'GPS não disponível neste dispositivo/navegador.';
-    gpsStatus.className = 'gps-status gps-erro';
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    function(position){
-      latitudeInput.value = position.coords.latitude;
-      longitudeInput.value = position.coords.longitude;
-      gpsStatus.textContent = '✓ Localização GPS capturada.';
-      gpsStatus.className = 'gps-status gps-ok';
-    },
-    function(){
-      latitudeInput.value = '';
-      longitudeInput.value = '';
-      gpsStatus.textContent = 'Não foi possível obter o GPS. Autorize a localização e tente novamente.';
-      gpsStatus.className = 'gps-status gps-erro';
-    },
-    {enableHighAccuracy:true, timeout:15000, maximumAge:0}
-  );
-}
-
-function abrirCamera(){
-  if (capturaSolicitada) return;
-  capturaSolicitada = true;
-  if (imagemInput) imagemInput.click();
-}
-
-function mostrarCampos(){
-  const sim = document.querySelector('input[name="cumprida"][value="SIM"]').checked;
-  const nao = document.querySelector('input[name="cumprida"][value="NAO"]').checked;
-  document.getElementById('campo-imagem').classList.toggle('oculto', !sim);
-  document.getElementById('campo-justificativa').classList.toggle('oculto', !nao);
-
-  if (sim) {
-    obterGPS();
-    abrirCamera();
-  } else {
-    capturaSolicitada = false;
-    latitudeInput.value = '';
-    longitudeInput.value = '';
-  }
-}
-
-imagemInput.addEventListener('change', function(){
-  if (this.files && this.files.length) {
-    const arquivo = this.files[0];
-    gpsStatus.textContent = '✓ Foto capturada: ' + arquivo.name;
-    gpsStatus.className = 'gps-status gps-ok';
-  }
-});
-
-formCumprimento.addEventListener('submit', function(event){
-  const sim = document.querySelector('input[name="cumprida"][value="SIM"]').checked;
-  if (sim && (!imagemInput.files || !imagemInput.files.length)) {
-    event.preventDefault();
-    alert('Capture a foto da execução antes de salvar.');
-    abrirCamera();
-    return;
-  }
-  if (sim && (!latitudeInput.value || !longitudeInput.value)) {
-    event.preventDefault();
-    alert('A localização GPS é obrigatória para registrar o cumprimento. Autorize a localização e tente novamente.');
-    obterGPS();
-  }
-});
-
-window.addEventListener('load', function(){
-  const sim = document.querySelector('input[name="cumprida"][value="SIM"]').checked;
-  if (sim) {
-    obterGPS();
-  }
-});
+const imagemInput=document.getElementById('imagem'),latitudeInput=document.getElementById('latitude'),longitudeInput=document.getElementById('longitude'),gpsStatus=document.getElementById('gps-status'),formCumprimento=document.getElementById('form-cumprimento'),justificativaInput=document.getElementById('justificativa'),contador=document.getElementById('contador');let capturaSolicitada=false;
+function atualizarContador(){if(justificativaInput&&contador)contador.textContent=justificativaInput.value.length}if(justificativaInput){justificativaInput.addEventListener('input',atualizarContador);atualizarContador()}
+function obterGPS(){gpsStatus.textContent='Obtendo localização GPS do dispositivo...';gpsStatus.className='gps-status';if(!navigator.geolocation){gpsStatus.textContent='GPS não disponível neste dispositivo/navegador.';gpsStatus.className='gps-status gps-erro';return}navigator.geolocation.getCurrentPosition(function(p){latitudeInput.value=p.coords.latitude;longitudeInput.value=p.coords.longitude;gpsStatus.textContent='✓ Localização GPS capturada.';gpsStatus.className='gps-status gps-ok'},function(){latitudeInput.value='';longitudeInput.value='';gpsStatus.textContent='Não foi possível obter o GPS. Autorize a localização e tente novamente.';gpsStatus.className='gps-status gps-erro'},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
+function abrirCamera(){if(capturaSolicitada)return;capturaSolicitada=true;if(imagemInput)imagemInput.click()}
+function mostrarCampos(){const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked,nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;document.getElementById('campo-imagem').classList.toggle('oculto',!sim);document.getElementById('campo-justificativa').classList.toggle('oculto',!nao);if(sim){obterGPS();abrirCamera()}else{capturaSolicitada=false;latitudeInput.value='';longitudeInput.value=''}}
+imagemInput.addEventListener('change',function(){if(this.files&&this.files.length){gpsStatus.textContent='✓ Foto capturada: '+this.files[0].name;gpsStatus.className='gps-status gps-ok'}});
+formCumprimento.addEventListener('submit',function(event){const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked,nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;if(nao&&!document.querySelectorAll('input[name="motivos_nao"]:checked').length){event.preventDefault();alert('Selecione pelo menos um motivo para o não cumprimento.');return}if(sim&&(!imagemInput.files||!imagemInput.files.length)){event.preventDefault();alert('Capture a foto da execução antes de salvar.');abrirCamera();return}if(sim&&(!latitudeInput.value||!longitudeInput.value)){event.preventDefault();alert('A localização GPS é obrigatória para registrar o cumprimento. Autorize a localização e tente novamente.');obterGPS()}});
+window.addEventListener('load',function(){if(document.querySelector('input[name="cumprida"][value="SIM"]').checked)obterGPS()});
 </script>
 {% endblock %}
