@@ -18,14 +18,18 @@ def _negar(request, mensagem="Você não possui permissão para acessar esta ár
 
 
 def _formatar_duracao(delta):
-    if not delta: return "Sem dados"
-    segundos = max(0, int(delta.total_seconds()))
-    dias, resto = divmod(segundos, 86400); horas, resto = divmod(resto, 3600); minutos, _ = divmod(resto, 60)
-    partes = []
-    if dias: partes.append(f"{dias}d")
-    if horas: partes.append(f"{horas}h")
-    if minutos or not partes: partes.append(f"{minutos}min")
-    return " ".join(partes)
+    """Formata duração com precisão de minutos e segundos, sem arredondar."""
+    if delta is None:
+        return "Sem dados"
+    segundos_total = max(0, int(delta.total_seconds()))
+    horas, resto = divmod(segundos_total, 3600)
+    minutos, segundos = divmod(resto, 60)
+
+    if horas:
+        return f"{horas}h {minutos:02d}min {segundos:02d}s"
+    if minutos:
+        return f"{minutos}min {segundos:02d}s"
+    return f"{segundos}s"
 
 
 def _tempo_aceite_envio(request):
@@ -56,7 +60,13 @@ def _tempo_aceite_envio(request):
     media_hoje = sum(v for _, v in ultimos) / len(ultimos) if ultimos else 0
     registros = []
     for log, segundos in sorted(valores, key=lambda item: item[0].criado_em, reverse=True)[:100]:
-        registros.append({"data": timezone.localtime(log.criado_em), "protocolo": log.solicitacao.protocolo if log.solicitacao else "-", "solicitante": log.solicitacao.solicitante if log.solicitacao else "-", "segundos": segundos})
+        registros.append({
+            "data": timezone.localtime(log.criado_em),
+            "protocolo": log.solicitacao.protocolo if log.solicitacao else "-",
+            "solicitante": log.solicitacao.solicitante if log.solicitacao else "-",
+            "segundos": segundos,
+            "duracao_formatada": _formatar_duracao(timedelta(seconds=segundos)),
+        })
 
     return render(request, "dashboard/tempo_solicitacao.html", {
         "total": total, "media": media, "media_formatada": _formatar_duracao(timedelta(seconds=media)),
