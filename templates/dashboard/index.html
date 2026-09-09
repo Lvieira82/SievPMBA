@@ -22,7 +22,8 @@
     <div class="indicadores">
         <div class="indicador"><div class="numero">{{ pendentes }}</div><h3>Em Análise</h3></div>
         <div class="indicador"><div class="numero">{{ aprovadas }}</div><h3>Aprovadas</h3></div>
-        <div class="indicador"><div class="numero">{{ acessos_simultaneos }}</div><h3>Acessos simultâneos</h3><small>atividade nos últimos 5 minutos</small></div>
+        <div class="indicador"><div class="numero">{{ acessos_simultaneos }}</div><h3>Acessos simultâneos</h3><small>usuários institucionais ativos nos últimos 5 minutos</small></div>
+        <div class="indicador"><div class="numero">{{ acessos_publico }}</div><h3>Acesso do público</h3><small>visitantes não autenticados ativos nos últimos 5 minutos</small></div>
         <div class="indicador"><div class="numero">{{ dia_mais_acessado }}</div><h3>Dia mais acessado</h3><small>{{ dia_mais_acessado_total }} acessos registrados</small></div>
         <div class="indicador"><div class="numero">{{ hora_mais_acessada }}</div><h3>Hora mais acessada</h3><small>{{ hora_mais_acessada_total }} acessos registrados</small></div>
         <div class="indicador"><div class="numero">{{ media_tempo_solicitacoes }}</div><h3>Intervalo médio entre solicitações</h3><small>{{ solicitacoes_com_tempo }} solicitações consideradas</small></div>
@@ -31,9 +32,10 @@
     <div class="bloco">
         <h2>📈 Indicadores de Acesso</h2>
         <div class="resumo-acessos">
-            <div class="resumo-item"><strong>Usuários simultâneos agora</strong><span>{{ acessos_simultaneos }}</span></div>
-            <div class="resumo-item"><strong>Dia de maior movimento</strong><span>{{ dia_mais_acessado }}</span></div>
-            <div class="resumo-item"><strong>Horário de maior movimento</strong><span>{{ hora_mais_acessada }}</span></div>
+            <div class="resumo-item"><strong>Usuários institucionais simultâneos</strong><span>{{ acessos_simultaneos }}</span></div>
+            <div class="resumo-item"><strong>Acesso do público</strong><span>{{ acessos_publico }}</span></div>
+            <div class="resumo-item"><strong>Dia de maior movimento institucional</strong><span>{{ dia_mais_acessado }}</span></div>
+            <div class="resumo-item"><strong>Horário de maior movimento institucional</strong><span>{{ hora_mais_acessada }}</span></div>
             <div class="resumo-item"><strong>Intervalo médio entre novas solicitações</strong><span>{{ media_tempo_solicitacoes }}</span></div>
         </div>
     </div>
