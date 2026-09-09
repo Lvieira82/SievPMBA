@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate, TruncHour
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
+from apps.solicitacoes.middleware import MonitoramentoAcessosMiddleware
 from apps.solicitacoes.models import LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import (
     eh_operador,
@@ -46,25 +47,13 @@ def dashboard(request):
 
     unidades = escopo_unidades(request.user)
     base = Solicitacao.objects.filter(unidade__in=unidades)
-    agora = timezone.now()
 
-    # Considera simultâneos os usuários/clientes que fizeram uma requisição
-    # nos últimos 5 minutos. Isso mede atividade real, e não apenas sessão aberta.
-    janela_simultanea = agora - timedelta(minutes=5)
-    acessos_recentes = LogSistema.objects.filter(
-        acao="ACESSO_SISTEMA",
-        criado_em__gte=janela_simultanea,
-    ).values("usuario_id", "ip")
-    identidades_ativas = set()
-    for acesso in acessos_recentes:
-        if acesso["usuario_id"]:
-            identidades_ativas.add(("usuario", acesso["usuario_id"]))
-        elif acesso["ip"]:
-            identidades_ativas.add(("ip", acesso["ip"]))
-    acessos_simultaneos = len(identidades_ativas)
+    # Considera simultâneos os usuários com atividade real nos últimos 5 minutos.
+    # A atividade é atualizada pela sessão, mas não gera um novo acesso histórico.
+    acessos_simultaneos = len(MonitoramentoAcessosMiddleware.sessoes_ativas(minutos=5))
 
-    # Estatísticas históricas de acesso registradas pelo middleware.
-    logs_acesso = LogSistema.objects.filter(acao="ACESSO_SISTEMA")
+    # Estatísticas históricas: um acesso = uma sessão, e não um refresh.
+    logs_acesso = LogSistema.objects.filter(acao="ACESSO_SESSAO")
     tz = timezone.get_current_timezone()
     dia_mais_acessado = (
         logs_acesso
@@ -84,7 +73,6 @@ def dashboard(request):
     )
 
     # Intervalo médio entre a chegada de uma solicitação e a seguinte.
-    # Usa criado_em, que registra quando a solicitação entrou no sistema.
     chegadas = list(
         Solicitacao.objects
         .order_by("criado_em")
