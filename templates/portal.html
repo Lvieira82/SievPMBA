@@ -41,16 +41,6 @@
                 <input type="hidden" id="municipioSelecionado">
                 <div id="listaMunicipios" class="list-group mt-2"></div>
 
-                <div id="areaBairro">
-                    <label for="pesquisaBairro">Bairro / Distrito</label>
-                    <div class="bairro-autocomplete">
-                        <input id="pesquisaBairro" class="form-control" placeholder="Digite para pesquisar ou role a lista..." autocomplete="off">
-                        <input type="hidden" id="bairroSelecionado">
-                        <div id="listaBairros" class="list-group"></div>
-                    </div>
-                    <div id="bairroStatus" class="bairro-status"></div>
-                </div>
-
                 <button id="btnContinuar" class="btn btn-siev mt-3">Continuar</button>
             </div>
         </div>
@@ -95,7 +85,7 @@
 </div>
 
 <script>const urlNovaSolicitacao = "{% url 'nova_solicitacao' %}";</script>
-<script src="{% static 'js/portal.js' %}?v=5"></script>
+<script src="{% static 'js/portal.js' %}?v=6"></script>
 <script>
 const menuNovaInformacao = document.getElementById('menuNovaInformacao');
 if (menuNovaInformacao) {
