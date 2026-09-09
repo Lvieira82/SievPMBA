@@ -7,14 +7,14 @@
 <div class="painel">
   <h1>⚙️ {{ titulo_painel|default:'Painel' }}</h1>
   <p class="subacesso">Acesso: {{ descricao_acesso }}</p>
-
   <div class="cards">
     {% if eh_desenvolvedor %}
       <a href="{% url 'administracao_sistema' %}" class="card-painel"><div class="icone">⚙️</div><h2>Administração</h2><p>Cadastrar e gerenciar usuários institucionais.</p></a>
       <a href="{% url 'areas_responsabilidade' %}" class="card-painel"><div class="icone">🗺️</div><h2>Área de Responsabilidade</h2><p>Vincular bairros/distritos às unidades responsáveis.</p></a>
       <a href="{% url 'cadastro_bairros' %}" class="card-painel"><div class="icone">🏘️</div><h2>Bairros / Distritos</h2><p>Cadastrar e administrar bairros e distritos.</p></a>
       <a href="{% url 'cadastro_unidades' %}" class="card-painel"><div class="icone">🏢</div><h2>Unidades</h2><p>Cadastrar e administrar unidades operacionais.</p></a>
-      {% if user.is_superuser %}<a href="{% url 'dashboard_operacional' %}" class="card-painel"><div class="icone">📈</div><h2>Dashboard</h2><p>Indicadores gerais de acesso e solicitações do sistema.</p></a>{% endif %}
+      {% if user.is_superuser %}<a href="{% url 'dashboard_operacional' %}" class="card-painel"><div class="icone">📈</div><h2>Dashboard</h2><p>Indicadores gerais de acesso e solicitações do sistema.</p></a>
+      <a href="{% url 'dashboard_operacional' %}?aba=tempo" class="card-painel"><div class="icone">⏱️</div><h2>Tempo de preenchimento</h2><p>Medir quanto tempo o usuário externo leva do aceite dos termos até o envio da solicitação.</p></a>{% endif %}
     {% else %}
       {% if pode_administrar %}
         {% if eh_membro_unidade %}
@@ -33,16 +33,9 @@
       {% if pode_manual %}<a href="{% url 'lancamento_manual' %}" class="card-painel"><div class="icone">✍️</div><h2>Lançamento Manual</h2><p>Cadastrar manualmente um evento da unidade.</p></a>{% endif %}
     {% endif %}
   </div>
-
   {% if pode_proximos and not eh_desenvolvedor %}
-  <div class="proximos">
-    <h2>🗓️ Eventos da semana</h2>
-    <div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
-      {% for evento in proximos_eventos %}
-        <tr><td>{{ evento.data_evento|date:'d/m/Y' }}</td><td>{{ evento.hora_inicio|time:'H:i' }}</td><td>{{ evento.nome_evento }}</td><td>{{ evento.local }}</td><td>{% if evento.status == 'APROVADA' %}<span class="status-aprovada">APROVADA</span>{% else %}<span class="status-pendente">{{ evento.get_status_display }}</span>{% endif %}</td><td>{% if evento.status == 'APROVADA' or evento.status == 'CONCLUIDA' %}{% if pode_documentacao %}<a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 OPO</a>{% endif %}{% elif pode_documentacao %}<a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Documentos</a>{% endif %}</td></tr>
-      {% empty %}<tr><td colspan="6" style="text-align:center;padding:28px;color:#6b7280">Nenhum evento futuro cadastrado.</td></tr>{% endfor %}
-    </tbody></table></div>
-  </div>
-  {% endif %}
+  <div class="proximos"><h2>🗓️ Eventos da semana</h2><div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+  {% for evento in proximos_eventos %}<tr><td>{{ evento.data_evento|date:'d/m/Y' }}</td><td>{{ evento.hora_inicio|time:'H:i' }}</td><td>{{ evento.nome_evento }}</td><td>{{ evento.local }}</td><td>{% if evento.status == 'APROVADA' %}<span class="status-aprovada">APROVADA</span>{% else %}<span class="status-pendente">{{ evento.get_status_display }}</span>{% endif %}</td><td>{% if evento.status == 'APROVADA' or evento.status == 'CONCLUIDA' %}{% if pode_documentacao %}<a href="{% url 'detalhe_opo' evento.id %}" class="btn-detalhes">📄 OPO</a>{% endif %}{% elif pode_documentacao %}<a href="{% url 'documentos_solicitacao' evento.id %}" class="btn-detalhes">📁 Documentos</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="6" style="text-align:center;padding:28px;color:#6b7280">Nenhum evento futuro cadastrado.</td></tr>{% endfor %}
+  </tbody></table></div></div>{% endif %}
 </div>
 {% endblock %}
