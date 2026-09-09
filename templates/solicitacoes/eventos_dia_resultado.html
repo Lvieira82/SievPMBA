@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Eventos do Dia - SiEv{% endblock %}
+
+{% block css %}
+<style>
+    .pagina-eventos { width:100%; max-width:1100px; margin:0 auto; }
+    .card-eventos { background:#fff; border-radius:18px; padding:32px; box-shadow:0 8px 28px rgba(0,0,0,.08); border:1px solid #e5e7eb; }
+    .cabecalho-eventos h1 { color:#111827; font-size:34px; font-weight:700; margin:0 0 8px; }
+    .data-eventos { color:#6b7280; font-size:16px; font-weight:600; margin-bottom:22px; }
+    .informacoes-consulta { background:#f8f9fa; border-left:4px solid #907c64; border-radius:8px; padding:16px; margin-bottom:24px; }
+    .informacoes-consulta p { margin:5px 0; color:#374151; }
+    .offline-status { display:inline-block; margin-top:10px; padding:7px 11px; border-radius:8px; background:#dcfce7; color:#166534; font-weight:700; font-size:13px; }
+    .evento-card { background:#fff; border:1px solid #d1d5db; border-left:5px solid #907c64; border-radius:12px; padding:20px; margin-bottom:18px; box-shadow:0 3px 10px rgba(0,0,0,.05); }
+    .evento-card h2 { color:#907c64; font-size:22px; margin:0 0 14px; }
+    .evento-card p { margin:7px 0; color:#374151; }
+    .status-evento { display:inline-block; padding:5px 10px; border-radius:6px; font-weight:700; font-size:13px; background:#dcfce7; color:#166534; }
+    .acoes-evento { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; padding-top:15px; border-top:1px solid #e5e7eb; }
+    .btn-voltar-eventos, .btn-cumprimento { display:inline-block; padding:10px 18px; border-radius:8px; text-decoration:none; font-weight:700; }
+    .btn-cumprimento { background:#166534; color:#fff; }
+    .btn-cumprimento:hover { background:#14532d; color:#fff; }
+    .btn-voltar-eventos { background:#fff; color:#374151; border:1px solid #c9c9c9; }
+    .btn-voltar-eventos:hover { background:#f5f5f5; color:#111827; }
+    .nenhum-evento { background:#f3f4f6; border-left:5px solid #907c64; border-radius:8px; padding:20px; color:#374151; font-weight:600; }
+    @media (max-width:768px) { .card-eventos{padding:22px 18px}.cabecalho-eventos h1{font-size:28px}.acoes-evento a{width:100%;text-align:center} }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pagina-eventos">
+    <div class="card-eventos">
+        <div class="cabecalho-eventos">
+            <h1>📅 Eventos do Dia</h1>
+            {% if data_eventos %}<div class="data-eventos">{{ data_eventos|date:"d/m/Y" }}</div>{% endif %}
+        </div>
+
+        <div class="informacoes-consulta">
+            {% if matricula %}<p><strong>Matrícula:</strong> {{ matricula }}</p>{% endif %}
+            {% if acesso.usuario %}<p><strong>Policial:</strong> {{ acesso.usuario.get_full_name }}</p>{% endif %}
+            {% if unidade %}<p><strong>Unidade:</strong> {{ unidade }}</p>{% endif %}
+            {% if acesso.perfil %}<p><strong>Perfil:</strong> {{ acesso.get_perfil_display }}</p>{% endif %}
+            {% if acesso.perfil == 'OPERADOR' %}<div class="offline-status">✓ Eventos de hoje armazenados neste dispositivo para uso offline</div>{% endif %}
+        </div>
+
+        {% if eventos %}
+            {% for evento in eventos %}
+                <div class="evento-card">
+                    <h2>{{ evento.nome_evento }}</h2>
+                    {% if evento.hora_inicio %}<p><strong>Horário:</strong> {{ evento.hora_inicio }}{% if evento.hora_fim %} às {{ evento.hora_fim }}{% endif %}</p>{% endif %}
+                    {% if evento.municipio %}<p><strong>Município:</strong> {{ evento.municipio }}</p>{% endif %}
+                    {% if evento.bairro %}<p><strong>Bairro:</strong> {{ evento.bairro }}</p>{% endif %}
+                    {% if evento.local %}<p><strong>Local:</strong> {{ evento.local }}</p>{% endif %}
+                    {% if evento.unidade %}<p><strong>Unidade responsável:</strong> {{ evento.unidade }}</p>{% endif %}
+                    <p><strong>Status:</strong> <span class="status-evento">{{ evento.get_status_display }}</span></p>
+                    <div class="acoes-evento">
+                        {% if acesso.perfil == 'OPERADOR' %}
+                        <a href="{% url 'eventos_dia_resultado' %}" class="btn-cumprimento btn-offline-cumprimento">📷 Registrar atendimento</a>
+                        {% else %}
+                        <a href="{% url 'cumprimento_opo' evento.id %}" class="btn-cumprimento">✅ OPO e cumprimento</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="nenhum-evento">Não há eventos/OPOs aprovados para hoje nesta unidade.</div>
+        {% endif %}
+
+        <div class="acoes-evento">
+            <a href="{% url 'eventos_dia' %}" class="btn-voltar-eventos">← Nova consulta</a>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{{ offline_eventos|json_script:"eventos-offline-data" }}
+<script>
+(function(){
+  const dados=JSON.parse(document.getElementById('eventos-offline-data').textContent||'[]');
+  const matricula="{{ matricula|escapejs }}";
+  const unidadeId="{{ acesso.unidade_id|default:'' }}";
+  const data="{{ data_eventos|date:'Y-m-d' }}";
+  const owner=`${matricula}|${unidadeId}`;
+  localStorage.setItem('sievpm_offline_owner',owner);
+  localStorage.setItem('sievpm_offline_date',data);
+  const DB='sievpm_eventos_offline';
+  const open=()=>new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('eventos'))db.createObjectStore('eventos',{keyPath:'key'});if(!db.objectStoreNames.contains('pendentes'))db.createObjectStore('pendentes',{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  open().then(db=>new Promise((resolve,reject)=>{const t=db.transaction('eventos','readwrite'),s=t.objectStore('eventos');const req=s.getAll();req.onsuccess=()=>{req.result.filter(x=>x.owner===owner&&x.data!==data).forEach(x=>s.delete(x.key));dados.forEach(e=>s.put({...e,owner,data,key:`${owner}|${data}|${e.id}`}));};req.onerror=()=>reject(req.error);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})).catch(()=>{});
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('/eventos-do-dia/?sw=1',{scope:'/eventos-do-dia/'}).catch(()=>{});}
+  document.querySelectorAll('.btn-offline-cumprimento').forEach(btn=>{btn.addEventListener('click',function(e){e.preventDefault();if(navigator.onLine){window.location.href='/static/pwa/eventos_offline.html';}else{window.location.href=this.href;}});});
+})();
+</script>
+{% endblock %}
