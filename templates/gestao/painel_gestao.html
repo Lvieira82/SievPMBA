@@ -14,6 +14,7 @@
       <a href="{% url 'areas_responsabilidade' %}" class="card-painel"><div class="icone">🗺️</div><h2>Área de Responsabilidade</h2><p>Vincular bairros/distritos às unidades responsáveis.</p></a>
       <a href="{% url 'cadastro_bairros' %}" class="card-painel"><div class="icone">🏘️</div><h2>Bairros / Distritos</h2><p>Cadastrar e administrar bairros e distritos.</p></a>
       <a href="{% url 'cadastro_unidades' %}" class="card-painel"><div class="icone">🏢</div><h2>Unidades</h2><p>Cadastrar e administrar unidades operacionais.</p></a>
+      {% if pode_dashboard %}<a href="{% url 'dashboard_operacional' %}" class="card-painel"><div class="icone">📈</div><h2>Dashboard</h2><p>Indicadores gerais de acesso e solicitações do sistema.</p></a>{% endif %}
     {% else %}
       {% if pode_administrar %}
         {% if eh_membro_unidade %}
@@ -33,7 +34,7 @@
     {% endif %}
   </div>
 
-  {% if pode_proximos %}
+  {% if pode_proximos and not eh_desenvolvedor %}
   <div class="proximos">
     <h2>🗓️ Eventos da semana</h2>
     <div class="tabela-card"><table class="tabela-eventos"><thead><tr><th>Data</th><th>Hora</th><th>Evento</th><th>Local</th><th>Status</th><th>Ações</th></tr></thead><tbody>
