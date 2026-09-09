@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -18,6 +18,7 @@ from .models import (
     Solicitacao,
     TipoDocumento,
     Unidade,
+    LogSistema,
 )
 from .pdf_security import validar_pdf_upload
 from .territorio import (
@@ -46,6 +47,21 @@ def selecionar_unidade(request):
         return redirect("portal")
     request.session["municipio_id"] = municipio.id
     return redirect("nova_solicitacao")
+
+
+def registrar_aceite_termos(request):
+    if request.method != "POST":
+        return JsonResponse({"ok": False}, status=405)
+
+    aceitou = request.POST.get("aceitou") == "1"
+    if aceitou:
+        request.session["termos_aceitos_em"] = timezone.now().isoformat()
+        request.session.modified = True
+    else:
+        request.session.pop("termos_aceitos_em", None)
+        request.session.modified = True
+
+    return JsonResponse({"ok": True})
 
 
 def listar_unidades(request, cpr_id):
@@ -81,6 +97,29 @@ def _configurar_bairro_form(form, municipio):
 def _render_nova(request, form, municipio):
     multiplas = _configurar_bairro_form(form, municipio)
     return render(request, "solicitacoes/nova.html", {"form": form, "municipio": municipio, "multiplas_unidades": multiplas, "bairros": bairros_do_municipio(municipio)})
+
+
+def _registrar_tempo_aceite_envio(request, solicitacao):
+    if solicitacao.origem != "EXTERNA":
+        return
+
+    valor = request.session.pop("termos_aceitos_em", None)
+    if not valor:
+        return
+
+    try:
+        aceito_em = datetime.fromisoformat(valor)
+        if timezone.is_naive(aceito_em):
+            aceito_em = timezone.make_aware(aceito_em)
+        segundos = max(0.0, (timezone.now() - aceito_em).total_seconds())
+        LogSistema.objects.create(
+            solicitacao=solicitacao,
+            acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
+            detalhes=f"segundos={segundos:.3f}",
+            ip=request.META.get("REMOTE_ADDR"),
+        )
+    except (TypeError, ValueError, OverflowError):
+        pass
 
 
 def nova_solicitacao(request):
@@ -119,6 +158,7 @@ def nova_solicitacao(request):
                             solicitacao.delete()
                         form.add_error(None, "A solicitação não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
                     else:
+                        _registrar_tempo_aceite_envio(request, solicitacao)
                         return render(request, "solicitacoes/sucesso.html", {"protocolo": solicitacao.protocolo})
     else:
         initial = {}
@@ -289,9 +329,3 @@ def agenda_gestao(request):
 def proximos_eventos_gestao(request):
     eventos = Solicitacao.objects.filter(status__in=["APROVADA", "CORRECAO"], data_evento__gte=timezone.localdate()).select_related("municipio", "unidade", "bairro").order_by("data_evento", "hora_inicio")
     return render(request, "gestao/proximos_eventos.html", {"eventos": eventos})
-
-
-@login_required
-def listar_pendentes_opo(request):
-    solicitacoes = Solicitacao.objects.filter(status="PENDENTE").select_related("municipio", "unidade", "bairro").prefetch_related("documentos__tipo_documento").order_by("data_evento", "hora_inicio")
-    return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes})
