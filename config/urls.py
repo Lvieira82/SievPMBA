@@ -73,6 +73,7 @@ from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
 )
 from apps.solicitacoes.views.pesquisa import responder_pesquisa
+from apps.solicitacoes.views.pesquisas_painel import painel_pesquisas
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
 
@@ -183,6 +184,7 @@ urlpatterns = [
     path("protocolo/<int:pk>/reenviar-email/", reenviar_email, name="reenviar_email"),
     path("protocolo/<int:pk>/cancelar/", cancelar_protocolo, name="cancelar_protocolo"),
     path("protocolo/estatisticas/", estatisticas_protocolo, name="estatisticas_protocolo"),
+    path("gestao/pesquisas/", painel_pesquisas, name="painel_pesquisas"),
 ]
 
 if os.environ.get("RENDER") != "true":
