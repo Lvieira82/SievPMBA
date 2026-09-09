@@ -11,7 +11,6 @@ from apps.solicitacoes.models import LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import (
     eh_operador,
     escopo_unidades,
-    pode_ver_dashboard,
     pode_ver_mapa_eventos,
     pode_ver_proximos_eventos,
 )
@@ -41,10 +40,9 @@ def _formatar_duracao(delta):
 
 @login_required
 def dashboard(request):
-    if not pode_ver_dashboard(request.user):
-        return _negar(request, "O Dashboard está disponível somente para o Gestor de Unidade e o Desenvolvedor.")
-    if eh_operador(request.user):
-        return _negar(request)
+    # O Dashboard Operacional é exclusivo do Superusuário/Administrador.
+    if not request.user.is_superuser:
+        return _negar(request, "O Dashboard Operacional está disponível somente para o Superusuário Administrador.")
 
     unidades = escopo_unidades(request.user)
     base = Solicitacao.objects.filter(unidade__in=unidades)
