@@ -1,7 +1,11 @@
+from pathlib import Path
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
-from django.shortcuts import redirect, render
+from django.core.files.storage import default_storage
+from django.http import FileResponse, Http404, HttpResponse, JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
@@ -57,6 +61,44 @@ def eventos_dia_resultado(request):
         for chave in ("eventos_acesso_id","eventos_matricula","eventos_opos_autorizadas"):request.session.pop(chave,None)
         messages.error(request,"Acesso não autorizado.");return redirect("login_gestao")
     hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
+
+@login_required
+def abrir_oficio_comandante_operador(request, id):
+    """Abre somente o Ofício do Comandante do evento autorizado ao operador."""
+    acesso=getattr(request.user,"acesso_institucional",None)
+    autorizados=request.session.get("eventos_opos_autorizadas",[])
+    try:
+        autorizados={int(valor) for valor in autorizados}
+    except (TypeError,ValueError):
+        autorizados=set()
+    if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil!="OPERADOR" or not acesso.unidade_id or id not in autorizados:
+        raise Http404("Evento não autorizado para este operador.")
+
+    solicitacao=get_object_or_404(Solicitacao.objects.select_related("unidade"),pk=id,data_evento=timezone.localdate(),status="APROVADA",unidade_id=acesso.unidade_id)
+    if not hasattr(solicitacao,"oficio_comandante"):
+        raise Http404("Ofício do Comandante não encontrado para este evento.")
+    arquivo_field=solicitacao.oficio_comandante
+    nome=getattr(arquivo_field,"name","") or ""
+    if not nome:
+        raise Http404("Ofício do Comandante sem arquivo associado.")
+    arquivo=None
+    try:
+        if default_storage.exists(nome):
+            arquivo=default_storage.open(nome,"rb")
+    except (OSError,ValueError):
+        arquivo=None
+    if arquivo is None:
+        try:
+            caminho=Path(settings.MEDIA_ROOT)/nome
+            if caminho.is_file():arquivo=caminho.open("rb")
+        except (OSError,ValueError):
+            arquivo=None
+    if arquivo is None:
+        raise Http404(f"O Ofício do Comandante não foi encontrado no armazenamento. Arquivo registrado: {nome}")
+    resposta=FileResponse(arquivo,content_type="application/pdf")
+    resposta["Content-Disposition"]=f'inline; filename="{Path(nome).name or "oficio_comandante.pdf"}"'
+    resposta["X-Content-Type-Options"]="nosniff"
+    return resposta
 
 @login_required
 @require_POST
