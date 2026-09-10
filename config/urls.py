@@ -46,7 +46,7 @@ from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
-from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador
+from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador, abrir_oficio_comandante_operador
 from apps.solicitacoes.views.agenda_gestao_segura import agenda_gestao_segura, proximos_eventos_gestao_seguro
 from apps.solicitacoes.views.protocolo import (
     cancelar_protocolo, detalhes_protocolo, encaminhar_unidade, estatisticas_protocolo,
@@ -102,6 +102,7 @@ urlpatterns = [
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
     path("eventos-do-dia/cumprimento/<int:solicitacao_id>/", cumprimento_opo, name="cumprimento_opo"),
     path("eventos-do-dia/opo/arquivo/<int:anexo_id>/", abrir_opo_operador, name="abrir_opo_operador"),
+    path("eventos-do-dia/oficio-comandante/<int:solicitacao_id>/", abrir_oficio_comandante_operador, name="abrir_oficio_comandante_operador"),
     path("gestao/", login_gestao, name="login_gestao"),
     path("gestao/verificar-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
     path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
