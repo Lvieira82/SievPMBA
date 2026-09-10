@@ -50,15 +50,13 @@ def enviar_pesquisas_pendentes():
         token = gerar_token_pesquisa(solicitacao)
         link = f"{settings.SITE_URL.rstrip('/')}/pesquisa/{token}/"
 
-        mensagem = f"""Olá, {solicitacao.solicitante}!
+        mensagem = f"""Olá!
 
-Esperamos que seu evento tenha ocorrido da melhor forma possível.
+Esperamos que sua experiência com o Sistema Integrado de Eventos tenha ocorrido da melhor forma possível.
 
-PROTOCOLO: {solicitacao.protocolo}
-EVENTO: {solicitacao.nome_evento}
-DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
+Sua opinião é muito importante para o aprimoramento do Sistema e do atendimento prestado pela Polícia Militar da Bahia.
 
-Sua opinião é muito importante para o aprimoramento do atendimento do SiEvPM.
+Esta pesquisa é totalmente anônima, você não será identificado.
 
 Acesse o link abaixo para responder à Pesquisa de Avaliação:
 {link}
@@ -69,7 +67,6 @@ PMBA - Uma força a serviço do cidadão.
         html = render_to_string(
             "emails/pesquisa_satisfacao.html",
             {
-                "nome_solicitante": solicitacao.solicitante,
                 "link_pesquisa": link,
                 "ano": agora.year,
             },
