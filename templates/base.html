@@ -62,6 +62,16 @@
                 <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
             </div>
         </header>
+        {% if request.path == '/gestao/analise/' and user.is_authenticated and user.acesso_institucional %}
+        <div style="padding:10px 22px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <a href="?export=cumprimento_unidades" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF OPOs Cumpridas — Unidade</a>
+            <a href="?export=tempo_unidades" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF Tempo — Unidade</a>
+            {% if user.acesso_institucional.perfil == 'COPPM' %}
+                <a href="?export=cumprimento_cpr" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF OPOs Cumpridas — CPR</a>
+                <a href="?export=tempo_cpr" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF Tempo — CPR</a>
+            {% endif %}
+        </div>
+        {% endif %}
         <section class="conteudo">
             {% if messages %}
                 {% for message in messages %}
