@@ -9,11 +9,11 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import mm
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle, Paragraph
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Unidade
 from apps.solicitacoes.permissoes import perfil_gestor
@@ -24,33 +24,52 @@ MARCADOR_RESPOSTA = "PESQUISA RESPONDIDA"
 
 def _extrair_resposta(observacao):
     texto = observacao or ""
-    nota = None
+    nota_sistema = None
+    nota_atendimento = None
     comentario = ""
-    match = re.search(r"Nota:\s*(\d+)\s*/\s*5", texto, re.I)
+
+    match = re.search(r"Nota Sistema:\s*(\d+)\s*/\s*5", texto, re.I)
     if match:
         valor = int(match.group(1))
         if 1 <= valor <= 5:
-            nota = valor
+            nota_sistema = valor
+
+    match = re.search(r"Nota Atendimento:\s*(\d+)\s*/\s*5", texto, re.I)
+    if match:
+        valor = int(match.group(1))
+        if 1 <= valor <= 5:
+            nota_atendimento = valor
+
+    # Mantém leitura das avaliações antigas, que tinham apenas uma nota.
+    if nota_sistema is None and nota_atendimento is None:
+        match = re.search(r"Nota:\s*(\d+)\s*/\s*5", texto, re.I)
+        if match:
+            valor = int(match.group(1))
+            if 1 <= valor <= 5:
+                nota_atendimento = valor
+
     match = re.search(r"Comentário:\s*(.*)$", texto, re.I | re.S)
     if match:
         comentario = match.group(1).strip()
         if comentario.lower() == "sem comentário.":
             comentario = ""
-    return nota, comentario
+
+    return nota_sistema, nota_atendimento, comentario
 
 
 def _ranking(registros, chave):
     grupos = {}
     for item in registros:
-        if not item["respondida"] or item["nota"] is None:
+        if not item["respondida"]:
             continue
         entidade = chave(item["solicitacao"])
         if entidade is None:
             continue
         key = entidade.id
         g = grupos.setdefault(key, {"entidade": entidade, "notas": [], "respondidas": 0})
-        g["notas"].append(item["nota"])
+        g["notas"].extend([n for n in (item["nota_sistema"], item["nota_atendimento"]) if n is not None])
         g["respondidas"] += 1
+
     resultado = []
     for g in grupos.values():
         media = sum(g["notas"]) / len(g["notas"]) if g["notas"] else 0
@@ -73,8 +92,9 @@ def _pdf_ranking(request, ranking_cpr, ranking_unidade):
     cel = ParagraphStyle("cel", parent=styles["Normal"], fontSize=8)
     cab = ParagraphStyle("cab", parent=cel, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)
     story = [Paragraph("POLÍCIA MILITAR DA BAHIA", titulo), Paragraph("COMANDO DE OPERAÇÕES POLICIAIS MILITARES", sub), Paragraph("RANKING DE PESQUISAS DE SATISFAÇÃO", sub), Spacer(1, 4*mm)]
+
     def tabela(titulo_secao, ranking):
-        rows = [[Paragraph("POS.", cab), Paragraph(titulo_secao, cab), Paragraph("RESPONDIDAS", cab), Paragraph("MÉDIA", cab), Paragraph("SATISFAÇÃO", cab)]]
+        rows = [[Paragraph("POS.", cab), Paragraph(titulo_secao, cab), Paragraph("RESPONDIDAS", cab), Paragraph("MÉDIA DAS NOTAS", cab), Paragraph("SATISFAÇÃO", cab)]]
         for pos, item in enumerate(ranking, 1):
             ent = item["entidade"]
             nome = getattr(ent, "nome", str(ent))
@@ -83,9 +103,10 @@ def _pdf_ranking(request, ranking_cpr, ranking_unidade):
             rows.append([Paragraph(str(pos), cel), Paragraph(exibicao, cel), Paragraph(str(item["respondidas"]), cel), Paragraph(f"{item['media']:.2f}/5", cel), Paragraph(f"{item['satisfacao']:.1f}%", cel)])
         if len(rows) == 1:
             rows.append([Paragraph("Nenhum dado", cel), "", "", "", ""])
-        t = Table(rows, repeatRows=1, colWidths=[18*mm, 105*mm, 35*mm, 30*mm, 35*mm])
+        t = Table(rows, repeatRows=1, colWidths=[18*mm, 105*mm, 35*mm, 42*mm, 35*mm])
         t.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#4b5563")), ("GRID", (0,0), (-1,-1), .4, colors.HexColor("#9ca3af")), ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#f3f4f6")]), ("VALIGN", (0,0), (-1,-1), "MIDDLE"), ("LEFTPADDING", (0,0), (-1,-1), 4), ("RIGHTPADDING", (0,0), (-1,-1), 4), ("TOPPADDING", (0,0), (-1,-1), 5), ("BOTTOMPADDING", (0,0), (-1,-1), 5)]))
         return t
+
     story.append(Paragraph("RANKING POR CPR", sub)); story.append(tabela("CPR", ranking_cpr)); story.append(Spacer(1, 6*mm)); story.append(Paragraph("RANKING POR UNIDADE", sub)); story.append(tabela("UNIDADE", ranking_unidade))
     doc.build(story)
     return response
@@ -119,24 +140,75 @@ def painel_pesquisas(request):
     envios = list(base.filter(acao=MARCADOR_ENVIO).order_by("-criado_em"))
     respostas = list(base.filter(acao=MARCADOR_RESPOSTA).order_by("-criado_em"))
     resposta_por_solicitacao = {}
-    for item in respostas: resposta_por_solicitacao.setdefault(item.solicitacao_id, item)
+    for item in respostas:
+        resposta_por_solicitacao.setdefault(item.solicitacao_id, item)
 
-    registros=[]; notas=[]; distribuicao={1:0,2:0,3:0,4:0,5:0}; comentarios=[]
+    registros = []
+    notas_sistema = []
+    notas_atendimento = []
+    distribuicao_sistema = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    distribuicao_atendimento = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    comentarios = []
+
     for envio in envios:
-        resposta=resposta_por_solicitacao.get(envio.solicitacao_id); nota=comentario=None; respondida_em=None
+        resposta = resposta_por_solicitacao.get(envio.solicitacao_id)
+        nota_sistema = nota_atendimento = comentario = None
+        respondida_em = None
         if resposta:
-            nota,comentario=_extrair_resposta(resposta.observacao); respondida_em=resposta.criado_em
-            if nota: notas.append(nota); distribuicao[nota]+=1
-            if comentario: comentarios.append({"nome":resposta.solicitacao.solicitante,"evento":resposta.solicitacao.nome_evento,"comentario":comentario,"data":resposta.criado_em,"nota":nota})
-        registros.append({"solicitacao":envio.solicitacao,"enviado_em":envio.criado_em,"respondida":bool(resposta),"nota":nota,"respondida_em":respondida_em})
+            nota_sistema, nota_atendimento, comentario = _extrair_resposta(resposta.observacao)
+            respondida_em = resposta.criado_em
+            if nota_sistema:
+                notas_sistema.append(nota_sistema)
+                distribuicao_sistema[nota_sistema] += 1
+            if nota_atendimento:
+                notas_atendimento.append(nota_atendimento)
+                distribuicao_atendimento[nota_atendimento] += 1
+            if comentario:
+                comentarios.append({"nome": resposta.solicitacao.solicitante, "evento": resposta.solicitacao.nome_evento, "comentario": comentario, "data": resposta.criado_em, "nota_sistema": nota_sistema, "nota_atendimento": nota_atendimento})
 
-    ranking_cpr=_ranking(registros,lambda s:getattr(s.unidade,"cpr",None)); ranking_unidade=_ranking(registros,lambda s:s.unidade)
-    total_enviadas=len(envios); total_respondidas=sum(1 for envio in envios if envio.solicitacao_id in resposta_por_solicitacao); total_pendentes=max(0,total_enviadas-total_respondidas); total_avaliacoes=len(notas)
-    participacao=(total_respondidas/total_enviadas*100) if total_enviadas else 0; media=(sum(notas)/total_avaliacoes) if total_avaliacoes else 0; satisfacao=(media/5*100) if media else 0
+        registros.append({"solicitacao": envio.solicitacao, "enviado_em": envio.criado_em, "respondida": bool(resposta), "nota_sistema": nota_sistema, "nota_atendimento": nota_atendimento, "respondida_em": respondida_em})
+
+    ranking_cpr = _ranking(registros, lambda s: getattr(s.unidade, "cpr", None))
+    ranking_unidade = _ranking(registros, lambda s: s.unidade)
+    total_enviadas = len(envios)
+    total_respondidas = sum(1 for envio in envios if envio.solicitacao_id in resposta_por_solicitacao)
+    total_pendentes = max(0, total_enviadas - total_respondidas)
+    total_avaliacoes = len(notas_sistema) + len(notas_atendimento)
+    todas_notas = notas_sistema + notas_atendimento
+    participacao = (total_respondidas / total_enviadas * 100) if total_enviadas else 0
+    media = (sum(todas_notas) / len(todas_notas)) if todas_notas else 0
+    media_sistema = (sum(notas_sistema) / len(notas_sistema)) if notas_sistema else 0
+    media_atendimento = (sum(notas_atendimento) / len(notas_atendimento)) if notas_atendimento else 0
+    satisfacao = (media / 5 * 100) if media else 0
+    satisfacao_sistema = (media_sistema / 5 * 100) if media_sistema else 0
+    satisfacao_atendimento = (media_atendimento / 5 * 100) if media_atendimento else 0
 
     if request.GET.get("export") == "pdf":
         return _pdf_ranking(request, ranking_cpr, ranking_unidade)
 
-    return render(request,"gestao/pesquisas.html",{
-        "total_enviadas":total_enviadas,"total_respondidas":total_respondidas,"total_pendentes":total_pendentes,"total_avaliacoes":total_avaliacoes,"participacao":round(participacao,1),"media":round(media,2),"satisfacao":round(satisfacao,1),"distribuicao":distribuicao,"comentarios":comentarios[:30],"registros":registros,"unidades":Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),"cprs":sorted({u.cpr for u in Unidade.objects.filter(ativo=True).select_related("cpr") if u.cpr},key=lambda x:x.sigla),"ranking_cpr":ranking_cpr,"ranking_unidade":ranking_unidade,"inicio":inicio,"fim":fim,"unidade_id":unidade_id,"cpr_id":cpr_id,"ultima_atualizacao":timezone.localtime(),
+    return render(request, "gestao/pesquisas.html", {
+        "total_enviadas": total_enviadas,
+        "total_respondidas": total_respondidas,
+        "total_pendentes": total_pendentes,
+        "total_avaliacoes": total_avaliacoes,
+        "participacao": round(participacao, 1),
+        "media": round(media, 2),
+        "satisfacao": round(satisfacao, 1),
+        "media_sistema": round(media_sistema, 2),
+        "media_atendimento": round(media_atendimento, 2),
+        "satisfacao_sistema": round(satisfacao_sistema, 1),
+        "satisfacao_atendimento": round(satisfacao_atendimento, 1),
+        "distribuicao_sistema": distribuicao_sistema,
+        "distribuicao_atendimento": distribuicao_atendimento,
+        "comentarios": comentarios[:30],
+        "registros": registros,
+        "unidades": Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        "cprs": sorted({u.cpr for u in Unidade.objects.filter(ativo=True).select_related("cpr") if u.cpr}, key=lambda x: x.sigla),
+        "ranking_cpr": ranking_cpr,
+        "ranking_unidade": ranking_unidade,
+        "inicio": inicio,
+        "fim": fim,
+        "unidade_id": unidade_id,
+        "cpr_id": cpr_id,
+        "ultima_atualizacao": timezone.localtime(),
     })
