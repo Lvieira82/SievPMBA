@@ -87,6 +87,24 @@ def gerar_mapa_eventos_pdf_seguro(request):
         alignment=TA_CENTER,
         spaceAfter=3,
     )
+    comando = ParagraphStyle(
+        "ComandoMapa",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=10.5,
+        leading=13,
+        alignment=TA_CENTER,
+        spaceAfter=2,
+    )
+    unidade = ParagraphStyle(
+        "UnidadeMapa",
+        parent=styles["Normal"],
+        fontName="Helvetica-Bold",
+        fontSize=11,
+        leading=13,
+        alignment=TA_CENTER,
+        spaceAfter=3,
+    )
     subtitulo = ParagraphStyle(
         "SubtituloMapa",
         parent=styles["Normal"],
@@ -121,16 +139,17 @@ def gerar_mapa_eventos_pdf_seguro(request):
         story.append(logo)
         story.append(Spacer(1, 1.5 * mm))
 
+    # Cabeçalho institucional: Polícia Militar -> Comando -> CPR/Unidade.
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
+    story.append(Paragraph("COMANDO DE OPERAÇÕES POLICIAIS MILITARES", comando))
 
-    # O gestor CPR deve ver no cabeçalho o nome do próprio CPR.
+    # O gestor CPR vê o nome do próprio CPR; o gestor de Unidade vê a unidade vinculada.
     acesso = getattr(request.user, "acesso_institucional", None)
     cpr_login = getattr(acesso, "cpr", None)
 
     if cpr_login:
         unidade_titulo = cpr_login.nome
     else:
-        # Para perfis de Unidade, mantém a unidade vinculada ao acesso.
         unidade_login = getattr(acesso, "unidade", None)
         if unidade_login:
             unidade_titulo = unidade_login.nome
@@ -147,7 +166,8 @@ def gerar_mapa_eventos_pdf_seguro(request):
             else:
                 unidade_titulo = "UNIDADE RESPONSÁVEL"
 
-    story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}", subtitulo))
+    story.append(Paragraph(unidade_titulo, unidade))
+    story.append(Paragraph("MAPA DE EVENTO", subtitulo))
 
     if data_inicio and data_fim:
         periodo_texto = (
