@@ -23,16 +23,17 @@ def _eventos_do_acesso(acesso,hoje):
     if acesso.perfil=="COPPM":return eventos
     return eventos.none()
 
-def _eventos_offline_payload(eventos):
-    return [{"id":e.id,"opo":e.protocolo or str(e.id),"endereco":e.local or "","telefone":e.telefone or "","solicitante":e.solicitante or ""} for e in eventos]
-
 def _eventos_registrados(eventos, usuario):
     ids=[e.id for e in eventos]
     if not ids:return set()
     return set(CumprimentoOPO.objects.filter(opo__solicitacao_id__in=ids,operador=usuario,respondido_em__isnull=False).values_list("opo__solicitacao_id",flat=True))
 
+def _eventos_offline_payload(eventos,operador=None):
+    registrados=_eventos_registrados(eventos,operador) if operador else set()
+    return [{"id":e.id,"opo":e.protocolo or str(e.id),"endereco":e.local or "","telefone":e.telefone or "","solicitante":e.solicitante or "","registrado":e.id in registrados} for e in eventos]
+
 def _service_worker_script():
-    return '''const CACHE="sievpm-eventos-v5";const OFFLINE="/static/pwa/eventos_offline.html";const JS="/static/pwa/eventos_offline.js?v=3";self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("sievpm-eventos-")&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener("fetch",event=>{const u=new URL(event.request.url);if(u.pathname==="/static/pwa/eventos_offline.html"||u.pathname==="/static/pwa/eventos_offline.js"){event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return}if(event.request.mode!=="navigate"||u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});'''
+    return '''const CACHE="sievpm-eventos-v6";const OFFLINE="/static/pwa/eventos_offline.html";const JS="/static/pwa/eventos_offline.js?v=4";self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("sievpm-eventos-")&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener("fetch",event=>{const u=new URL(event.request.url);if(u.pathname==="/static/pwa/eventos_offline.html"||u.pathname==="/static/pwa/eventos_offline.js"){event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return}if(event.request.mode!=="navigate"||u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});'''
 
 @login_required
 def eventos_dia(request):
@@ -45,7 +46,7 @@ def eventos_dia(request):
     matricula=request.POST.get("matricula","").strip() or acesso_logado.matricula;acesso=_acesso_por_matricula(matricula)
     if not acesso:return render(request,"solicitacoes/eventos_dia.html",{"erro":"Matrícula sem acesso institucional ativo.","acesso_logado":acesso_logado})
     if acesso.usuario_id!=request.user.id:return render(request,"solicitacoes/eventos_dia.html",{"erro":"A matrícula informada não corresponde ao usuário autenticado.","acesso_logado":acesso_logado})
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_acesso_id"]=acesso.id;request.session["eventos_matricula"]=acesso.matricula;request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos),"eventos_registrados":_eventos_registrados(eventos,request.user)})
+    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_acesso_id"]=acesso.id;request.session["eventos_matricula"]=acesso.matricula;request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
 
 @login_required
 def eventos_dia_resultado(request):
@@ -55,7 +56,7 @@ def eventos_dia_resultado(request):
     if not acesso or acesso.usuario_id!=request.user.id:
         for chave in ("eventos_acesso_id","eventos_matricula","eventos_opos_autorizadas"):request.session.pop(chave,None)
         messages.error(request,"Acesso não autorizado.");return redirect("login_gestao")
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos),"eventos_registrados":_eventos_registrados(eventos,request.user)})
+    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
 
 @login_required
 @require_POST
@@ -71,8 +72,7 @@ def sincronizar_evento_offline(request):
     resposta=request.POST.get("cumprida")
     if resposta not in {"SIM","NAO"}:return JsonResponse({"ok":False,"erro":"Resposta inválida."},status=400)
     registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user)
-    if registro.respondido_em is not None:
-        return JsonResponse({"ok":True,"ja_registrado":True})
+    if registro.respondido_em is not None:return JsonResponse({"ok":True,"ja_registrado":True})
     latitude=(request.POST.get("latitude") or "").strip();longitude=(request.POST.get("longitude") or "").strip();precisao=(request.POST.get("precisao") or "").strip()
     if resposta=="SIM":
         imagem=request.FILES.get("imagem")
@@ -104,8 +104,7 @@ def sincronizar_evento_offline(request):
             from .cumprimento_opo import _organizar_documentacao_opo, _salvar_justificativa_txt_no_protocolo
             caminho_justificativa=_salvar_justificativa_txt_no_protocolo(solicitacao,request.user,justificativa,registro.respondido_em)
             _organizar_documentacao_opo(solicitacao,opo=opo,caminho_justificativa=caminho_justificativa,operador=request.user)
-        except Exception:
-            caminho_justificativa=""
+        except Exception:pass
         nomes=[MOTIVOS_NAO[m] for m in motivos];detalhes=f"Registro sincronizado como não cumprida. Motivos: {'; '.join(nomes)}."
         if justificativa:detalhes+=f" Observações: {justificativa}"
         LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=detalhes)
