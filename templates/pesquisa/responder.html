@@ -5,22 +5,37 @@
     <h1 style="text-align:center">Pesquisa de Avaliação</h1>
     <p style="text-align:center;color:#6b7280">Protocolo {{ solicitacao.protocolo }} — {{ solicitacao.nome_evento }}</p>
 
-    {% if erro %}<div style="background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px">{{ erro }}</div>{% endif %}
+    {% if erro %}<div style="background:#fee2e2;color:#991b1b;padding:12px;border-radius:8px;margin-bottom:18px">{{ erro }}</div>{% endif %}
 
     <form method="post">
         {% csrf_token %}
-        <label><strong>Como você avalia o atendimento do SiEvPM?</strong></label>
-        <div style="display:flex;gap:18px;justify-content:center;margin:24px 0">
-            {% for numero in '12345' %}
-            <label style="text-align:center">
-                <input type="radio" name="nota" value="{{ numero }}" {% if nota|stringformat:'s' == numero %}checked{% endif %} required>
-                <br>{{ numero }}
-            </label>
-            {% endfor %}
+
+        <div style="margin-top:24px">
+            <label><strong>Como você avalia o Sistema ?</strong></label>
+            <div style="display:flex;gap:18px;justify-content:center;margin:20px 0 28px">
+                {% for numero in '12345' %}
+                <label style="text-align:center;min-width:28px">
+                    <input type="radio" name="nota_sistema" value="{{ numero }}" {% if nota_sistema|stringformat:'s' == numero %}checked{% endif %} required>
+                    <br>{{ numero }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div style="margin-top:8px">
+            <label><strong>Como vc avalia o atendimento prestado no evento!</strong></label>
+            <div style="display:flex;gap:18px;justify-content:center;margin:20px 0 28px">
+                {% for numero in '12345' %}
+                <label style="text-align:center;min-width:28px">
+                    <input type="radio" name="nota_atendimento" value="{{ numero }}" {% if nota_atendimento|stringformat:'s' == numero %}checked{% endif %} required>
+                    <br>{{ numero }}
+                </label>
+                {% endfor %}
+            </div>
         </div>
 
         <label for="comentario"><strong>Comentário (opcional)</strong></label>
-        <textarea id="comentario" name="comentario" rows="5" style="width:100%;margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px">{{ comentario|default:'' }}</textarea>
+        <textarea id="comentario" name="comentario" rows="5" style="width:100%;margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px;box-sizing:border-box">{{ comentario|default:'' }}</textarea>
 
         <button type="submit" style="display:block;margin:24px auto 0;padding:12px 28px;border:0;border-radius:8px;background:#111827;color:#fff;font-weight:bold;cursor:pointer">Enviar avaliação</button>
     </form>
