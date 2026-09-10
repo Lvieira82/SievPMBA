@@ -5,9 +5,12 @@
     {% if invalida %}
         <h1>Link inválido ou expirado</h1>
         <p>Não foi possível acessar esta pesquisa.</p>
+    {% elif ja_respondida %}
+        <h1>Pesquisa já respondida</h1>
+        <p>Esta solicitação já possui uma avaliação registrada. Obrigado pela participação.</p>
     {% else %}
         <h1>Obrigado pela avaliação!</h1>
-        <p>Sua opinião foi registrada e contribuirá para o aprimoramento do atendimento do SiEvPM.</p>
+        <p>Sua opinião foi registrada e contribuirá para o aprimoramento do Sistema e do atendimento prestado no evento.</p>
     {% endif %}
 </div>
 {% endblock %}
