@@ -188,8 +188,8 @@ def gerar_mapa_eventos_pdf_seguro(request):
         Paragraph("Fim", cabecalho),
         Paragraph("Evento", cabecalho),
         Paragraph("Município", cabecalho),
-        Paragraph("Unidade que gerou", cabecalho),
-        Paragraph("Tipo", cabecalho),
+        Paragraph("Unidade", cabecalho),
+        Paragraph("Regime", cabecalho),
     ]]
 
     for evento in eventos:
