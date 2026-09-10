@@ -191,6 +191,8 @@ def painel_pesquisas(request):
         "total_respondidas": total_respondidas,
         "total_pendentes": total_pendentes,
         "total_avaliacoes": total_avaliacoes,
+        "total_notas_sistema": len(notas_sistema),
+        "total_notas_atendimento": len(notas_atendimento),
         "participacao": round(participacao, 1),
         "media": round(media, 2),
         "satisfacao": round(satisfacao, 1),
