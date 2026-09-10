@@ -4,17 +4,31 @@
 <style>
 .opo-wrap{max-width:1150px;margin:35px auto;padding:0 15px}.opo-card{background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}
-.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px}.btn:hover{background:#111827;color:#fff}.btn-apoio{background:#0f766e}.btn-detalhes{background:#2563eb}.btn-back{background:#6b7280}.btn-pdf{background:#4E342E}.btn-xls{background:#5f6b76}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700}.btn-documento:hover{background:#111827;color:#fff}
-.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px;padding:14px;background:#f8fafc;border-radius:10px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}.cumprimento{margin-top:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.cumprimento-sim{color:#15803d;font-weight:700}.cumprimento-nao{color:#b91c1c;font-weight:700}.justificativa{margin-top:6px;color:#374151;white-space:pre-wrap}.foto-cumprimento{display:block;max-width:320px;max-height:260px;width:auto;height:auto;margin:10px 0;border-radius:10px;border:1px solid #d1d5db;object-fit:contain}.gps{margin-top:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:.92rem}.relatorios{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px}.relatorios strong{width:100%;color:#374151;margin-bottom:2px}
-@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}.foto-cumprimento{max-width:100%;max-height:360px}.relatorios .btn{width:100%}}
+.btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px;border:0;cursor:pointer}.btn:hover{background:#111827;color:#fff}.btn-apoio{background:#0f766e}.btn-detalhes{background:#2563eb}.btn-back{background:#6b7280}.btn-pdf{background:#4E342E}.btn-xls{background:#5f6b76}.btn-preview{background:#2563eb}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700}.btn-documento:hover{background:#111827;color:#fff}
+.empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px;padding:14px;background:#f8fafc;border-radius:10px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}.cumprimento{margin-top:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.cumprimento-sim{color:#15803d;font-weight:700}.cumprimento-nao{color:#b91c1c;font-weight:700}.justificativa{margin-top:6px;color:#374151;white-space:pre-wrap}.foto-cumprimento{display:block;max-width:320px;max-height:260px;width:auto;height:auto;margin:10px 0;border-radius:10px;border:1px solid #d1d5db;object-fit:contain}.gps{margin-top:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:.92rem}
+.relatorios{margin-bottom:22px;padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px}.relatorios strong{display:block;color:#374151;margin-bottom:12px}.filtros-relatorio{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.campo-relatorio{display:flex;flex-direction:column;gap:5px}.campo-relatorio label{font-weight:700;color:#374151;font-size:.92rem}.campo-relatorio input{padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff}.preview-box{margin-top:14px;padding:12px;background:#fff;border:1px solid #e5e7eb;border-radius:10px}.preview-box strong{display:block;color:#374151;margin-bottom:8px}.preview-frame{width:100%;height:720px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
+@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}.foto-cumprimento{max-width:100%;max-height:360px}.relatorios .btn{width:100%}.campo-relatorio{width:100%}.campo-relatorio input{width:100%;box-sizing:border-box}.preview-frame{height:560px}}
 </style>
 <div class="opo-wrap"><div class="opo-card">
 <h1>📁 OPOs Geradas</h1>
 <p class="sub">Documentos originais e OPOs arquivados pelo SiEv, vinculados aos respectivos protocolos.</p>
 <div class="relatorios">
 <strong>📊 Relatórios de cumprimento</strong>
-<a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos" target="_blank" rel="noopener">📄 Exportar relatório PDF</a>
-<a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls">📊 Exportar relatório XLS</a>
+<form method="get" class="filtros-relatorio" id="form-relatorio-cumprimento">
+<div class="campo-relatorio"><label for="data_inicio">Data inicial</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio|default:'' }}" required></div>
+<div class="campo-relatorio"><label for="data_fim">Data final</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim|default:'' }}" required></div>
+<button type="submit" class="btn btn-preview">🔍 Pré-visualizar período</button>
+</form>
+{% if data_inicio and data_fim %}
+<div class="preview-box">
+<strong>👁️ Pré-visualização do relatório — {{ data_inicio|date:'d/m/Y' }} a {{ data_fim|date:'d/m/Y' }}</strong>
+<iframe class="preview-frame" src="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}" title="Pré-visualização do relatório de cumprimento"></iframe>
+<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+<a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a>
+<a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}">📊 Exportar XLS</a>
+</div>
+</div>
+{% endif %}
 </div>
 {% for protocolo in protocolos %}
 <div class="opo-item">
