@@ -50,6 +50,53 @@ def _salvar_justificativa_txt_no_protocolo(solicitacao,operador,justificativa,re
     conteudo=f"PROTOCOLO: {protocolo}\nOPERADOR: {getattr(operador,'username','operador') or 'operador'}\nDATA/HORA: {timezone.localtime(respondido_em):%d/%m/%Y %H:%M:%S}\n\nJUSTIFICATIVA:\n{justificativa}\n"
     return default_storage.save(caminho,ContentFile(conteudo.encode("utf-8")))
 
+def _salvar_copia_storage(origem, destino):
+    """Copia um arquivo já existente no storage para a pasta documental da OPO."""
+    if not origem or not default_storage.exists(origem):
+        return None
+    try:
+        if default_storage.exists(destino):
+            default_storage.delete(destino)
+        with default_storage.open(origem, "rb") as arquivo:
+            return default_storage.save(destino, ContentFile(arquivo.read()))
+    except (OSError, ValueError):
+        return None
+
+def _organizar_documentacao_opo(solicitacao, opo=None, caminho_imagem=None, caminho_justificativa=None, latitude=None, longitude=None, precisao=None, operador=None):
+    """Mantém uma cópia consolidada dos documentos do atendimento, sem alterar os arquivos originais."""
+    protocolo=solicitacao.protocolo or "SEM_PROTOCOLO"
+    pasta=str(Path("protocolos")/protocolo/"documentacao_opo")
+    # OPO gerada.
+    if opo:
+        nome_opo=Path(getattr(opo.arquivo,"name","") or "OPO.pdf").name
+        _salvar_copia_storage(getattr(opo.arquivo,"name","") or "", f"{pasta}/OPO_{nome_opo}")
+    # Ofício do comandante, quando existente.
+    oficio=f"protocolos/{protocolo}/oficio_comandante.pdf"
+    _salvar_copia_storage(oficio, f"{pasta}/Oficio_do_Comandante.pdf")
+    # Foto do cumprimento, quando houver.
+    if caminho_imagem:
+        _salvar_copia_storage(caminho_imagem, f"{pasta}/Foto_do_Cumprimento.jpg")
+    # Justificativa, quando houver.
+    if caminho_justificativa:
+        _salvar_copia_storage(caminho_justificativa, f"{pasta}/Justificativa_nao_cumprimento.txt")
+    # Documento textual com a localização do evento e, quando disponível, GPS.
+    partes=[f"PROTOCOLO: {protocolo}", f"EVENTO: {solicitacao.nome_evento}", f"MUNICÍPIO: {solicitacao.municipio}", f"ENDEREÇO/LOCAL: {solicitacao.local}"]
+    if solicitacao.bairro:
+        partes.append(f"BAIRRO/DISTRITO: {solicitacao.bairro.nome}")
+    if latitude and longitude:
+        partes.append(f"GPS: latitude={latitude}, longitude={longitude}")
+        if precisao:
+            partes.append(f"PRECISÃO: {precisao} metros")
+    else:
+        partes.append("GPS: não disponível no registro")
+    if operador:
+        partes.append(f"OPERADOR: {getattr(operador,'username','operador') or 'operador'}")
+    partes.append(f"REGISTRADO EM: {timezone.localtime():%d/%m/%Y %H:%M:%S}")
+    _salvar_copia_storage("", f"{pasta}/Localizacao.txt") if False else default_storage.save(f"{pasta}/Localizacao.txt", ContentFile(("\n".join(partes)+"\n").encode("utf-8")))
+
+def _atendimento_ja_registrado(registro):
+    return bool(registro and registro.respondido_em is not None)
+
 @login_required
 @require_http_methods(["GET","POST"])
 def cumprimento_opo(request,solicitacao_id):
@@ -72,8 +119,11 @@ def cumprimento_opo(request,solicitacao_id):
     opo=_opo_principal(solicitacao)
     if not opo: messages.error(request,"A OPO deste evento ainda não possui arquivo disponível."); return redirect("eventos_dia")
     registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user)
+    ja_registrado=_atendimento_ja_registrado(registro)
     if request.method=="POST":
-        resposta=request.POST.get("cumprida"); imagem=request.FILES.get("imagem"); justificativa=(request.POST.get("justificativa") or "").strip(); latitude=(request.POST.get("latitude") or "").strip(); longitude=(request.POST.get("longitude") or "").strip()
+        if ja_registrado:
+            messages.info(request,"Este atendimento já foi registrado e não pode ser enviado novamente."); return redirect("eventos_dia")
+        resposta=request.POST.get("cumprida"); imagem=request.FILES.get("imagem"); justificativa=(request.POST.get("justificativa") or "").strip(); latitude=(request.POST.get("latitude") or "").strip(); longitude=(request.POST.get("longitude") or "").strip(); precisao=(request.POST.get("precisao") or "").strip()
         motivos=[m for m in request.POST.getlist("motivos_nao") if m in MOTIVOS_NAO]
         if resposta not in {"SIM","NAO"}: messages.error(request,"Informe se a OPO foi cumprida.")
         elif resposta=="SIM":
@@ -96,6 +146,7 @@ def cumprimento_opo(request,solicitacao_id):
                                 try: registro.imagem.delete(save=False)
                                 except Exception: pass
                             registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=timezone.now(); registro.save()
+                            _organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho_imagem,latitude=f"{latitude_float:.7f}",longitude=f"{longitude_float:.7f}",precisao=precisao,operador=request.user)
                             LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO cumprida. Coordenadas GPS: latitude={latitude_float:.7f}, longitude={longitude_float:.7f}.")
                             messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS."); return redirect("eventos_dia")
         else:
@@ -110,11 +161,12 @@ def cumprimento_opo(request,solicitacao_id):
                         try: registro.imagem.delete(save=False)
                         except Exception: pass
                     registro.cumprida=False; registro.imagem=None; registro.justificativa=justificativa; registro.respondido_em=respondido_em; registro.save()
+                    _organizar_documentacao_opo(solicitacao,opo=opo,caminho_justificativa=caminho_justificativa,operador=request.user)
                     detalhes=f"OPO não cumprida. Motivos: {'; '.join(nomes_motivos)}."
                     if justificativa: detalhes+=f" Observações: {justificativa}"
                     LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=detalhes+f" Arquivo de observações: {caminho_justificativa}.")
                     messages.success(request,"Registro de não cumprimento salvo com os motivos selecionados."); return redirect("eventos_dia")
-    return render(request,"solicitacoes/cumprimento_opo.html",{"solicitacao":solicitacao,"opo":opo,"registro":registro})
+    return render(request,"solicitacoes/cumprimento_opo.html",{"solicitacao":solicitacao,"opo":opo,"registro":registro,"ja_registrado":ja_registrado})
 
 @login_required
 def abrir_opo_operador(request,anexo_id):
