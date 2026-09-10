@@ -10,7 +10,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods
-from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
+from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, DocumentoSolicitacao, LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import eh_operador, pode_ver_solicitacao
 _EXTENSOES_IMAGEM={"jpg","jpeg","png","webp"}; _MAX_IMAGEM=5*1024*1024; _MAX_JUSTIFICATIVA=150
 MOTIVOS_NAO={"VIATURA_PROBLEMA":"Viatura apresentou problema","DELEGACIA":"Apresentação na delegacia","OCORRENCIA":"Guarnição em Ocorrência","ENDERECO":"Endereço não encontrado","CANCELADO":"Evento Cancelado","HORARIO":"Horário alterado"}
@@ -129,21 +129,21 @@ def cumprimento_opo(request,solicitacao_id):
                 elif imagem.size>_MAX_IMAGEM: messages.error(request,"A imagem deve ter no máximo 5 MB.")
                 elif not latitude or not longitude: messages.error(request,"Não foi possível obter a localização GPS. Autorize a localização do dispositivo e tente novamente.")
                 else:
-                    try:
-                        latitude_float=float(latitude); longitude_float=float(longitude)
-                        if not (-90<=latitude_float<=90 and -180<=longitude_float<=180): raise ValueError
+                    try: latitude_float=float(latitude); longitude_float=float(longitude); 
                     except (TypeError,ValueError): messages.error(request,"As coordenadas GPS recebidas são inválidas.")
                     else:
-                        try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
-                        except Exception: messages.error(request,"Não foi possível processar a foto capturada. Tente novamente.")
+                        if not (-90<=latitude_float<=90 and -180<=longitude_float<=180): messages.error(request,"As coordenadas GPS recebidas são inválidas.")
                         else:
-                            if registro.imagem:
-                                try: registro.imagem.delete(save=False)
-                                except Exception: pass
-                            registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=timezone.now(); registro.save()
-                            _organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho_imagem,latitude=f"{latitude_float:.7f}",longitude=f"{longitude_float:.7f}",precisao=precisao,operador=request.user)
-                            LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO cumprida. Coordenadas GPS: latitude={latitude_float:.7f}, longitude={longitude_float:.7f}.")
-                            messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS."); return redirect("eventos_dia")
+                            try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
+                            except Exception: messages.error(request,"Não foi possível processar a foto capturada. Tente novamente.")
+                            else:
+                                if registro.imagem:
+                                    try: registro.imagem.delete(save=False)
+                                    except Exception: pass
+                                registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=timezone.now(); registro.save()
+                                _organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho_imagem,latitude=f"{latitude_float:.7f}",longitude=f"{longitude_float:.7f}",precisao=precisao,operador=request.user)
+                                LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO cumprida. Coordenadas GPS: latitude={latitude_float:.7f}, longitude={longitude_float:.7f}.")
+                                messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS."); return redirect("eventos_dia")
         else:
             if not motivos: messages.error(request,"Selecione pelo menos um motivo para o não cumprimento.")
             elif len(justificativa)>_MAX_JUSTIFICATIVA: messages.error(request,"As observações devem ter no máximo 150 caracteres.")
@@ -187,20 +187,25 @@ def abrir_oficio_comandante_operador(request, solicitacao_id):
         return redirect("eventos_dia")
 
     protocolo = solicitacao.protocolo or ""
-    arquivo_field = getattr(solicitacao, "oficio_comandante", None)
-    nome = getattr(arquivo_field, "name", "") or ""
+    documentos = DocumentoSolicitacao.objects.filter(
+        solicitacao=solicitacao,
+        tipo_documento__nome__iexact="Ofício ao Comandante",
+    ).exclude(arquivo="").order_by("-enviado_em", "-id")
 
-    # Usa o próprio FileField do evento, que é a fonte oficial do documento.
-    # Mantém compatibilidade com a estrutura documental antiga como fallback.
-    candidatos = []
-    if nome:
-        candidatos.append(nome)
+    nomes = []
+    for documento in documentos:
+        nome = getattr(documento.arquivo, "name", "") or ""
+        if nome:
+            nomes.append(nome)
+
+    # Compatibilidade com instalações antigas que armazenavam o ofício diretamente
+    # em protocolos/<protocolo>/oficio_comandante.pdf.
     if protocolo:
-        candidatos.append(f"protocolos/{protocolo}/oficio_comandante.pdf")
+        nomes.append(f"protocolos/{protocolo}/oficio_comandante.pdf")
 
     arquivo = None
     nome_abertura = None
-    for caminho_nome in candidatos:
+    for caminho_nome in nomes:
         try:
             if default_storage.exists(caminho_nome):
                 arquivo = default_storage.open(caminho_nome, "rb")
@@ -215,7 +220,7 @@ def abrir_oficio_comandante_operador(request, solicitacao_id):
             continue
 
     if arquivo is None:
-        raise Http404("O Ofício do Comandante deste evento não foi encontrado no armazenamento.")
+        raise Http404("O Ofício ao Comandante deste evento não foi encontrado no armazenamento.")
 
     resposta = FileResponse(arquivo, content_type="application/pdf")
     resposta["Content-Disposition"] = f'inline; filename="{nome_abertura or ("Oficio_do_Comandante_" + protocolo + ".pdf")}"'
