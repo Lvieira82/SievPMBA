@@ -15,17 +15,17 @@
 <div class="relatorios">
 <strong>📊 Relatórios de cumprimento</strong>
 <form method="get" class="filtros-relatorio" id="form-relatorio-cumprimento">
-<div class="campo-relatorio"><label for="data_inicio">Data inicial</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio|default:'' }}" required></div>
-<div class="campo-relatorio"><label for="data_fim">Data final</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim|default:'' }}" required></div>
+<div class="campo-relatorio"><label for="data_inicio">Data inicial</label><input type="date" id="data_inicio" name="data_inicio" value="{{ request.GET.data_inicio|default:'' }}" required></div>
+<div class="campo-relatorio"><label for="data_fim">Data final</label><input type="date" id="data_fim" name="data_fim" value="{{ request.GET.data_fim|default:'' }}" required></div>
 <button type="submit" class="btn btn-preview">🔍 Pré-visualizar período</button>
 </form>
-{% if data_inicio and data_fim %}
+{% if request.GET.data_inicio and request.GET.data_fim %}
 <div class="preview-box">
-<strong>👁️ Pré-visualização do relatório — {{ data_inicio|date:'d/m/Y' }} a {{ data_fim|date:'d/m/Y' }}</strong>
-<iframe class="preview-frame" src="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}" title="Pré-visualização do relatório de cumprimento"></iframe>
+<strong>👁️ Pré-visualização do relatório — {{ request.GET.data_inicio }} a {{ request.GET.data_fim }}</strong>
+<iframe class="preview-frame" src="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" title="Pré-visualização do relatório de cumprimento"></iframe>
 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-<a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a>
-<a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ data_inicio }}&data_fim={{ data_fim }}">📊 Exportar XLS</a>
+<a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a>
+<a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">📊 Exportar XLS</a>
 </div>
 </div>
 {% endif %}
