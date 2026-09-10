@@ -10,6 +10,7 @@ from apps.solicitacoes.models import (
     AnexoOPO,
     CumprimentoOPO,
     HistoricoSolicitacao,
+    LogSistema,
     Solicitacao,
     TransferenciaSolicitacao,
 )
@@ -110,6 +111,74 @@ def _resumo_cumprimento(solicitacao_ids):
     }
 
 
+def _resumo_justificativas(solicitacao_ids):
+    """Monta a distribuição percentual dos motivos registrados no NÃO.
+
+    Os motivos são recuperados dos logs do cumprimento, onde já são gravados
+    no formato "Motivos: motivo 1; motivo 2.". Quando uma resposta possui
+    mais de um motivo, cada motivo selecionado participa da distribuição.
+    """
+    contagem = defaultdict(int)
+    logs = (
+        LogSistema.objects
+        .filter(
+            solicitacao_id__in=solicitacao_ids,
+            acao="CUMPRIMENTO OPO",
+        )
+        .values_list("detalhes", flat=True)
+    )
+    for detalhes in logs:
+        texto = (detalhes or "").strip()
+        if "Motivos:" not in texto:
+            continue
+        trecho = texto.split("Motivos:", 1)[1].split(".", 1)[0]
+        for motivo in trecho.split(";"):
+            motivo = motivo.strip()
+            if motivo:
+                contagem[motivo] += 1
+
+    total = sum(contagem.values())
+    if not total:
+        return {"total": 0, "itens": [], "gradiente": ""}
+
+    cores = [
+        "#2563eb", "#16a34a", "#f59e0b", "#dc2626",
+        "#7c3aed", "#0891b2", "#db2777", "#65a30d",
+    ]
+    acumulado = 0.0
+    itens = []
+    for indice, (motivo, quantidade) in enumerate(
+        sorted(contagem.items(), key=lambda item: (-item[1], item[0]))
+    ):
+        percentual = round(quantidade * 100 / total, 1)
+        inicio = acumulado
+        acumulado = round(acumulado + percentual, 1)
+        itens.append({
+            "nome": motivo,
+            "quantidade": quantidade,
+            "percentual": percentual,
+            "cor": cores[indice % len(cores)],
+        })
+
+    # Fecha exatamente em 100% para evitar pequena lacuna por arredondamento.
+    if itens:
+        diferenca = round(100 - acumulado, 1)
+        itens[-1]["percentual"] = round(itens[-1]["percentual"] + diferenca, 1)
+
+    acumulado = 0.0
+    segmentos = []
+    for item in itens:
+        inicio = acumulado
+        acumulado = round(acumulado + item["percentual"], 1)
+        segmentos.append(f"{item['cor']} {inicio}% {acumulado}%")
+
+    return {
+        "total": total,
+        "itens": itens,
+        "gradiente": "conic-gradient(" + ", ".join(segmentos) + ")",
+    }
+
+
 def _grupos_unidades(base, unidades_relatorio):
     grupos = []
     for unidade in unidades_relatorio:
@@ -179,7 +248,7 @@ def analise_unidades(request):
     if not pode_ver_ranking(request.user):
         return _sem_acesso(request)
 
-    unidades = _unidades_permitidas(request).order_by("nome")
+    unidades = _unidades_permitidas(request.user).order_by("nome")
     unidade_id = request.GET.get("unidade")
     origem = request.GET.get("origem")
     inicio = request.GET.get("inicio")
@@ -208,6 +277,7 @@ def analise_unidades(request):
     medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
     media_geral = round(sum(medias) / len(medias), 2) if medias else None
     cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
+    resumo_justificativas = _resumo_justificativas(base.values_list("id", flat=True))
     media_cumprimento_unidades = _media_percentuais(grupos)
     media_tempo_geral_horas = (
         round(sum(item["tempo_total_horas"] for item in grupos) / sum(item["tempo_registros"] for item in grupos), 2)
@@ -219,6 +289,9 @@ def analise_unidades(request):
 
     acesso = getattr(request.user, "acesso_institucional", None)
     eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
+    mostrar_grafico_justificativas = bool(
+        acesso and acesso.perfil in {"CPR", "UNIDADE"}
+    )
     ranking_cpr = []
     media_cumprimento_cpr = None
     max_tempo_cpr = 0
@@ -284,6 +357,8 @@ def analise_unidades(request):
             "respondidas": cumprimento_geral["cumpridas"] + cumprimento_geral["justificadas"],
             "media_geral": media_geral,
             "cumprimento_geral": cumprimento_geral,
+            "resumo_justificativas": resumo_justificativas,
+            "mostrar_grafico_justificativas": mostrar_grafico_justificativas,
             "media_cumprimento_unidades": media_cumprimento_unidades,
             "media_cumprimento_cpr": media_cumprimento_cpr,
             "ranking_cpr": ranking_cpr,
