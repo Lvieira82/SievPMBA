@@ -26,6 +26,11 @@ def _eventos_do_acesso(acesso,hoje):
 def _eventos_offline_payload(eventos):
     return [{"id":e.id,"opo":e.protocolo or str(e.id),"endereco":e.local or "","telefone":e.telefone or "","solicitante":e.solicitante or ""} for e in eventos]
 
+def _eventos_registrados(eventos, usuario):
+    ids=[e.id for e in eventos]
+    if not ids:return set()
+    return set(CumprimentoOPO.objects.filter(opo__solicitacao_id__in=ids,operador=usuario,respondido_em__isnull=False).values_list("opo__solicitacao_id",flat=True))
+
 def _service_worker_script():
     return '''const CACHE="sievpm-eventos-v5";const OFFLINE="/static/pwa/eventos_offline.html";const JS="/static/pwa/eventos_offline.js?v=3";self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("sievpm-eventos-")&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener("fetch",event=>{const u=new URL(event.request.url);if(u.pathname==="/static/pwa/eventos_offline.html"||u.pathname==="/static/pwa/eventos_offline.js"){event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return}if(event.request.mode!=="navigate"||u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});'''
 
@@ -40,7 +45,7 @@ def eventos_dia(request):
     matricula=request.POST.get("matricula","").strip() or acesso_logado.matricula;acesso=_acesso_por_matricula(matricula)
     if not acesso:return render(request,"solicitacoes/eventos_dia.html",{"erro":"Matrícula sem acesso institucional ativo.","acesso_logado":acesso_logado})
     if acesso.usuario_id!=request.user.id:return render(request,"solicitacoes/eventos_dia.html",{"erro":"A matrícula informada não corresponde ao usuário autenticado.","acesso_logado":acesso_logado})
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_acesso_id"]=acesso.id;request.session["eventos_matricula"]=acesso.matricula;request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos)})
+    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_acesso_id"]=acesso.id;request.session["eventos_matricula"]=acesso.matricula;request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos),"eventos_registrados":_eventos_registrados(eventos,request.user)})
 
 @login_required
 def eventos_dia_resultado(request):
@@ -50,7 +55,7 @@ def eventos_dia_resultado(request):
     if not acesso or acesso.usuario_id!=request.user.id:
         for chave in ("eventos_acesso_id","eventos_matricula","eventos_opos_autorizadas"):request.session.pop(chave,None)
         messages.error(request,"Acesso não autorizado.");return redirect("login_gestao")
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos)})
+    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"offline_eventos":_eventos_offline_payload(eventos),"eventos_registrados":_eventos_registrados(eventos,request.user)})
 
 @login_required
 @require_POST
@@ -59,13 +64,16 @@ def sincronizar_evento_offline(request):
     if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil!="OPERADOR" or not acesso.unidade_id:return JsonResponse({"ok":False,"erro":"Acesso de operador inválido."},status=403)
     try:evento_id=int(request.POST.get("evento_id"))
     except (TypeError,ValueError):return JsonResponse({"ok":False,"erro":"Evento inválido."},status=400)
-    solicitacao=Solicitacao.objects.select_related("unidade").filter(id=evento_id,data_evento=timezone.localdate(),status="APROVADA",unidade_id=acesso.unidade_id).first()
+    solicitacao=Solicitacao.objects.select_related("unidade","municipio","bairro").filter(id=evento_id,data_evento=timezone.localdate(),status="APROVADA",unidade_id=acesso.unidade_id).first()
     if not solicitacao:return JsonResponse({"ok":False,"erro":"Evento não autorizado para este operador."},status=403)
     opo=AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
     if not opo:return JsonResponse({"ok":False,"erro":"OPO não encontrada."},status=404)
     resposta=request.POST.get("cumprida")
     if resposta not in {"SIM","NAO"}:return JsonResponse({"ok":False,"erro":"Resposta inválida."},status=400)
-    registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user);latitude=(request.POST.get("latitude") or "").strip();longitude=(request.POST.get("longitude") or "").strip();precisao=(request.POST.get("precisao") or "").strip()
+    registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user)
+    if registro.respondido_em is not None:
+        return JsonResponse({"ok":True,"ja_registrado":True})
+    latitude=(request.POST.get("latitude") or "").strip();longitude=(request.POST.get("longitude") or "").strip();precisao=(request.POST.get("precisao") or "").strip()
     if resposta=="SIM":
         imagem=request.FILES.get("imagem")
         if not imagem or not latitude or not longitude:return JsonResponse({"ok":False,"erro":"Foto e GPS são obrigatórios."},status=400)
@@ -74,13 +82,16 @@ def sincronizar_evento_offline(request):
             if not(-90<=lat<=90 and -180<=lon<=180):raise ValueError
         except (TypeError,ValueError):return JsonResponse({"ok":False,"erro":"Coordenadas GPS inválidas."},status=400)
         try:
-            from .cumprimento_opo import _salvar_comprovacao_no_protocolo
+            from .cumprimento_opo import _organizar_documentacao_opo, _salvar_comprovacao_no_protocolo
             caminho=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
         except Exception:return JsonResponse({"ok":False,"erro":"Não foi possível salvar a foto."},status=500)
         if registro.imagem:
             try:registro.imagem.delete(save=False)
             except Exception:pass
-        registro.cumprida=True;registro.imagem.name=caminho;registro.justificativa="";registro.respondido_em=timezone.now();registro.save();LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=f"Registro sincronizado. Coordenadas GPS: latitude={lat:.7f}, longitude={lon:.7f}, precisão={precisao or 'não informada'}.")
+        registro.cumprida=True;registro.imagem.name=caminho;registro.justificativa="";registro.respondido_em=timezone.now();registro.save()
+        try:_organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho,latitude=f"{lat:.7f}",longitude=f"{lon:.7f}",precisao=precisao,operador=request.user)
+        except Exception:pass
+        LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=f"Registro sincronizado. Coordenadas GPS: latitude={lat:.7f}, longitude={lon:.7f}, precisão={precisao or 'não informada'}.")
     else:
         justificativa=(request.POST.get("justificativa") or "").strip();motivos=[m for m in request.POST.getlist("motivos_nao") if m in MOTIVOS_NAO]
         if not motivos:return JsonResponse({"ok":False,"erro":"Selecione pelo menos um motivo para o não cumprimento."},status=400)
@@ -88,7 +99,14 @@ def sincronizar_evento_offline(request):
         if registro.imagem:
             try:registro.imagem.delete(save=False)
             except Exception:pass
-        registro.cumprida=False;registro.imagem=None;registro.justificativa=justificativa;registro.respondido_em=timezone.now();registro.save();nomes=[MOTIVOS_NAO[m] for m in motivos];detalhes=f"Registro sincronizado como não cumprida. Motivos: {'; '.join(nomes)}."
+        registro.cumprida=False;registro.imagem=None;registro.justificativa=justificativa;registro.respondido_em=timezone.now();registro.save()
+        try:
+            from .cumprimento_opo import _organizar_documentacao_opo, _salvar_justificativa_txt_no_protocolo
+            caminho_justificativa=_salvar_justificativa_txt_no_protocolo(solicitacao,request.user,justificativa,registro.respondido_em)
+            _organizar_documentacao_opo(solicitacao,opo=opo,caminho_justificativa=caminho_justificativa,operador=request.user)
+        except Exception:
+            caminho_justificativa=""
+        nomes=[MOTIVOS_NAO[m] for m in motivos];detalhes=f"Registro sincronizado como não cumprida. Motivos: {'; '.join(nomes)}."
         if justificativa:detalhes+=f" Observações: {justificativa}"
         LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=detalhes)
     return JsonResponse({"ok":True})
