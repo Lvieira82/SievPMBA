@@ -6,8 +6,8 @@
 .opo-card h1{color:#907C64;margin-bottom:8px}.sub{color:#6b7280;margin-bottom:25px}.opo-item{border:1px solid #e5e7eb;border-radius:14px;padding:20px;margin-bottom:16px}.opo-head{display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap}.opo-head strong{color:#111827}.meta{color:#64748b;margin:8px 0 15px}
 .btn{display:inline-block;background:#907C64;color:#fff;padding:10px 15px;border-radius:8px;text-decoration:none;font-weight:700;margin:3px;border:0;cursor:pointer}.btn:hover{background:#111827;color:#fff}.btn-apoio{background:#0f766e}.btn-detalhes{background:#2563eb}.btn-back{background:#6b7280}.btn-pdf{background:#4E342E}.btn-xls{background:#5f6b76}.btn-preview{background:#2563eb}.btn-documento{display:inline-block;background:#374151;color:#fff;text-decoration:none;padding:9px 13px;border-radius:8px;margin:4px;font-weight:700}.btn-documento:hover{background:#111827;color:#fff}
 .empty{padding:30px;text-align:center;color:#6b7280;background:#f8fafc;border-radius:12px}.bloco-documentos{margin-top:15px;padding:14px;background:#f8fafc;border-radius:10px}.titulo-documentos{display:block;font-weight:700;margin-bottom:6px;color:#374151}.sem-documento{color:#6b7280}.acoes-op{margin-top:15px;padding-top:12px;border-top:1px solid #e5e7eb}.cumprimento{margin-top:10px;padding:10px 12px;background:#fff;border:1px solid #e5e7eb;border-radius:8px}.cumprimento-sim{color:#15803d;font-weight:700}.cumprimento-nao{color:#b91c1c;font-weight:700}.justificativa{margin-top:6px;color:#374151;white-space:pre-wrap}.foto-cumprimento{display:block;max-width:320px;max-height:260px;width:auto;height:auto;margin:10px 0;border-radius:10px;border:1px solid #d1d5db;object-fit:contain}.gps{margin-top:8px;padding:8px 10px;background:#eff6ff;border-radius:8px;color:#1e3a8a;font-size:.92rem}
-.relatorios{margin-bottom:22px;padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px}.relatorios strong{display:block;color:#374151;margin-bottom:12px}.filtros-relatorio{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.campo-relatorio{display:flex;flex-direction:column;gap:5px}.campo-relatorio label{font-weight:700;color:#374151;font-size:.92rem}.campo-relatorio input{padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff}.preview-box{margin-top:14px;padding:12px;background:#fff;border:1px solid #e5e7eb;border-radius:10px}.preview-box strong{display:block;color:#374151;margin-bottom:8px}.preview-frame{width:100%;height:720px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
-@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}.foto-cumprimento{max-width:100%;max-height:360px}.relatorios .btn{width:100%}.campo-relatorio{width:100%}.campo-relatorio input{width:100%;box-sizing:border-box}.preview-frame{height:560px}}
+.relatorios{margin-bottom:22px;padding:14px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px}.relatorios strong{display:block;color:#374151;margin-bottom:12px}.filtros-relatorio{display:flex;gap:12px;align-items:end;flex-wrap:wrap}.campo-relatorio{display:flex;flex-direction:column;gap:5px}.campo-relatorio label{font-weight:700;color:#374151;font-size:.92rem}.campo-relatorio input{padding:10px;border:1px solid #d1d5db;border-radius:8px;background:#fff}.preview-box{margin-top:14px;padding:12px;background:#fff;border:1px solid #e5e7eb;border-radius:10px}.preview-box strong{display:block;color:#374151;margin-bottom:8px}.preview-table-wrap{overflow-x:auto;border:1px solid #d1d5db;border-radius:8px}.preview-table{width:100%;min-width:760px;border-collapse:collapse}.preview-table th{background:#4b5563;color:#fff;padding:10px;text-align:left;font-size:.9rem}.preview-table td{padding:10px;border-bottom:1px solid #e5e7eb;font-size:.9rem;vertical-align:top}.preview-table tr:nth-child(even){background:#f8fafc}.preview-vazio{text-align:center;padding:20px;color:#6b7280}.preview-status-sim{color:#15803d;font-weight:700}.preview-status-nao{color:#b91c1c;font-weight:700}.preview-status-just{color:#b45309;font-weight:700}
+@media(max-width:768px){.opo-card{padding:20px}.btn,.btn-documento{display:block;width:100%;box-sizing:border-box;text-align:center;margin:8px 0}.foto-cumprimento{max-width:100%;max-height:360px}.relatorios .btn{width:100%}.campo-relatorio{width:100%}.campo-relatorio input{width:100%;box-sizing:border-box}}
 </style>
 <div class="opo-wrap"><div class="opo-card">
 <h1>📁 OPOs Geradas</h1>
@@ -21,8 +21,39 @@
 </form>
 {% if request.GET.data_inicio and request.GET.data_fim %}
 <div class="preview-box">
-<strong>👁️ Pré-visualização do relatório — {{ request.GET.data_inicio }} a {{ request.GET.data_fim }}</strong>
-<iframe class="preview-frame" src="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" title="Pré-visualização do relatório de cumprimento"></iframe>
+<strong>👁️ Pré-visualização do relatório — {{ request.GET.data_inicio|date:'d/m/Y' }} a {{ request.GET.data_fim|date:'d/m/Y' }}</strong>
+<div class="preview-table-wrap">
+<table class="preview-table">
+<thead><tr><th>Data</th><th>Local</th><th>Evento</th><th>Desfecho</th><th>Geolocalização</th></tr></thead>
+<tbody id="preview-cumprimentos">
+{% for protocolo in protocolos %}
+{% for arquivo in protocolo.arquivos %}
+{% for cumprimento in arquivo.cumprimentos.all %}
+{% if cumprimento.respondido_em %}
+<tr data-data="{{ protocolo.solicitacao.data_evento|date:'Y-m-d' }}">
+<td>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</td>
+<td>{{ protocolo.solicitacao.local }}{% if protocolo.solicitacao.municipio %} - {{ protocolo.solicitacao.municipio.nome }}{% endif %}</td>
+<td>{{ protocolo.solicitacao.nome_evento|default:'-' }}</td>
+<td>
+{% if cumprimento.cumprida is True %}<span class="preview-status-sim">CUMPRIDA</span>
+{% elif cumprimento.justificativa %}<span class="preview-status-just">JUSTIFICADA</span>
+{% else %}<span class="preview-status-nao">DESCUMPRIDA</span>{% endif %}
+</td>
+<td>
+{% for log in protocolo.solicitacao.logsistema_set.all %}
+{% if 'Coordenadas GPS:' in log.detalhes %}{{ log.detalhes }}{% endif %}
+{% endfor %}
+{% if not protocolo.solicitacao.logsistema_set.all %}Não disponível{% endif %}
+</td>
+</tr>
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endfor %}
+<tr id="preview-vazio"><td colspan="5" class="preview-vazio">Nenhum atendimento registrado no período selecionado.</td></tr>
+</tbody>
+</table>
+</div>
 <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
 <a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a>
 <a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">📊 Exportar XLS</a>
@@ -86,4 +117,21 @@
 {% empty %}<div class="empty">Nenhuma OPO foi gerada até o momento.</div>{% endfor %}
 <a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
 </div></div>
+<script>
+(function(){
+  const inicio=document.getElementById('data_inicio');
+  const fim=document.getElementById('data_fim');
+  const linhas=document.querySelectorAll('#preview-cumprimentos tr[data-data]');
+  const vazio=document.getElementById('preview-vazio');
+  if(!inicio||!fim||!linhas.length){return;}
+  let visiveis=0;
+  linhas.forEach(function(linha){
+    const data=linha.getAttribute('data-data')||'';
+    const mostrar=(!inicio.value||data>=inicio.value)&&(!fim.value||data<=fim.value);
+    linha.style.display=mostrar?'':'none';
+    if(mostrar)visiveis++;
+  });
+  if(vazio)vazio.style.display=visiveis?'none':'';
+})();
+</script>
 {% endblock %}
