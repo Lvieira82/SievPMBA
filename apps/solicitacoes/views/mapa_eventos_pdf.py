@@ -143,30 +143,30 @@ def gerar_mapa_eventos_pdf_seguro(request):
     story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
     story.append(Paragraph("COMANDO DE OPERAÇÕES POLICIAIS MILITARES", comando))
 
-    # O gestor CPR vê o nome do próprio CPR; o gestor de Unidade vê a unidade vinculada.
+    # O cabeçalho deve refletir quem está gerando o mapa:
+    # gestor de Unidade -> Unidade; gestor de CPR -> CPR.
     acesso = getattr(request.user, "acesso_institucional", None)
+    unidade_login = getattr(acesso, "unidade", None)
     cpr_login = getattr(acesso, "cpr", None)
 
-    if cpr_login:
+    if unidade_login:
+        unidade_titulo = unidade_login.nome
+    elif cpr_login:
         unidade_titulo = cpr_login.nome
     else:
-        unidade_login = getattr(acesso, "unidade", None)
-        if unidade_login:
-            unidade_titulo = unidade_login.nome
+        # Fallback para perfis sem vínculo direto.
+        unidades_titulo = []
+        for evento in eventos:
+            if evento.unidade and evento.unidade.nome not in unidades_titulo:
+                unidades_titulo.append(evento.unidade.nome)
+        if len(unidades_titulo) == 1:
+            unidade_titulo = unidades_titulo[0]
+        elif unidades_titulo:
+            unidade_titulo = " / ".join(unidades_titulo)
         else:
-            # Fallback para perfis sem vínculo direto.
-            unidades_titulo = []
-            for evento in eventos:
-                if evento.unidade and evento.unidade.nome not in unidades_titulo:
-                    unidades_titulo.append(evento.unidade.nome)
-            if len(unidades_titulo) == 1:
-                unidade_titulo = unidades_titulo[0]
-            elif unidades_titulo:
-                unidade_titulo = " / ".join(unidades_titulo)
-            else:
-                unidade_titulo = "UNIDADE RESPONSÁVEL"
+            unidade_titulo = "UNIDADE RESPONSÁVEL"
 
-    story.append(Paragraph(unidade_titulo, unidade))
+    story.append(Paragraph(str(unidade_titulo).upper(), unidade))
     story.append(Paragraph("MAPA DE EVENTO", subtitulo))
 
     if data_inicio and data_fim:
