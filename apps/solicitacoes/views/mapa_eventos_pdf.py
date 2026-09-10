@@ -1,5 +1,6 @@
 from datetime import datetime
 from io import BytesIO
+import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -52,6 +53,7 @@ def _unidade_titulo(request, eventos=None):
 
 
 def _geolocalizacao(evento):
+    """Retorna somente latitude e longitude, sem o campo de precisão."""
     log = LogSistema.objects.filter(solicitacao=evento, detalhes__icontains="Coordenadas GPS:").order_by("-criado_em").first()
     if not log:
         return "Não disponível"
@@ -59,7 +61,26 @@ def _geolocalizacao(evento):
     pos = texto.find("Coordenadas GPS:")
     if pos < 0:
         return "Não disponível"
-    return (texto[pos + len("Coordenadas GPS:"):].strip().rstrip(".")) or "Não disponível"
+    trecho = texto[pos + len("Coordenadas GPS:"):]
+    latitude = re.search(r"latitude\s*=\s*([-+]?\d+(?:\.\d+)?)", trecho, re.IGNORECASE)
+    longitude = re.search(r"longitude\s*=\s*([-+]?\d+(?:\.\d+)?)", trecho, re.IGNORECASE)
+    if latitude and longitude:
+        return f"latitude={latitude.group(1)}, longitude={longitude.group(1)}"
+    return "Não disponível"
+
+
+def _motivos_nao_cumprimento(evento):
+    """Extrai do log os motivos marcados no formulário de NÃO cumprimento."""
+    log = (LogSistema.objects.filter(solicitacao=evento, acao__icontains="CUMPRIMENTO OPO")
+           .filter(detalhes__icontains="Motivos:")
+           .order_by("-criado_em").first())
+    if not log:
+        return ""
+    texto = log.detalhes or ""
+    match = re.search(r"Motivos:\s*(.*?)(?:\.\s*(?:Observações:|Arquivo de observações:)|$)", texto, re.IGNORECASE | re.DOTALL)
+    if not match:
+        return ""
+    return " / ".join(parte.strip() for parte in match.group(1).split(";") if parte.strip())
 
 
 def _dados_relatorio_cumprimento(request):
@@ -76,10 +97,12 @@ def _dados_relatorio_cumprimento(request):
             continue
         if cumprimento.cumprida is True:
             desfecho = "CUMPRIDA"
-        elif (cumprimento.justificativa or "").strip():
-            desfecho = "JUSTIFICADA"
         else:
-            desfecho = "DESCUMPRIDA"
+            motivos = _motivos_nao_cumprimento(evento)
+            if (cumprimento.justificativa or "").strip():
+                desfecho = f"JUSTIFICADA — {motivos}" if motivos else "JUSTIFICADA"
+            else:
+                desfecho = f"DESCUMPRIDA — {motivos}" if motivos else "DESCUMPRIDA"
         dados.append({
             "data": evento.data_evento,
             "local": f"{evento.local}{' - ' + evento.municipio.nome if evento.municipio else ''}",
@@ -143,7 +166,7 @@ def _gerar_relatorio_cumprimento_xls(request):
         row[0].number_format = "DD/MM/YYYY"
         for cell in row: cell.alignment = Alignment(vertical="top", wrap_text=True)
     ws.freeze_panes = "A2"; ws.auto_filter.ref = ws.dimensions
-    for col, width in zip("ABCDE", [14, 40, 42, 20, 55]): ws.column_dimensions[col].width = width
+    for col, width in zip("ABCDE", [14, 40, 42, 35, 55]): ws.column_dimensions[col].width = width
     out = BytesIO(); wb.save(out); out.seek(0)
     response = HttpResponse(out.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = 'attachment; filename="relatorio_cumprimento_opos.xlsx"'
