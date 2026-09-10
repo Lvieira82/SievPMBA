@@ -183,26 +183,30 @@ def gerar_mapa_eventos_pdf_seguro(request):
     story.append(Paragraph(periodo_texto, periodo))
 
     rows = [[
-        Paragraph("Data", cabecalho),
-        Paragraph("Início", cabecalho),
-        Paragraph("Fim", cabecalho),
-        Paragraph("Evento", cabecalho),
-        Paragraph("Município", cabecalho),
-        Paragraph("Unidade", cabecalho),
-        Paragraph("Regime", cabecalho),
+        Paragraph("DATA", cabecalho),
+        Paragraph("INÍCIO", cabecalho),
+        Paragraph("FIM", cabecalho),
+        Paragraph("EVENTO", cabecalho),
+        Paragraph("MUNICÍPIO", cabecalho),
+        Paragraph("UNIDADE", cabecalho),
+        Paragraph("REGIME", cabecalho),
     ]]
 
     for evento in eventos:
         inicio = evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-"
         fim = evento.hora_fim.strftime("%H:%M") if evento.hora_fim else "-"
+        nome_evento = str(evento.nome_evento or "-").upper()
+        municipio = str(evento.municipio.nome if evento.municipio else "-").upper()
+        unidade_evento = str(evento.unidade.nome if evento.unidade else "-").upper()
+        regime = str(_tipo_opo_mapa(evento)).upper()
         rows.append([
             Paragraph(evento.data_evento.strftime("%d/%m/%Y"), celula),
             Paragraph(inicio, celula),
             Paragraph(fim, celula),
-            Paragraph(str(evento.nome_evento or "-"), celula),
-            Paragraph(str(evento.municipio.nome if evento.municipio else "-"), celula),
-            Paragraph(str(evento.unidade.nome if evento.unidade else "-"), celula),
-            Paragraph(_tipo_opo_mapa(evento), celula),
+            Paragraph(nome_evento, celula),
+            Paragraph(municipio, celula),
+            Paragraph(unidade_evento, celula),
+            Paragraph(regime, celula),
         ])
 
     tabela = Table(
