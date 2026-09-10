@@ -66,20 +66,15 @@ def _organizar_documentacao_opo(solicitacao, opo=None, caminho_imagem=None, cami
     """Mantém uma cópia consolidada dos documentos do atendimento, sem alterar os arquivos originais."""
     protocolo=solicitacao.protocolo or "SEM_PROTOCOLO"
     pasta=str(Path("protocolos")/protocolo/"documentacao_opo")
-    # OPO gerada.
     if opo:
         nome_opo=Path(getattr(opo.arquivo,"name","") or "OPO.pdf").name
         _salvar_copia_storage(getattr(opo.arquivo,"name","") or "", f"{pasta}/OPO_{nome_opo}")
-    # Ofício do comandante, quando existente.
     oficio=f"protocolos/{protocolo}/oficio_comandante.pdf"
     _salvar_copia_storage(oficio, f"{pasta}/Oficio_do_Comandante.pdf")
-    # Foto do cumprimento, quando houver.
     if caminho_imagem:
         _salvar_copia_storage(caminho_imagem, f"{pasta}/Foto_do_Cumprimento.jpg")
-    # Justificativa, quando houver.
     if caminho_justificativa:
         _salvar_copia_storage(caminho_justificativa, f"{pasta}/Justificativa_nao_cumprimento.txt")
-    # Documento textual com a localização do evento e, quando disponível, GPS.
     partes=[f"PROTOCOLO: {protocolo}", f"EVENTO: {solicitacao.nome_evento}", f"MUNICÍPIO: {solicitacao.municipio}", f"ENDEREÇO/LOCAL: {solicitacao.local}"]
     if solicitacao.bairro:
         partes.append(f"BAIRRO/DISTRITO: {solicitacao.bairro.nome}")
@@ -92,7 +87,7 @@ def _organizar_documentacao_opo(solicitacao, opo=None, caminho_imagem=None, cami
     if operador:
         partes.append(f"OPERADOR: {getattr(operador,'username','operador') or 'operador'}")
     partes.append(f"REGISTRADO EM: {timezone.localtime():%d/%m/%Y %H:%M:%S}")
-    _salvar_copia_storage("", f"{pasta}/Localizacao.txt") if False else default_storage.save(f"{pasta}/Localizacao.txt", ContentFile(("\n".join(partes)+"\n").encode("utf-8")))
+    default_storage.save(f"{pasta}/Localizacao.txt", ContentFile(("\n".join(partes)+"\n").encode("utf-8")))
 
 def _atendimento_ja_registrado(registro):
     return bool(registro and registro.respondido_em is not None)
@@ -186,31 +181,43 @@ def abrir_opo_operador(request,anexo_id):
 
 @login_required
 def abrir_oficio_comandante_operador(request, solicitacao_id):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=solicitacao_id,
-    )
+    solicitacao = get_object_or_404(Solicitacao.objects.select_related("unidade"), pk=solicitacao_id)
     if not _operador_autorizado(request, solicitacao):
         messages.error(request, "Este ofício não está liberado para o seu acesso de operador.")
         return redirect("eventos_dia")
 
     protocolo = solicitacao.protocolo or ""
-    if not protocolo:
-        raise Http404("O evento não possui protocolo.")
+    arquivo_field = getattr(solicitacao, "oficio_comandante", None)
+    nome = getattr(arquivo_field, "name", "") or ""
 
-    nome = f"protocolos/{protocolo}/oficio_comandante.pdf"
-    try:
-        if default_storage.exists(nome):
-            arquivo = default_storage.open(nome, "rb")
-        else:
-            caminho = Path(settings.MEDIA_ROOT) / nome
-            if not caminho.is_file():
-                raise Http404("O Ofício do Comandante deste evento não foi encontrado.")
-            arquivo = caminho.open("rb")
-    except (OSError, ValueError):
-        raise Http404("O Ofício do Comandante deste evento não foi encontrado.")
+    # Usa o próprio FileField do evento, que é a fonte oficial do documento.
+    # Mantém compatibilidade com a estrutura documental antiga como fallback.
+    candidatos = []
+    if nome:
+        candidatos.append(nome)
+    if protocolo:
+        candidatos.append(f"protocolos/{protocolo}/oficio_comandante.pdf")
+
+    arquivo = None
+    nome_abertura = None
+    for caminho_nome in candidatos:
+        try:
+            if default_storage.exists(caminho_nome):
+                arquivo = default_storage.open(caminho_nome, "rb")
+                nome_abertura = Path(caminho_nome).name
+                break
+            caminho = Path(settings.MEDIA_ROOT) / caminho_nome
+            if caminho.is_file():
+                arquivo = caminho.open("rb")
+                nome_abertura = caminho.name
+                break
+        except (OSError, ValueError):
+            continue
+
+    if arquivo is None:
+        raise Http404("O Ofício do Comandante deste evento não foi encontrado no armazenamento.")
 
     resposta = FileResponse(arquivo, content_type="application/pdf")
-    resposta["Content-Disposition"] = f'inline; filename="Oficio_do_Comandante_{protocolo}.pdf"'
+    resposta["Content-Disposition"] = f'inline; filename="{nome_abertura or ("Oficio_do_Comandante_" + protocolo + ".pdf")}"'
     resposta["X-Content-Type-Options"] = "nosniff"
     return resposta
