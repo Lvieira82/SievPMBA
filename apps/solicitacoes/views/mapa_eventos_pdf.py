@@ -83,10 +83,46 @@ def _motivos_nao_cumprimento(evento):
     return " / ".join(parte.strip() for parte in match.group(1).split(";") if parte.strip())
 
 
+def _periodo_cumprimento(request):
+    data_inicio = (request.GET.get("data_inicio") or "").strip()
+    data_fim = (request.GET.get("data_fim") or "").strip()
+    inicio = fim = None
+    if data_inicio:
+        try:
+            inicio = datetime.strptime(data_inicio, "%Y-%m-%d").date()
+        except ValueError:
+            data_inicio = ""
+    if data_fim:
+        try:
+            fim = datetime.strptime(data_fim, "%Y-%m-%d").date()
+        except ValueError:
+            data_fim = ""
+    if inicio and fim and inicio > fim:
+        data_inicio = ""
+        data_fim = ""
+        inicio = fim = None
+    return data_inicio, data_fim, inicio, fim
+
+
+def _texto_periodo(data_inicio, data_fim):
+    if data_inicio and data_fim:
+        return f"Período: {datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')}"
+    if data_inicio:
+        return f"A partir de {datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')}"
+    if data_fim:
+        return f"Até {datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')}"
+    return "Todos os registros do âmbito institucional"
+
+
 def _dados_relatorio_cumprimento(request):
+    data_inicio, data_fim, inicio, fim = _periodo_cumprimento(request)
     eventos = (Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user))
                .select_related("municipio", "unidade")
                .order_by("data_evento", "hora_inicio", "id"))
+    if inicio:
+        eventos = eventos.filter(data_evento__gte=inicio)
+    if fim:
+        eventos = eventos.filter(data_evento__lte=fim)
     dados = []
     for evento in eventos:
         opo = AnexoOPO.objects.filter(solicitacao=evento).exclude(arquivo="").order_by("-criado_em").first()
@@ -115,13 +151,15 @@ def _dados_relatorio_cumprimento(request):
 
 def _gerar_relatorio_cumprimento_pdf(request):
     dados = _dados_relatorio_cumprimento(request)
+    data_inicio, data_fim, _, _ = _periodo_cumprimento(request)
     response = HttpResponse(content_type="application/pdf")
-    response["Content-Disposition"] = 'attachment; filename="relatorio_cumprimento_opos.pdf"'
+    response["Content-Disposition"] = f'inline; filename="relatorio_cumprimento_opos_{data_inicio or "inicio"}_{data_fim or "fim"}.pdf"'
     doc = SimpleDocTemplate(response, pagesize=landscape(A4), rightMargin=10*mm, leftMargin=10*mm, topMargin=10*mm, bottomMargin=10*mm)
     styles = getSampleStyleSheet()
     titulo = ParagraphStyle("RTitulo", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=17, leading=20, alignment=TA_CENTER, textColor=colors.HexColor("#4b5563"), spaceAfter=3)
     linha = ParagraphStyle("RLinha", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=10.5, leading=13, alignment=TA_CENTER, textColor=colors.HexColor("#4b5563"), spaceAfter=2)
     unidade = ParagraphStyle("RUnidade", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=11, leading=13, alignment=TA_CENTER, textColor=colors.HexColor("#4b5563"), spaceAfter=3)
+    periodo = ParagraphStyle("RPeriodo", parent=styles["Normal"], fontSize=8, leading=10, alignment=TA_CENTER, textColor=colors.HexColor("#444444"), spaceAfter=8)
     celula = ParagraphStyle("RCel", parent=styles["Normal"], fontSize=7.5, leading=9)
     cab = ParagraphStyle("RCab", parent=celula, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)
     story = []
@@ -133,12 +171,13 @@ def _gerar_relatorio_cumprimento_pdf(request):
         Paragraph("COMANDO DE OPERAÇÕES POLICIAIS MILITARES", linha),
         Paragraph(_unidade_titulo(request), unidade),
         Paragraph("RELATÓRIO DE CUMPRIMENTO DAS OPOs", linha),
+        Paragraph(_texto_periodo(data_inicio, data_fim), periodo),
     ]
     rows = [[Paragraph("DATA", cab), Paragraph("LOCAL", cab), Paragraph("EVENTO", cab), Paragraph("DESFECHO", cab), Paragraph("GEOLOCALIZAÇÃO", cab)]]
     for d in dados:
         rows.append([Paragraph(d["data"].strftime("%d/%m/%Y"), celula), Paragraph(d["local"], celula), Paragraph(d["evento"], celula), Paragraph(d["desfecho"], celula), Paragraph(d["geolocalizacao"], celula)])
     if len(rows) == 1:
-        rows.append([Paragraph("Nenhum atendimento registrado.", celula), "", "", "", ""])
+        rows.append([Paragraph("Nenhum atendimento registrado no período.", celula), "", "", "", ""])
     tabela = Table(rows, repeatRows=1, colWidths=[24*mm, 70*mm, 70*mm, 35*mm, 78*mm])
     tabela.setStyle(TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#4b5563")),
@@ -155,6 +194,7 @@ def _gerar_relatorio_cumprimento_pdf(request):
 
 def _gerar_relatorio_cumprimento_xls(request):
     dados = _dados_relatorio_cumprimento(request)
+    data_inicio, data_fim, _, _ = _periodo_cumprimento(request)
     wb = Workbook(); ws = wb.active; ws.title = "Cumprimento OPO"
     headers = ["DATA", "LOCAL", "EVENTO", "DESFECHO", "GEOLOCALIZAÇÃO"]
     ws.append(headers)
@@ -169,7 +209,7 @@ def _gerar_relatorio_cumprimento_xls(request):
     for col, width in zip("ABCDE", [14, 40, 42, 35, 55]): ws.column_dimensions[col].width = width
     out = BytesIO(); wb.save(out); out.seek(0)
     response = HttpResponse(out.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    response["Content-Disposition"] = 'attachment; filename="relatorio_cumprimento_opos.xlsx"'
+    response["Content-Disposition"] = f'attachment; filename="relatorio_cumprimento_opos_{data_inicio or "inicio"}_{data_fim or "fim"}.xlsx"'
     return response
 
 
