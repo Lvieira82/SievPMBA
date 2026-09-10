@@ -183,3 +183,34 @@ def abrir_opo_operador(request,anexo_id):
             arquivo=caminho.open("rb")
     except (OSError,ValueError): raise Http404("O arquivo da OPO não foi encontrado no armazenamento.")
     resposta=FileResponse(arquivo,content_type="application/pdf"); resposta["Content-Disposition"]=f'inline; filename="{Path(nome).name}"'; resposta["X-Content-Type-Options"]="nosniff"; return resposta
+
+@login_required
+def abrir_oficio_comandante_operador(request, solicitacao_id):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=solicitacao_id,
+    )
+    if not _operador_autorizado(request, solicitacao):
+        messages.error(request, "Este ofício não está liberado para o seu acesso de operador.")
+        return redirect("eventos_dia")
+
+    protocolo = solicitacao.protocolo or ""
+    if not protocolo:
+        raise Http404("O evento não possui protocolo.")
+
+    nome = f"protocolos/{protocolo}/oficio_comandante.pdf"
+    try:
+        if default_storage.exists(nome):
+            arquivo = default_storage.open(nome, "rb")
+        else:
+            caminho = Path(settings.MEDIA_ROOT) / nome
+            if not caminho.is_file():
+                raise Http404("O Ofício do Comandante deste evento não foi encontrado.")
+            arquivo = caminho.open("rb")
+    except (OSError, ValueError):
+        raise Http404("O Ofício do Comandante deste evento não foi encontrado.")
+
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="Oficio_do_Comandante_{protocolo}.pdf"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
