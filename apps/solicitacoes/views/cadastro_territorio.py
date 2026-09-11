@@ -57,9 +57,7 @@ def cadastro_unidades(request):
             elif CPR.objects.filter(sigla__iexact=sigla_cpr).exists():
                 messages.error(request, "Já existe um CPR/Comando com esta sigla.")
             else:
-                coppm = COPPM.objects.filter(ativo=True).order_by("id").first()
-                if not coppm:
-                    coppm = COPPM.objects.order_by("id").first()
+                coppm = COPPM.objects.filter(ativo=True).order_by("id").first() or COPPM.objects.order_by("id").first()
                 if not coppm:
                     coppm = COPPM.objects.create(
                         nome="Comando de Operações da Polícia Militar",
@@ -93,11 +91,76 @@ def cadastro_unidades(request):
         return redirect("cadastro_unidades")
 
     return render(request, "solicitacoes/cadastro_unidades.html", {
-        "cprs": CPR.objects.filter(ativo=True).order_by("sigla"),
+        "cprs": CPR.objects.order_by("sigla"),
+        "cprs_ativos": CPR.objects.filter(ativo=True).order_by("sigla"),
         "unidades": Unidade.objects.select_related("cpr").order_by("nome"),
         "tipos": TIPOS_UNIDADE,
         "tipos_sem_area": TIPOS_SEM_AREA,
     })
+
+
+@login_required
+def editar_cpr(request, id):
+    if not _dev(request):
+        return _deny(request)
+    cpr = get_object_or_404(CPR, pk=id)
+    if request.method == "POST":
+        nome = (request.POST.get("nome") or "").strip()
+        sigla = (request.POST.get("sigla") or "").strip().upper()
+        if not nome or not sigla:
+            messages.error(request, "Nome e sigla são obrigatórios.")
+        elif CPR.objects.filter(sigla__iexact=sigla).exclude(pk=cpr.pk).exists():
+            messages.error(request, "Já existe outro CPR/Comando com esta sigla.")
+        else:
+            cpr.nome = nome
+            cpr.sigla = sigla
+            cpr.save(update_fields=["nome", "sigla"])
+            messages.success(request, f"CPR/Comando {sigla} atualizado com sucesso.")
+            return redirect("cadastro_unidades")
+    return render(request, "solicitacoes/editar_cpr.html", {"cpr": cpr})
+
+
+@login_required
+@require_POST
+def ativar_cpr(request, id):
+    if not _dev(request):
+        return _deny(request)
+    cpr = get_object_or_404(CPR, pk=id)
+    cpr.ativo = True
+    cpr.save(update_fields=["ativo"])
+    messages.success(request, f"CPR/Comando {cpr.sigla} ativado.")
+    return redirect("cadastro_unidades")
+
+
+@login_required
+@require_POST
+def desativar_cpr(request, id):
+    if not _dev(request):
+        return _deny(request)
+    cpr = get_object_or_404(CPR, pk=id)
+    cpr.ativo = False
+    cpr.save(update_fields=["ativo"])
+    messages.success(request, f"CPR/Comando {cpr.sigla} desativado.")
+    return redirect("cadastro_unidades")
+
+
+@login_required
+@require_POST
+def excluir_cpr(request, id):
+    if not _dev(request):
+        return _deny(request)
+    cpr = get_object_or_404(CPR, pk=id)
+    sigla = cpr.sigla
+    try:
+        cpr.delete()
+    except ProtectedError:
+        messages.error(
+            request,
+            f"O CPR/Comando {sigla} não pode ser excluído porque possui unidades ou outros registros vinculados. Desative-o para preservar o histórico.",
+        )
+        return redirect("cadastro_unidades")
+    messages.success(request, f"CPR/Comando {sigla} excluído definitivamente.")
+    return redirect("cadastro_unidades")
 
 
 @login_required
@@ -170,11 +233,9 @@ def excluir_unidade(request, id):
     except ProtectedError:
         messages.error(
             request,
-            f"A unidade {nome} não pode ser excluída porque possui registros vinculados. "
-            "Desative a unidade para preservar o histórico.",
+            f"A unidade {nome} não pode ser excluída porque possui registros vinculados. Desative a unidade para preservar o histórico.",
         )
         return redirect("cadastro_unidades")
-
     messages.success(request, f"Unidade {nome} excluída definitivamente.")
     return redirect("cadastro_unidades")
 
@@ -260,8 +321,7 @@ def excluir_bairro(request, id):
     except ProtectedError:
         messages.error(
             request,
-            f"O bairro/distrito {nome} não pode ser excluído porque possui registros vinculados. "
-            "Desative-o para preservar o histórico.",
+            f"O bairro/distrito {nome} não pode ser excluído porque possui registros vinculados. Desative-o para preservar o histórico.",
         )
         return redirect("cadastro_bairros")
     messages.success(request, f"Bairro/distrito {nome} excluído definitivamente.")
