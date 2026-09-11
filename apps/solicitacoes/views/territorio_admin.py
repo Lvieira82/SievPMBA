@@ -11,6 +11,16 @@ from django.views.decorators.http import require_http_methods
 from apps.solicitacoes.models import AreaResponsabilidade, Bairro, Municipio, Unidade
 
 
+TIPOS_SEM_AREA = {
+    "BPT", "CHOQUE", "OPERACOES_ESPECIAIS", "CAVALARIA", "MOTOCICLISTAS",
+    "AMBIENTAL", "RODOVIARIA", "AEREO", "APOIO_OPERACIONAL", "ESPECIALIZADA",
+}
+
+
+def _unidade_territorial(unidade):
+    return unidade and unidade.tipo not in TIPOS_SEM_AREA
+
+
 def _desenvolvedor(request):
     return request.user.is_authenticated and request.user.is_superuser
 
@@ -31,7 +41,9 @@ def areas_responsabilidade(request):
         unidade_id = request.POST.get("unidade")
         municipio = get_object_or_404(Municipio, pk=municipio_id, ativo=True)
         unidade = get_object_or_404(Unidade, pk=unidade_id, ativo=True)
-        if not bairro_nome:
+        if not _unidade_territorial(unidade):
+            messages.error(request, "Unidades especializadas não possuem área de responsabilidade territorial.")
+        elif not bairro_nome:
             messages.error(request, "Informe o bairro ou distrito.")
         else:
             bairro, _ = Bairro.objects.get_or_create(municipio=municipio, nome=bairro_nome)
@@ -42,7 +54,7 @@ def areas_responsabilidade(request):
     return render(request, "solicitacoes/areas_responsabilidade.html", {
         "areas": areas,
         "municipios": Municipio.objects.filter(ativo=True).order_by("nome"),
-        "unidades": Unidade.objects.filter(ativo=True).order_by("nome"),
+        "unidades": Unidade.objects.filter(ativo=True).exclude(tipo__in=TIPOS_SEM_AREA).order_by("nome"),
     })
 
 
@@ -55,7 +67,9 @@ def editar_area_responsabilidade(request, id):
         municipio = get_object_or_404(Municipio, pk=request.POST.get("municipio"), ativo=True)
         bairro = get_object_or_404(Bairro, pk=request.POST.get("bairro"), municipio=municipio, ativo=True)
         unidade = get_object_or_404(Unidade, pk=request.POST.get("unidade"), ativo=True)
-        if AreaResponsabilidade.objects.filter(bairro=bairro).exclude(pk=area.pk).exists():
+        if not _unidade_territorial(unidade):
+            messages.error(request, "Unidades especializadas não possuem área de responsabilidade territorial.")
+        elif AreaResponsabilidade.objects.filter(bairro=bairro).exclude(pk=area.pk).exists():
             messages.error(request, "Este bairro já possui outra unidade responsável.")
         else:
             area.bairro = bairro
@@ -68,7 +82,7 @@ def editar_area_responsabilidade(request, id):
         "area": area,
         "municipios": Municipio.objects.filter(ativo=True).order_by("nome"),
         "bairros": Bairro.objects.filter(municipio=area.bairro.municipio, ativo=True).order_by("nome"),
-        "unidades": Unidade.objects.filter(ativo=True).order_by("nome"),
+        "unidades": Unidade.objects.filter(ativo=True).exclude(tipo__in=TIPOS_SEM_AREA).order_by("nome"),
     })
 
 
@@ -78,6 +92,9 @@ def ativar_area_responsabilidade(request, id):
     if not _desenvolvedor(request):
         return _negar(request)
     area = get_object_or_404(AreaResponsabilidade, pk=id)
+    if not _unidade_territorial(area.unidade):
+        messages.error(request, "Esta unidade não pode possuir área territorial.")
+        return redirect("areas_responsabilidade")
     area.ativo = True
     area.save(update_fields=["ativo"])
     messages.success(request, "Área de responsabilidade ativada.")
@@ -138,6 +155,8 @@ def importar_areas_responsabilidade(request):
             bairro_nome = dados.get("bairro", "")
             if not municipio or not unidade or not bairro_nome:
                 raise ValueError(f"Linha {numero}: município, bairro ou unidade inválidos.")
+            if not _unidade_territorial(unidade):
+                raise ValueError(f"Linha {numero}: a unidade {unidade.sigla} não possui área territorial.")
             bairro, _ = Bairro.objects.get_or_create(municipio=municipio, nome=bairro_nome)
             AreaResponsabilidade.objects.update_or_create(bairro=bairro, defaults={"unidade": unidade, "ativo": True})
             total += 1
