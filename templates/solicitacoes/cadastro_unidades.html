@@ -3,15 +3,14 @@
 {% block titulo %}Unidades e Comandos{% endblock %}
 {% block content %}
 <style>
-.territorio-wrap{max-width:1250px;margin:30px auto;padding:0 16px}.territorio-card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.territorio-card h1,.territorio-card h2{color:#907C64}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input,.campo select{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;background:#fff;box-sizing:border-box}.campo.full{grid-column:1/-1}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 17px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}.info{background:#f4f0e9;border-left:4px solid #c6a545;padding:12px 14px;border-radius:8px;margin:14px 0;font-size:.92rem}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela th{background:#111827;color:#fff}.status{font-weight:700}.ativo{color:#15803d}.inativo{color:#6b7280}.acao{display:flex;gap:6px;flex-wrap:wrap}.mini{padding:7px 10px;border-radius:6px;border:0;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}.editar{background:#e5e7eb;color:#111827}.ativar{background:#16a34a;color:#fff}.desativar{background:#f59e0b;color:#111}.excluir{background:#dc2626;color:#fff}.sem-area{display:inline-block;padding:4px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:800}.com-area{display:inline-block;padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800}@media(max-width:700px){.grid{grid-template-columns:1fr}.campo.full{grid-column:auto}}
+.territorio-wrap{max-width:1250px;margin:30px auto;padding:0 16px}.territorio-card{background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.08);margin-bottom:20px}.territorio-card h1,.territorio-card h2{color:#907C64}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 22px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo input,.campo select{width:100%;min-height:44px;padding:10px 13px;border:1px solid #c9c9c9;border-radius:8px;background:#fff;box-sizing:border-box}.campo.full{grid-column:1/-1}.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px;padding-top:18px;border-top:1px solid #e5e7eb}.btnx{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:9px 17px;border-radius:8px;border:0;text-decoration:none;font-weight:700;cursor:pointer}.prim{background:#c6a545;color:#111}.sec{background:#fff;color:#374151;border:1px solid #bbb}.info{background:#f4f0e9;border-left:4px solid #c6a545;padding:12px 14px;border-radius:8px;margin:14px 0;font-size:.92rem}.tabela{width:100%;border-collapse:collapse}.tabela th,.tabela td{padding:12px 10px;border-bottom:1px solid #e5e7eb;text-align:left;vertical-align:middle}.tabela th{background:#111827;color:#fff}.status{font-weight:700}.ativo{color:#15803d}.inativo{color:#6b7280}.acao{display:flex;gap:6px;flex-wrap:wrap}.mini{padding:7px 10px;border-radius:6px;border:0;text-decoration:none;font-size:12px;font-weight:700;cursor:pointer}.editar{background:#e5e7eb;color:#111827}.ativar{background:#16a34a;color:#fff}.desativar{background:#f59e0b;color:#111}.excluir{background:#dc2626;color:#fff}@media(max-width:700px){.grid{grid-template-columns:1fr}.campo.full{grid-column:auto}}
 </style>
 <div class="territorio-wrap">
   <section class="territorio-card">
     <h1>🏢 Cadastro de Comandos e Unidades</h1>
-    <p>O cadastro não fica limitado aos comandos atualmente existentes. Você pode criar novos CPRs/comandos e, em seguida, cadastrar suas unidades operacionais.</p>
+    <p>Cadastre novos comandos e unidades sem ficar limitado à estrutura previamente cadastrada.</p>
     {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
-
-    <div class="info"><strong>Estrutura territorial:</strong> BPM, CIPM e demais unidades territoriais podem receber áreas de responsabilidade. <strong>Unidades especializadas</strong> não recebem área territorial; atuam operacionalmente e podem receber solicitações por transferência e apoio.</div>
+    <div class="info"><strong>Regra operacional:</strong> BPM, CIPM e outras unidades territoriais podem receber áreas de responsabilidade. Unidades especializadas, cavalaria, motociclistas, choque, operações especiais, rodoviárias, aéreas e apoio operacional ficam <strong>sem área territorial</strong>, mas continuam aptas a operar, receber solicitações por encaminhamento e participar de apoios.</div>
 
     <h2>➕ Criar novo CPR / Comando</h2>
     <form method="post" class="grid">
@@ -26,7 +25,7 @@
     <h2>➕ Cadastrar Unidade</h2>
     <form method="post" class="grid">
       {% csrf_token %}<input type="hidden" name="acao" value="cadastrar_unidade">
-      <div class="campo"><label>CPR / Comando</label><select name="cpr" required><option value="">Selecione</option>{% for cpr in cprs %}<option value="{{ cpr.id }}">{{ cpr.sigla }} — {{ cpr.nome }}</option>{% endfor %}</select></div>
+      <div class="campo"><label>CPR / Comando</label><select name="cpr" required><option value="">Selecione</option>{% for cpr in cprs_ativos %}<option value="{{ cpr.id }}">{{ cpr.sigla }} — {{ cpr.nome }}</option>{% endfor %}</select></div>
       <div class="campo"><label>Tipo de unidade</label><select name="tipo">{% for valor,label in tipos %}<option value="{{ valor }}">{{ label }}</option>{% endfor %}</select></div>
       <div class="campo"><label>Nome oficial</label><input name="nome" maxlength="150" required></div>
       <div class="campo"><label>Sigla</label><input name="sigla" maxlength="30" required></div>
@@ -38,10 +37,14 @@
 
   <section class="territorio-card">
     <h2>Comandos cadastrados</h2>
-    <div style="overflow:auto"><table class="tabela"><thead><tr><th>Sigla</th><th>Nome</th><th>Unidades</th><th>Status</th></tr></thead><tbody>
+    <div style="overflow:auto"><table class="tabela"><thead><tr><th>Sigla</th><th>Nome</th><th>Unidades</th><th>Status</th><th>Ações</th></tr></thead><tbody>
     {% for cpr in cprs %}
-      <tr><td>{{ cpr.sigla }}</td><td>{{ cpr.nome }}</td><td>{{ cpr.unidades.count }}</td><td><span class="status ativo">ATIVO</span></td></tr>
-    {% empty %}<tr><td colspan="4" style="text-align:center;padding:24px">Nenhum CPR/comando cadastrado.</td></tr>{% endfor %}
+      <tr>
+        <td>{{ cpr.sigla }}</td><td>{{ cpr.nome }}</td><td>{{ cpr.unidades.count }}</td>
+        <td>{% if cpr.ativo %}<span class="status ativo">ATIVO</span>{% else %}<span class="status inativo">INATIVO</span>{% endif %}</td>
+        <td><div class="acao"><a class="mini editar" href="{% url 'editar_cpr' cpr.id %}">Editar</a>{% if cpr.ativo %}<form method="post" action="{% url 'desativar_cpr' cpr.id %}">{% csrf_token %}<button class="mini desativar" onclick="return confirm('Desativar este CPR/Comando?')">Desativar</button></form>{% else %}<form method="post" action="{% url 'ativar_cpr' cpr.id %}">{% csrf_token %}<button class="mini ativar">Ativar</button></form>{% endif %}<form method="post" action="{% url 'excluir_cpr' cpr.id %}">{% csrf_token %}<button class="mini excluir" onclick="return confirm('Excluir definitivamente este CPR/Comando? Se houver vínculos, a exclusão será bloqueada.')">Excluir</button></form></div></td>
+      </tr>
+    {% empty %}<tr><td colspan="5" style="text-align:center;padding:24px">Nenhum CPR/comando cadastrado.</td></tr>{% endfor %}
     </tbody></table></div>
   </section>
 
@@ -52,7 +55,7 @@
       <tr>
         <td>{{ u.sigla }}</td><td>{{ u.nome }}</td><td>{{ u.cpr.sigla }}</td>
         <td>{% for valor,label in tipos %}{% if valor == u.tipo %}{{ label }}{% endif %}{% endfor %}</td>
-        <td>{% if u.tipo in tipos_sem_area %}<span class="sem-area">SEM ÁREA</span>{% else %}<span class="com-area">COM ÁREA</span>{% endif %}</td>
+        <td>{% if u.tipo in tipos_sem_area %}<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fef3c7;color:#92400e;font-size:11px;font-weight:800">SEM ÁREA</span>{% else %}<span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#dcfce7;color:#166534;font-size:11px;font-weight:800">COM ÁREA</span>{% endif %}</td>
         <td>{% if u.ativo %}<span class="status ativo">ATIVA</span>{% else %}<span class="status inativo">INATIVA</span>{% endif %}</td>
         <td><div class="acao"><a class="mini editar" href="{% url 'editar_unidade' u.id %}">Editar</a>{% if u.ativo %}<form method="post" action="{% url 'desativar_unidade' u.id %}">{% csrf_token %}<button class="mini desativar" onclick="return confirm('Desativar esta unidade?')">Desativar</button></form>{% else %}<form method="post" action="{% url 'ativar_unidade' u.id %}">{% csrf_token %}<button class="mini ativar">Ativar</button></form>{% endif %}<form method="post" action="{% url 'excluir_unidade' u.id %}">{% csrf_token %}<button class="mini excluir" onclick="return confirm('Excluir definitivamente esta unidade? Se houver histórico vinculado, a exclusão será bloqueada.')">Excluir</button></form></div></td>
       </tr>
