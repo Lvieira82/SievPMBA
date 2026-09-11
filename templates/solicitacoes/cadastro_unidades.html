@@ -39,7 +39,6 @@
   <section class="territorio-card">
     <h2>Comandos cadastrados</h2>
     <div style="overflow:auto"><table class="tabela"><thead><tr><th>Sigla</th><th>Nome</th><th>Unidades</th><th>Status</th></tr></thead><tbody>
-    {% regroup cprs by sigla as comandos %}
     {% for cpr in cprs %}
       <tr><td>{{ cpr.sigla }}</td><td>{{ cpr.nome }}</td><td>{{ cpr.unidades.count }}</td><td><span class="status ativo">ATIVO</span></td></tr>
     {% empty %}<tr><td colspan="4" style="text-align:center;padding:24px">Nenhum CPR/comando cadastrado.</td></tr>{% endfor %}
@@ -51,7 +50,8 @@
     <div style="overflow:auto"><table class="tabela"><thead><tr><th>Sigla</th><th>Nome</th><th>Comando</th><th>Tipo</th><th>Território</th><th>Status</th><th>Ações</th></tr></thead><tbody>
     {% for u in unidades %}
       <tr>
-        <td>{{ u.sigla }}</td><td>{{ u.nome }}</td><td>{{ u.cpr.sigla }}</td><td>{{ u.get_tipo_display|default:u.tipo }}</td>
+        <td>{{ u.sigla }}</td><td>{{ u.nome }}</td><td>{{ u.cpr.sigla }}</td>
+        <td>{% for valor,label in tipos %}{% if valor == u.tipo %}{{ label }}{% endif %}{% endfor %}</td>
         <td>{% if u.tipo in tipos_sem_area %}<span class="sem-area">SEM ÁREA</span>{% else %}<span class="com-area">COM ÁREA</span>{% endif %}</td>
         <td>{% if u.ativo %}<span class="status ativo">ATIVA</span>{% else %}<span class="status inativo">INATIVA</span>{% endif %}</td>
         <td><div class="acao"><a class="mini editar" href="{% url 'editar_unidade' u.id %}">Editar</a>{% if u.ativo %}<form method="post" action="{% url 'desativar_unidade' u.id %}">{% csrf_token %}<button class="mini desativar" onclick="return confirm('Desativar esta unidade?')">Desativar</button></form>{% else %}<form method="post" action="{% url 'ativar_unidade' u.id %}">{% csrf_token %}<button class="mini ativar">Ativar</button></form>{% endif %}<form method="post" action="{% url 'excluir_unidade' u.id %}">{% csrf_token %}<button class="mini excluir" onclick="return confirm('Excluir definitivamente esta unidade? Se houver histórico vinculado, a exclusão será bloqueada.')">Excluir</button></form></div></td>
