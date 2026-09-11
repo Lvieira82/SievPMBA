@@ -14,6 +14,12 @@ from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, pode_ver_s
 from .geracao_opo import _gerar_pdf_opo
 
 
+TIPOS_SEM_AREA = {
+    "BPT", "CHOQUE", "OPERACOES_ESPECIAIS", "CAVALARIA", "MOTOCICLISTAS",
+    "AMBIENTAL", "RODOVIARIA", "AEREO", "APOIO_OPERACIONAL", "ESPECIALIZADA",
+}
+
+
 def _acesso(request):
     return getattr(request.user, "acesso_institucional", None)
 
@@ -26,7 +32,13 @@ def _eh_gestor_unidade_do(request, unidade):
 
 
 def _unidades_aptas_para_apoio(solicitacao):
-    return Unidade.objects.filter(ativo=True, tipo="ESPECIALIZADA").exclude(pk=solicitacao.unidade_id).order_by("sigla", "nome")
+    """Unidades especializadas podem receber apoio sem possuir área territorial."""
+    return (
+        Unidade.objects
+        .filter(ativo=True, tipo__in=TIPOS_SEM_AREA)
+        .exclude(pk=solicitacao.unidade_id)
+        .order_by("sigla", "nome")
+    )
 
 
 @login_required
@@ -41,7 +53,7 @@ def enviar_apoio(request, id):
     unidades = _unidades_aptas_para_apoio(solicitacao)
 
     if request.method == "POST":
-        unidade_destino = get_object_or_404(Unidade, pk=request.POST.get("unidade_destino"), ativo=True, tipo="ESPECIALIZADA")
+        unidade_destino = get_object_or_404(Unidade, pk=request.POST.get("unidade_destino"), ativo=True, tipo__in=TIPOS_SEM_AREA)
         if unidade_destino.pk == solicitacao.unidade_id:
             messages.error(request, "A unidade de apoio deve ser diferente da unidade responsável pelo evento.")
             return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "unidades": unidades})
