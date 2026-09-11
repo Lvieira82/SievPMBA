@@ -6,6 +6,12 @@ from django.http import JsonResponse
 from .models import AreaResponsabilidade, Bairro, Municipio, Unidade
 
 
+TIPOS_SEM_AREA = {
+    "BPT", "CHOQUE", "OPERACOES_ESPECIAIS", "CAVALARIA", "MOTOCICLISTAS",
+    "AMBIENTAL", "RODOVIARIA", "AEREO", "APOIO_OPERACIONAL", "ESPECIALIZADA",
+}
+
+
 def _normalizar(texto):
     texto = str(texto or "").strip().upper()
     texto = unicodedata.normalize("NFKD", texto)
@@ -20,6 +26,7 @@ def _areas_do_bairro(bairro):
             ativo=True,
             unidade__ativo=True,
         )
+        .exclude(unidade__tipo__in=TIPOS_SEM_AREA)
         .select_related("unidade", "bairro__municipio")
         .order_by("id")
     )
@@ -29,15 +36,12 @@ def _area_correta_do_bairro(bairro):
     """Resolve uma única área responsável pelo bairro.
 
     Regra fundamental do SiEv: um bairro/distrito pertence a uma única
-    unidade. Nunca escolhe silenciosamente a associação mais recente.
-    Se houver mais de uma associação ativa, o direcionamento fica bloqueado
-    até que o cadastro territorial seja corrigido.
+    unidade territorial. Unidades especializadas não participam desse
+    roteamento geográfico.
     """
     areas = _areas_do_bairro(bairro)
-
     if len(areas) == 1:
         return areas[0]
-
     return None
 
 
@@ -52,11 +56,14 @@ def unidades_do_municipio(municipio):
             unidade_ids.append(area.unidade_id)
 
     if municipio.unidade_responsavel_id:
-        unidade_ids.append(municipio.unidade_responsavel_id)
+        responsavel = municipio.unidade_responsavel
+        if responsavel.ativo and responsavel.tipo not in TIPOS_SEM_AREA:
+            unidade_ids.append(responsavel.id)
 
     return (
         Unidade.objects
         .filter(id__in=set(unidade_ids), ativo=True)
+        .exclude(tipo__in=TIPOS_SEM_AREA)
         .order_by("nome")
     )
 
@@ -73,11 +80,10 @@ def bairros_do_municipio(municipio):
 
 
 def unidade_para_bairro(bairro):
-    """Retorna a unidade do bairro somente quando houver associação única."""
+    """Retorna a unidade territorial do bairro somente quando houver associação única."""
     area = _area_correta_do_bairro(bairro)
     if area:
         return area.unidade
-
     return None
 
 
@@ -89,9 +95,9 @@ def validar_direcionamento(municipio, bairro):
                 "Selecione o bairro para este município, pois existem múltiplas unidades responsáveis."
             )
 
-        if not municipio.unidade_responsavel_id:
+        if not municipio.unidade_responsavel_id or municipio.unidade_responsavel.tipo in TIPOS_SEM_AREA:
             raise ValidationError(
-                "Este município ainda não possui unidade responsável cadastrada."
+                "Este município ainda não possui unidade territorial responsável cadastrada."
             )
 
         return municipio.unidade_responsavel
@@ -104,7 +110,7 @@ def validar_direcionamento(municipio, bairro):
     unidade = unidade_para_bairro(bairro)
     if unidade is None:
         raise ValidationError(
-            "O bairro selecionado não possui uma única unidade responsável cadastrada."
+            "O bairro selecionado não possui uma única unidade territorial responsável cadastrada."
         )
 
     return unidade
@@ -126,7 +132,6 @@ def lista_bairros(request, municipio_id):
     dados = []
     for bairro in bairros:
         area = _area_correta_do_bairro(bairro)
-
         dados.append({
             "id": bairro.id,
             "nome": bairro.nome,
