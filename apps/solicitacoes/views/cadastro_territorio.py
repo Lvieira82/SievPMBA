@@ -4,7 +4,32 @@ from django.db.models import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from apps.solicitacoes.models import Bairro, CPR, Municipio, Unidade
+from apps.solicitacoes.models import Bairro, COPPM, CPR, Municipio, Unidade
+
+
+TIPOS_UNIDADE = [
+    ("BPM", "BPM"),
+    ("CIPM", "CIPM"),
+    ("CIPE", "CIPE"),
+    ("CPR", "CPR"),
+    ("BPT", "Batalhão de Policiamento Tático"),
+    ("CHOQUE", "Choque"),
+    ("OPERACOES_ESPECIAIS", "Operações Especiais"),
+    ("CAVALARIA", "Cavalaria / Montada"),
+    ("MOTOCICLISTAS", "Motociclistas"),
+    ("AMBIENTAL", "Policiamento Ambiental"),
+    ("RODOVIARIA", "Policiamento Rodoviário"),
+    ("AEREO", "Policiamento Aéreo"),
+    ("APOIO_OPERACIONAL", "Apoio Operacional"),
+    ("ESPECIALIZADA", "Especializada"),
+    ("ENSINO", "Ensino / Formação"),
+    ("OUTRA", "Outra"),
+]
+
+TIPOS_SEM_AREA = {
+    "BPT", "CHOQUE", "OPERACOES_ESPECIAIS", "CAVALARIA", "MOTOCICLISTAS",
+    "AMBIENTAL", "RODOVIARIA", "AEREO", "APOIO_OPERACIONAL", "ESPECIALIZADA",
+}
 
 
 def _dev(request):
@@ -20,13 +45,42 @@ def _deny(request):
 def cadastro_unidades(request):
     if not _dev(request):
         return _deny(request)
+
     if request.method == "POST":
+        acao = request.POST.get("acao", "cadastrar_unidade")
+
+        if acao == "cadastrar_cpr":
+            nome_cpr = (request.POST.get("nome_cpr") or "").strip()
+            sigla_cpr = (request.POST.get("sigla_cpr") or "").strip().upper()
+            if not nome_cpr or not sigla_cpr:
+                messages.error(request, "Informe o nome e a sigla do novo CPR/Comando.")
+            elif CPR.objects.filter(sigla__iexact=sigla_cpr).exists():
+                messages.error(request, "Já existe um CPR/Comando com esta sigla.")
+            else:
+                coppm = COPPM.objects.filter(ativo=True).order_by("id").first()
+                if not coppm:
+                    coppm = COPPM.objects.order_by("id").first()
+                if not coppm:
+                    coppm = COPPM.objects.create(
+                        nome="Comando de Operações da Polícia Militar",
+                        sigla="COPPM",
+                        ativo=True,
+                    )
+                elif not coppm.ativo:
+                    coppm.ativo = True
+                    coppm.save(update_fields=["ativo"])
+                CPR.objects.create(coppm=coppm, nome=nome_cpr, sigla=sigla_cpr, ativo=True)
+                messages.success(request, f"CPR/Comando {sigla_cpr} cadastrado com sucesso.")
+            return redirect("cadastro_unidades")
+
         cpr = get_object_or_404(CPR, pk=request.POST.get("cpr"), ativo=True)
         nome = (request.POST.get("nome") or "").strip()
-        sigla = (request.POST.get("sigla") or "").strip()
+        sigla = (request.POST.get("sigla") or "").strip().upper()
         tipo = (request.POST.get("tipo") or "BPM").strip()
         if not nome or not sigla:
             messages.error(request, "Nome e sigla são obrigatórios.")
+        elif tipo not in dict(TIPOS_UNIDADE):
+            messages.error(request, "Tipo de unidade inválido.")
         elif Unidade.objects.filter(sigla__iexact=sigla).exists():
             messages.error(request, "Já existe uma unidade com esta sigla.")
         else:
@@ -36,11 +90,13 @@ def cadastro_unidades(request):
                 email=(request.POST.get("email") or "").strip(), ativo=True,
             )
             messages.success(request, f"Unidade {sigla} cadastrada com sucesso.")
-            return redirect("cadastro_unidades")
+        return redirect("cadastro_unidades")
+
     return render(request, "solicitacoes/cadastro_unidades.html", {
         "cprs": CPR.objects.filter(ativo=True).order_by("sigla"),
         "unidades": Unidade.objects.select_related("cpr").order_by("nome"),
-        "tipos": Unidade.TIPOS,
+        "tipos": TIPOS_UNIDADE,
+        "tipos_sem_area": TIPOS_SEM_AREA,
     })
 
 
@@ -52,10 +108,12 @@ def editar_unidade(request, id):
     if request.method == "POST":
         cpr = get_object_or_404(CPR, pk=request.POST.get("cpr"), ativo=True)
         nome = (request.POST.get("nome") or "").strip()
-        sigla = (request.POST.get("sigla") or "").strip()
+        sigla = (request.POST.get("sigla") or "").strip().upper()
         tipo = (request.POST.get("tipo") or "BPM").strip()
         if not nome or not sigla:
             messages.error(request, "Nome e sigla são obrigatórios.")
+        elif tipo not in dict(TIPOS_UNIDADE):
+            messages.error(request, "Tipo de unidade inválido.")
         elif Unidade.objects.filter(sigla__iexact=sigla).exclude(pk=unidade.pk).exists():
             messages.error(request, "Já existe outra unidade com esta sigla.")
         else:
@@ -71,7 +129,8 @@ def editar_unidade(request, id):
     return render(request, "solicitacoes/editar_unidade.html", {
         "unidade": unidade,
         "cprs": CPR.objects.filter(ativo=True).order_by("sigla"),
-        "tipos": Unidade.TIPOS,
+        "tipos": TIPOS_UNIDADE,
+        "tipos_sem_area": TIPOS_SEM_AREA,
     })
 
 
