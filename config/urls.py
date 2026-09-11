@@ -33,7 +33,8 @@ from apps.solicitacoes.views.administracao_unidade_membro import (
     ativar_operador_membro, desativar_operador_membro, excluir_operador_membro,
 )
 from apps.solicitacoes.views.cadastro_territorio import (
-    cadastro_bairros, cadastro_unidades, editar_bairro, editar_unidade,
+    cadastro_bairros, cadastro_unidades, editar_cpr, editar_bairro, editar_unidade,
+    ativar_cpr, desativar_cpr, excluir_cpr,
     ativar_bairro, desativar_bairro, excluir_bairro,
     ativar_unidade, desativar_unidade, excluir_unidade,
 )
@@ -124,6 +125,10 @@ urlpatterns = [
     path("gestao/administracao/usuario/<int:id>/ativar/", usuario_ativar, name="administracao_usuario_ativar"),
     path("gestao/administracao/usuario/<int:id>/excluir/", usuario_excluir, name="administracao_usuario_excluir"),
     path("gestao/cadastro/unidades/", cadastro_unidades, name="cadastro_unidades"),
+    path("gestao/cadastro/unidades/cpr/<int:id>/editar/", editar_cpr, name="editar_cpr"),
+    path("gestao/cadastro/unidades/cpr/<int:id>/ativar/", ativar_cpr, name="ativar_cpr"),
+    path("gestao/cadastro/unidades/cpr/<int:id>/desativar/", desativar_cpr, name="desativar_cpr"),
+    path("gestao/cadastro/unidades/cpr/<int:id>/excluir/", excluir_cpr, name="excluir_cpr"),
     path("gestao/cadastro/unidades/<int:id>/editar/", editar_unidade, name="editar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/ativar/", ativar_unidade, name="ativar_unidade"),
     path("gestao/cadastro/unidades/<int:id>/desativar/", desativar_unidade, name="desativar_unidade"),
