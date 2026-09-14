@@ -55,3 +55,472 @@ def _tempo_horas(solicitacao, unidade):
     if not inicio or not fim or fim < inicio:
         return None
     return round((fim - inicio).total_seconds() / 3600, 2)
+
+
+def _resumo_cumprimento(solicitacao_ids):
+    """Classifica cada OPO e calcula o cumprimento sobre o total de OPOs.
+
+    SIM      -> cumprida (verde)
+    NAO      -> justificada (amarelo)
+    sem resp -> descumprida (vermelho)
+
+    O percentual considera todas as OPOs no denominador, inclusive as sem
+    resposta. Ex.: 6 cumpridas em 10 OPOs = 60%.
+    """
+    opo_ids = list(
+        AnexoOPO.objects
+        .filter(solicitacao_id__in=solicitacao_ids)
+        .values_list("id", flat=True)
+    )
+    total = len(opo_ids)
+    if not total:
+        return {
+            "cumpridas": 0,
+            "justificadas": 0,
+            "descumpridas": 0,
+            "total": 0,
+            "percentual": None,
+        }
+
+    estados = defaultdict(set)
+    registros = CumprimentoOPO.objects.filter(opo_id__in=opo_ids).values_list(
+        "opo_id", "cumprida"
+    )
+    for opo_id, cumprida in registros:
+        if cumprida is True:
+            estados[opo_id].add("SIM")
+        elif cumprida is False:
+            estados[opo_id].add("NAO")
+
+    cumpridas = justificadas = descumpridas = 0
+    for opo_id in opo_ids:
+        respostas = estados.get(opo_id, set())
+        if "SIM" in respostas:
+            cumpridas += 1
+        elif "NAO" in respostas:
+            justificadas += 1
+        else:
+            descumpridas += 1
+
+    return {
+        "cumpridas": cumpridas,
+        "justificadas": justificadas,
+        "descumpridas": descumpridas,
+        "total": total,
+        "percentual": round(cumpridas * 100 / total, 1),
+    }
+
+
+def _resumo_justificativas(solicitacao_ids):
+    """Monta a distribuição percentual dos motivos registrados no NÃO.
+
+    Os motivos são recuperados dos logs do cumprimento, onde já são gravados
+    no formato "Motivos: motivo 1; motivo 2.". Quando uma resposta possui
+    mais de um motivo, cada motivo selecionado participa da distribuição.
+    """
+    contagem = defaultdict(int)
+    logs = (
+        LogSistema.objects
+        .filter(
+            solicitacao_id__in=solicitacao_ids,
+            acao="CUMPRIMENTO OPO",
+        )
+        .values_list("detalhes", flat=True)
+    )
+    for detalhes in logs:
+        texto = (detalhes or "").strip()
+        if "Motivos:" not in texto:
+            continue
+        trecho = texto.split("Motivos:", 1)[1].split(".", 1)[0]
+        for motivo in trecho.split(";"):
+            motivo = motivo.strip()
+            if motivo:
+                contagem[motivo] += 1
+
+    total = sum(contagem.values())
+    if not total:
+        return {"total": 0, "itens": [], "gradiente": ""}
+
+    cores = [
+        "#2563eb", "#16a34a", "#f59e0b", "#dc2626",
+        "#7c3aed", "#0891b2", "#db2777", "#65a30d",
+    ]
+    acumulado = 0.0
+    itens = []
+    for indice, (motivo, quantidade) in enumerate(
+        sorted(contagem.items(), key=lambda item: (-item[1], item[0]))
+    ):
+        percentual = round(quantidade * 100 / total, 1)
+        inicio = acumulado
+        acumulado = round(acumulado + percentual, 1)
+        itens.append({
+            "nome": motivo,
+            "quantidade": quantidade,
+            "percentual": percentual,
+            "cor": cores[indice % len(cores)],
+        })
+
+    # Fecha exatamente em 100% para evitar pequena lacuna por arredondamento.
+    if itens:
+        diferenca = round(100 - acumulado, 1)
+        itens[-1]["percentual"] = round(itens[-1]["percentual"] + diferenca, 1)
+
+    acumulado = 0.0
+    segmentos = []
+    for item in itens:
+        inicio = acumulado
+        acumulado = round(acumulado + item["percentual"], 1)
+        segmentos.append(f"{item['cor']} {inicio}% {acumulado}%")
+
+    return {
+        "total": total,
+        "itens": itens,
+        "gradiente": "conic-gradient(" + ", ".join(segmentos) + ")",
+    }
+
+
+def _grupos_unidades(base, unidades_relatorio):
+    grupos = []
+    for unidade in unidades_relatorio:
+        qs = base.filter(unidade=unidade)
+        total = qs.count()
+        pendentes = qs.filter(
+            status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]
+        ).count()
+        aprovadas = qs.filter(status__in=["APROVADA", "CONCLUIDA"]).count()
+        tempos = []
+        for solicitacao in qs.filter(
+            status__in=["APROVADA", "REJEITADA", "CONCLUIDA"]
+        ):
+            horas = _tempo_horas(solicitacao, unidade)
+            if horas is not None:
+                tempos.append(horas)
+        media = round(sum(tempos) / len(tempos), 2) if tempos else None
+        cumprimento = _resumo_cumprimento(qs.values_list("id", flat=True))
+        grupos.append({
+            "unidade": unidade,
+            "total": total,
+            "pendentes": pendentes,
+            "aprovadas": aprovadas,
+            "cumprimento_total": cumprimento["total"],
+            "cumpridas": cumprimento["cumpridas"],
+            "justificadas": cumprimento["justificadas"],
+            "descumpridas": cumprimento["descumpridas"],
+            "percentual": cumprimento["percentual"],
+            "respondidas": cumprimento["cumpridas"] + cumprimento["justificadas"],
+            "media_horas": media,
+            "media_minutos": round(media * 60, 1) if media is not None else None,
+            "media_dias": round(media / 24, 2) if media is not None else None,
+            "tempo_registros": len(tempos),
+            "tempo_total_horas": round(sum(tempos), 2),
+        })
+    return grupos
+
+
+def _media_percentuais(registros):
+    valores = [item["percentual"] for item in registros if item.get("percentual") is not None]
+    return round(sum(valores) / len(valores), 1) if valores else None
+
+
+def _marcar_percentual_tempo(registros, campo="media_horas"):
+    valores = [item[campo] for item in registros if item.get(campo) is not None]
+    maximo = max(valores, default=0)
+    for item in registros:
+        valor = item.get(campo)
+        item["tempo_percentual"] = round(valor * 100 / maximo, 1) if valor is not None and maximo else 0
+    return maximo
+
+
+def _chave_ranking(item):
+    """Maior cumprimento primeiro; em empate, menor tempo de atendimento."""
+    percentual = item.get("percentual")
+    tempo = item.get("media_horas")
+    return (
+        percentual is not None,
+        percentual if percentual is not None else -1,
+        tempo is None,
+        -(tempo if tempo is not None else 0),
+    )
+
+
+@login_required
+def analise_unidades(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
+
+    unidades = _unidades_permitidas(request.user).order_by("nome")
+    unidade_id = request.GET.get("unidade")
+    origem = request.GET.get("origem")
+    inicio = request.GET.get("inicio")
+    fim = request.GET.get("fim")
+    selecionada = unidades.filter(pk=unidade_id).first() if unidade_id else None
+
+    base = (
+        Solicitacao.objects
+        .select_related("unidade", "municipio", "bairro")
+        .filter(unidade__in=unidades)
+    )
+    if selecionada:
+        base = base.filter(unidade=selecionada)
+    if origem in {"EXTERNA", "MANUAL", "TRANSFERIDA"}:
+        base = base.filter(origem=origem)
+    if inicio:
+        base = base.filter(data_evento__gte=inicio)
+    if fim:
+        base = base.filter(data_evento__lte=fim)
+
+    unidades_relatorio = [selecionada] if selecionada else list(unidades)
+    grupos = _grupos_unidades(base, unidades_relatorio)
+    grupos = sorted(grupos, key=_chave_ranking, reverse=True)
+    max_tempo_unidade = _marcar_percentual_tempo(grupos)
+    total_geral = sum(item["total"] for item in grupos)
+    medias = [item["media_horas"] for item in grupos if item["media_horas"] is not None]
+    media_geral = round(sum(medias) / len(medias), 2) if medias else None
+    cumprimento_geral = _resumo_cumprimento(base.values_list("id", flat=True))
+    resumo_justificativas = _resumo_justificativas(base.values_list("id", flat=True))
+    media_cumprimento_unidades = _media_percentuais(grupos)
+    media_tempo_geral_horas = (
+        round(sum(item["tempo_total_horas"] for item in grupos) / sum(item["tempo_registros"] for item in grupos), 2)
+        if sum(item["tempo_registros"] for item in grupos)
+        else None
+    )
+    media_tempo_geral_minutos = round(media_tempo_geral_horas * 60, 1) if media_tempo_geral_horas is not None else None
+    media_tempo_geral_dias = round(media_tempo_geral_horas / 24, 2) if media_tempo_geral_horas is not None else None
+
+    acesso = getattr(request.user, "acesso_institucional", None)
+    eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
+    mostrar_grafico_justificativas = bool(
+        acesso and acesso.perfil in {"CPR", "UNIDADE"}
+    )
+    ranking_cpr = []
+    media_cumprimento_cpr = None
+    max_tempo_cpr = 0
+    if eh_coppm and not selecionada:
+        por_cpr = {}
+        for item in grupos:
+            cpr = item["unidade"].cpr
+            registro = por_cpr.setdefault(
+                cpr.id,
+                {
+                    "cpr": cpr,
+                    "total": 0,
+                    "cumpridas": 0,
+                    "justificadas": 0,
+                    "descumpridas": 0,
+                    "opo_total": 0,
+                    "tempo_registros": 0,
+                    "tempo_total_horas": 0,
+                },
+            )
+            registro["total"] += item["total"]
+            registro["cumpridas"] += item["cumpridas"]
+            registro["justificadas"] += item["justificadas"]
+            registro["descumpridas"] += item["descumpridas"]
+            registro["opo_total"] += item["cumprimento_total"]
+            registro["tempo_registros"] += item["tempo_registros"]
+            registro["tempo_total_horas"] += item["tempo_total_horas"]
+
+        for item in por_cpr.values():
+            item["respondidas"] = item["cumpridas"] + item["justificadas"]
+            item["percentual"] = (
+                round(item["cumpridas"] * 100 / item["opo_total"], 1)
+                if item["opo_total"]
+                else None
+            )
+            item["media_horas"] = (
+                round(item["tempo_total_horas"] / item["tempo_registros"], 2)
+                if item["tempo_registros"]
+                else None
+            )
+            item["media_minutos"] = round(item["media_horas"] * 60, 1) if item["media_horas"] is not None else None
+            item["media_dias"] = round(item["media_horas"] / 24, 2) if item["media_horas"] is not None else None
+
+        ranking_cpr = sorted(
+            por_cpr.values(),
+            key=_chave_ranking,
+            reverse=True,
+        )
+        max_tempo_cpr = _marcar_percentual_tempo(ranking_cpr)
+        media_cumprimento_cpr = _media_percentuais(ranking_cpr)
+
+    return render(
+        request,
+        "analise/unidades.html",
+        {
+            "grupos": grupos,
+            "unidades": unidades,
+            "selecionada": selecionada,
+            "origem": origem or "",
+            "inicio": inicio or "",
+            "fim": fim or "",
+            "total_geral": total_geral,
+            "respondidas": cumprimento_geral["cumpridas"] + cumprimento_geral["justificadas"],
+            "media_geral": media_geral,
+            "cumprimento_geral": cumprimento_geral,
+            "resumo_justificativas": resumo_justificativas,
+            "mostrar_grafico_justificativas": mostrar_grafico_justificativas,
+            "media_cumprimento_unidades": media_cumprimento_unidades,
+            "media_cumprimento_cpr": media_cumprimento_cpr,
+            "ranking_cpr": ranking_cpr,
+            "eh_coppm": eh_coppm,
+            "max_tempo_unidade": max_tempo_unidade,
+            "max_tempo_cpr": max_tempo_cpr,
+            "media_tempo_geral_horas": media_tempo_geral_horas,
+            "media_tempo_geral_minutos": media_tempo_geral_minutos,
+            "media_tempo_geral_dias": media_tempo_geral_dias,
+        },
+    )
+
+
+@login_required
+def painel_analise(request):
+    return analise_unidades(request)
+
+
+@login_required
+def fila_analise(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
+    unidades = _unidades_permitidas(request.user)
+    solicitacoes = (
+        Solicitacao.objects
+        .filter(
+            unidade__in=unidades,
+            status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"],
+        )
+        .select_related("municipio", "bairro", "unidade")
+        .order_by("criado_em")
+    )
+    return render(request, "analise/fila.html", {"solicitacoes": solicitacoes})
+
+
+@login_required
+def detalhes(request, pk):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
+    if not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta solicitação.")
+        return redirect("analise_unidades")
+    documentos = solicitacao.documentos.select_related("tipo_documento").all()
+    historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
+    return render(
+        request,
+        "analise/detalhes.html",
+        {"solicitacao": solicitacao, "documentos": documentos, "historico": historico},
+    )
+
+
+@login_required
+def aprovar(request, pk):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
+    if not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta solicitação.")
+        return redirect("fila_analise")
+    if not solicitacao.documentos.exists():
+        messages.error(request, "A solicitação não pode ser aprovada sem documentos anexados.")
+        return redirect("detalhes", pk=pk)
+    solicitacao.status = "APROVADA"
+    solicitacao.data_aprovacao = timezone.now()
+    solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
+    solicitacao.save(update_fields=["status", "data_aprovacao", "aprovado_por", "atualizado_em"])
+    HistoricoSolicitacao.objects.create(
+        solicitacao=solicitacao,
+        usuario=request.user,
+        acao="APROVADA",
+        observacao="Solicitação aprovada.",
+    )
+    messages.success(request, "Solicitação aprovada com sucesso.")
+    return redirect("fila_analise")
+
+
+@login_required
+def solicitar_correcao(request, pk):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
+    if not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta solicitação.")
+        return redirect("fila_analise")
+    motivo = request.POST.get("motivo", "").strip()
+    if request.method == "POST" and not solicitacao.documentos.exists():
+        messages.error(request, "A solicitação não pode ser enviada para correção sem documentos anexados.")
+        return redirect("detalhes", pk=pk)
+    if request.method == "POST" and not motivo:
+        messages.error(request, "Informe o motivo da correção.")
+        return redirect("detalhes", pk=pk)
+    if request.method == "POST":
+        solicitacao.status = "CORRECAO"
+        solicitacao.save(update_fields=["status", "atualizado_em"])
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            usuario=request.user,
+            acao="CORREÇÃO",
+            observacao=motivo,
+        )
+        messages.success(request, "Correção solicitada.")
+    return redirect("fila_analise")
+
+
+@login_required
+def indeferir(request, pk):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
+    if not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta solicitação.")
+        return redirect("analise_unidades")
+    motivo = request.POST.get("motivo", "").strip()
+    if request.method == "POST" and not motivo:
+        messages.error(request, "Informe o motivo do indeferimento.")
+        return redirect("detalhes", pk=pk)
+    if request.method == "POST":
+        solicitacao.status = "REJEITADA"
+        solicitacao.data_aprovacao = timezone.now()
+        solicitacao.save(update_fields=["status", "data_aprovacao", "atualizado_em"])
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            usuario=request.user,
+            acao="REJEITADA",
+            observacao=motivo,
+        )
+        messages.success(request, "Solicitação rejeitada.")
+    return redirect("fila_analise")
+
+
+@login_required
+def historico(request, pk):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        pk=pk,
+    )
+    if not pode_ver_solicitacao(request.user, solicitacao):
+        messages.error(request, "Você não possui acesso a esta solicitação.")
+        return redirect("analise_unidades")
+    historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
+    return render(request, "analise/historico.html", {"solicitacao": solicitacao, "historico": historico})
+
+
+@login_required
+def estatisticas(request):
+    if not pode_ver_ranking(request.user):
+        return _sem_acesso(request)
+    unidades = _unidades_permitidas(request.user)
+    dados = (
+        Solicitacao.objects
+        .filter(unidade__in=unidades)
+        .values("status")
+        .annotate(total=Count("id"))
+        .order_by("status")
+    )
+    return render(
+        request,
+        "analise/estatisticas.html",
+        {"dados": dados, "total": sum(item["total"] for item in dados)},
+    )
