@@ -8,119 +8,82 @@
     <link rel="icon" href="{% static 'logos/logo_pm_200.png' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=7">
+    <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=10">
     {% block css %}{% endblock %}
 </head>
 <body>
 <div class="wrapper">
     <aside class="sidebar" id="sidebar">
-        <div class="logo-area"><img src="{% static 'logos/logo_pm_200.png' %}" class="logo" alt="PMBA 200 anos"><h3>SiEv</h3><span>Sistema Inteligente de Eventos</span></div>
+        <div class="logo-area"><img src="{% static 'logos/logo_pm_200.png' %}" class="logo" alt="PMBA 200 anos"><h3>SiEv</h3><span>Sistema Integrado de Eventos</span></div>
         <hr>
         <ul class="menu">
-            {% if user.is_authenticated and user.acesso_institucional and user.acesso_institucional.perfil == "OPERADOR" %}
-                <li><a href="{% url 'eventos_dia' %}" title="Eventos do Dia"><i class="bi bi-calendar-event"></i><span>Eventos do Dia</span></a></li>
-            {% else %}
-                <li><a href="{% url 'painel_gestao' %}" title="Dashboard"><i class="bi bi-speedometer2"></i><span>Dashboard</span></a></li>
-                <li><a href="{% url 'nova_solicitacao' %}" title="Nova Solicitação"><i class="bi bi-file-earmark-plus"></i><span>Nova Solicitação</span></a></li>
-                <li><a href="{% url 'consultar' %}" title="Consultar Protocolo"><i class="bi bi-search"></i><span>Consultar Protocolo</span></a></li>
-                <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-check2-square"></i><span>Análise</span></a></li>
-                <li><a href="{% url 'agenda_gestao' %}" title="Planejamento"><i class="bi bi-calendar-event"></i><span>Planejamento</span></a></li>
-                {% if user.is_superuser or user.is_staff or user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" or user.acesso_institucional and user.acesso_institucional.funcao == "MEMBRO" and user.acesso_institucional.perfil == "CPR" or user.acesso_institucional and user.acesso_institucional.funcao == "MEMBRO" and user.acesso_institucional.perfil == "UNIDADE" %}
-                <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+            {% if user.is_authenticated %}
+                {% if user.is_superuser %}
+                    <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
+                    <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                    <li><a href="{% url 'areas_responsabilidade' %}" title="Área de Responsabilidade"><i class="bi bi-diagram-3"></i><span>Áreas</span></a></li>
+                    <li><a href="{% url 'cadastro_bairros' %}" title="Bairros / Distritos"><i class="bi bi-geo-alt"></i><span>Bairros / Distritos</span></a></li>
+                    <li><a href="{% url 'cadastro_unidades' %}" title="Unidades"><i class="bi bi-building"></i><span>Unidades</span></a></li>
+                {% elif user.acesso_institucional and user.acesso_institucional.perfil == "OPERADOR" %}
+                    <li><a href="{% url 'eventos_dia' %}" title="Eventos do Dia"><i class="bi bi-calendar-event"></i><span>Eventos do Dia</span></a></li>
+                {% else %}
+                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" %}
+                        <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
+                        <li><a href="{% url 'proximos_eventos_gestao' %}" title="Eventos futuros"><i class="bi bi-calendar-event"></i><span>Eventos futuros</span></a></li>
+                        <li><a href="{% url 'agenda_gestao' %}" title="Históricos"><i class="bi bi-clock-history"></i><span>Históricos</span></a></li>
+                        <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-bar-chart"></i><span>Análise</span></a></li>
+                        {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" %}
+                            <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
+                        {% endif %}
+                        {% if user.acesso_institucional.perfil == "UNIDADE" %}
+                            <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
+                            <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
+                            <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Manual"><i class="bi bi-pencil-square"></i><span>Lançamento Manual</span></a></li>
+                        {% endif %}
+                        <li><a href="{% url 'dashboard_operacional' %}" title="Dashboard"><i class="bi bi-graph-up"></i><span>Dashboard</span></a></li>
+                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                    {% elif user.acesso_institucional and user.acesso_institucional.perfil == "UNIDADE" and user.acesso_institucional.funcao == "MEMBRO" %}
+                        <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
+                        <li><a href="{% url 'administracao_unidade_membro' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                        <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Manual"><i class="bi bi-pencil-square"></i><span>Lançamento Manual</span></a></li>
+                    {% endif %}
                 {% endif %}
+                <li><a href="{% url 'logout_gestao' %}" title="Sair da sessão"><i class="bi bi-box-arrow-right"></i><span>Sair da sessão</span></a></li>
             {% endif %}
         </ul>
     </aside>
     <div class="main">
         <header class="topbar">
-            <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2></div>
-            <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser or user.is_staff %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
+            <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Integrado de Eventos{% endblock %}</h2></div>
+            <div class="d-flex align-items-center gap-3">
+                {% if user.is_authenticated and request.path != '/painel/' and user.acesso_institucional and user.acesso_institucional.perfil != 'OPERADOR' %}
+                    <a href="{% url 'painel_gestao' %}" class="btn btn-sm btn-light border" title="Voltar ao painel"><i class="bi bi-arrow-left"></i> Painel</a>
+                {% endif %}
+                <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
+            </div>
         </header>
-        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</section>
-        <footer class="rodape">Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
+        {% if request.path == '/gestao/analise/' and user.is_authenticated and user.acesso_institucional %}
+        <div style="padding:10px 22px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end">
+            <a href="?export=cumprimento_unidades" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF OPOs Cumpridas — Unidade</a>
+            <a href="?export=tempo_unidades" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF Tempo — Unidade</a>
+            {% if user.acesso_institucional.perfil == 'COPPM' %}
+                <a href="?export=cumprimento_cpr" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF OPOs Cumpridas — CPR</a>
+                <a href="?export=tempo_cpr" style="background:#4b5563;color:#fff;padding:8px 11px;border-radius:7px;text-decoration:none;font-size:12px;font-weight:700">📄 PDF Tempo — CPR</a>
+            {% endif %}
+        </div>
+        {% endif %}
+        <section class="conteudo">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+            {% block content %}{% endblock %}
+        </section>
+        <footer class="rodape">Sistema Integrado de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
 <script src="{% static 'js/menu.js' %}?v=1"></script><script src="{% static 'js/territorio.js' %}?v=1"></script>
-<script>
-(function () {
-    const tabela = document.querySelector('.analise .tabela');
-    if (!tabela) return;
-
-    const tbody = tabela.querySelector('tbody');
-    if (!tbody) return;
-
-    const linhas = Array.from(tbody.querySelectorAll('tr')).filter(
-        linha => !linha.querySelector('td[colspan]')
-    );
-
-    if (!linhas.length) return;
-
-    const porPagina = 15;
-    let paginaAtual = 1;
-    const totalPaginas = Math.ceil(linhas.length / porPagina);
-
-    const controles = document.createElement('div');
-    controles.className = 'siev-paginacao-analise';
-    controles.setAttribute('aria-label', 'Paginação da Análise Operacional');
-    tabela.parentElement.insertAdjacentElement('afterend', controles);
-
-    const estilo = document.createElement('style');
-    estilo.textContent = `
-        .siev-paginacao-analise{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;margin:20px 0 0}
-        .siev-paginacao-analise button{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}
-        .siev-paginacao-analise button:hover:not(:disabled){background:#f3f4f6}
-        .siev-paginacao-analise button.ativa{background:#907C64;color:#fff;border-color:#907C64}
-        .siev-paginacao-analise button:disabled{opacity:.45;cursor:not-allowed}
-        .siev-paginacao-analise .info{color:#6b7280;font-size:13px;margin:0 8px}
-        @media(max-width:800px){.siev-paginacao-analise{gap:4px}.siev-paginacao-analise button{padding:7px 10px}}
-    `;
-    document.head.appendChild(estilo);
-
-    function mostrarPagina(pagina) {
-        paginaAtual = Math.max(1, Math.min(pagina, totalPaginas));
-        const inicio = (paginaAtual - 1) * porPagina;
-        const fim = inicio + porPagina;
-
-        linhas.forEach((linha, indice) => {
-            linha.style.display = indice >= inicio && indice < fim ? '' : 'none';
-        });
-
-        controles.innerHTML = '';
-
-        const anterior = document.createElement('button');
-        anterior.type = 'button';
-        anterior.textContent = '‹ Anterior';
-        anterior.disabled = paginaAtual === 1;
-        anterior.addEventListener('click', () => mostrarPagina(paginaAtual - 1));
-        controles.appendChild(anterior);
-
-        for (let i = 1; i <= totalPaginas; i++) {
-            const botao = document.createElement('button');
-            botao.type = 'button';
-            botao.textContent = i;
-            if (i === paginaAtual) botao.classList.add('ativa');
-            botao.setAttribute('aria-label', `Página ${i}`);
-            botao.setAttribute('aria-current', i === paginaAtual ? 'page' : 'false');
-            botao.addEventListener('click', () => mostrarPagina(i));
-            controles.appendChild(botao);
-        }
-
-        const info = document.createElement('span');
-        info.className = 'info';
-        info.textContent = `${linhas.length} unidades · página ${paginaAtual} de ${totalPaginas}`;
-        controles.appendChild(info);
-
-        const proxima = document.createElement('button');
-        proxima.type = 'button';
-        proxima.textContent = 'Próxima ›';
-        proxima.disabled = paginaAtual === totalPaginas;
-        proxima.addEventListener('click', () => mostrarPagina(paginaAtual + 1));
-        controles.appendChild(proxima);
-    }
-
-    mostrarPagina(1);
-})();
-</script>
 </body></html>
