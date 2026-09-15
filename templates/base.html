@@ -36,11 +36,91 @@
             <div class="d-flex align-items-center"><button id="toggleSidebar" type="button" class="btn btn-menu me-3" aria-label="Abrir ou fechar menu"><i class="bi bi-list"></i></button><h2>{% block titulo %}Sistema Inteligente de Eventos{% endblock %}</h2></div>
             <div class="usuario">{% if user.is_authenticated %}<i class="bi bi-person-circle"></i><div class="dados-usuario"><span class="nome-usuario">{% if user.get_full_name %}{{ user.get_full_name }}{% else %}{{ user.username }}{% endif %}</span>{% if user.is_superuser or user.is_staff %}<span class="perfil-usuario">Desenvolvedor / Administrador</span>{% elif user.acesso_institucional %}<span class="perfil-usuario">{{ user.acesso_institucional.get_funcao_display }} {{ user.acesso_institucional.get_perfil_display }}</span>{% endif %}</div>{% endif %}</div>
         </header>
-        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% endif %}{% block content %}{% endblock %}</section>
+        <section class="conteudo">{% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}{% block content %}{% endblock %}</section>
         <footer class="rodape">Sistema Inteligente de Eventos - Polícia Militar da Bahia<br>© {% now "Y" %}</footer>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
 <script src="{% static 'js/menu.js' %}?v=1"></script><script src="{% static 'js/territorio.js' %}?v=1"></script>
+<script>
+(function () {
+    const tabela = document.querySelector('.analise .tabela');
+    if (!tabela) return;
+
+    const tbody = tabela.querySelector('tbody');
+    if (!tbody) return;
+
+    const linhas = Array.from(tbody.querySelectorAll('tr')).filter(
+        linha => !linha.querySelector('td[colspan]')
+    );
+
+    if (!linhas.length) return;
+
+    const porPagina = 15;
+    let paginaAtual = 1;
+    const totalPaginas = Math.ceil(linhas.length / porPagina);
+
+    const controles = document.createElement('div');
+    controles.className = 'siev-paginacao-analise';
+    controles.setAttribute('aria-label', 'Paginação da Análise Operacional');
+    tabela.parentElement.insertAdjacentElement('afterend', controles);
+
+    const estilo = document.createElement('style');
+    estilo.textContent = `
+        .siev-paginacao-analise{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;margin:20px 0 0}
+        .siev-paginacao-analise button{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:8px;padding:8px 12px;font-weight:700;cursor:pointer}
+        .siev-paginacao-analise button:hover:not(:disabled){background:#f3f4f6}
+        .siev-paginacao-analise button.ativa{background:#907C64;color:#fff;border-color:#907C64}
+        .siev-paginacao-analise button:disabled{opacity:.45;cursor:not-allowed}
+        .siev-paginacao-analise .info{color:#6b7280;font-size:13px;margin:0 8px}
+        @media(max-width:800px){.siev-paginacao-analise{gap:4px}.siev-paginacao-analise button{padding:7px 10px}}
+    `;
+    document.head.appendChild(estilo);
+
+    function mostrarPagina(pagina) {
+        paginaAtual = Math.max(1, Math.min(pagina, totalPaginas));
+        const inicio = (paginaAtual - 1) * porPagina;
+        const fim = inicio + porPagina;
+
+        linhas.forEach((linha, indice) => {
+            linha.style.display = indice >= inicio && indice < fim ? '' : 'none';
+        });
+
+        controles.innerHTML = '';
+
+        const anterior = document.createElement('button');
+        anterior.type = 'button';
+        anterior.textContent = '‹ Anterior';
+        anterior.disabled = paginaAtual === 1;
+        anterior.addEventListener('click', () => mostrarPagina(paginaAtual - 1));
+        controles.appendChild(anterior);
+
+        for (let i = 1; i <= totalPaginas; i++) {
+            const botao = document.createElement('button');
+            botao.type = 'button';
+            botao.textContent = i;
+            if (i === paginaAtual) botao.classList.add('ativa');
+            botao.setAttribute('aria-label', `Página ${i}`);
+            botao.setAttribute('aria-current', i === paginaAtual ? 'page' : 'false');
+            botao.addEventListener('click', () => mostrarPagina(i));
+            controles.appendChild(botao);
+        }
+
+        const info = document.createElement('span');
+        info.className = 'info';
+        info.textContent = `${linhas.length} unidades · página ${paginaAtual} de ${totalPaginas}`;
+        controles.appendChild(info);
+
+        const proxima = document.createElement('button');
+        proxima.type = 'button';
+        proxima.textContent = 'Próxima ›';
+        proxima.disabled = paginaAtual === totalPaginas;
+        proxima.addEventListener('click', () => mostrarPagina(paginaAtual + 1));
+        controles.appendChild(proxima);
+    }
+
+    mostrarPagina(1);
+})();
+</script>
 </body></html>
