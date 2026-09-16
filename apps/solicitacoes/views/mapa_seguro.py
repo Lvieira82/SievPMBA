@@ -17,6 +17,24 @@ from apps.solicitacoes.models import Solicitacao
 from apps.solicitacoes.permissoes import escopo_unidades
 
 
+def _eventos_mapa_territorial(request, inicio, fim):
+    """Aplica ao PDF o mesmo escopo territorial usado na consulta do mapa.
+
+    Para CPR, o território é definido pelo município do evento, e não pela
+    unidade que gerou a OPO. Para Unidade, permanece o escopo da própria
+    unidade.
+    """
+    acesso = getattr(request.user, "acesso_institucional", None)
+    base = Solicitacao.objects.filter(data_evento__range=(inicio, fim)).select_related(
+        "municipio", "municipio__unidade_responsavel", "municipio__unidade_responsavel__cpr", "unidade"
+    ).prefetch_related("opos")
+
+    if acesso and acesso.perfil == "CPR" and acesso.cpr_id:
+        return base.filter(municipio__unidade_responsavel__cpr_id=acesso.cpr_id).order_by("data_evento", "hora_inicio")
+
+    return base.filter(unidade__in=escopo_unidades(request.user)).order_by("data_evento", "hora_inicio")
+
+
 def _tipo_evento_por_opo(solicitacao):
     """Obtém o tipo a partir da última OPO gerada para a solicitação.
 
@@ -52,15 +70,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
     if fim < inicio:
         inicio, fim = fim, inicio
 
-    eventos = (
-        Solicitacao.objects.filter(
-            unidade__in=escopo_unidades(request.user),
-            data_evento__range=(inicio, fim),
-        )
-        .select_related("municipio", "unidade")
-        .prefetch_related("opos")
-        .order_by("data_evento", "hora_inicio")
-    )
+    eventos = _eventos_mapa_territorial(request, inicio, fim)
 
     response = HttpResponse(content_type="application/pdf")
     response["Content-Disposition"] = 'inline; filename="mapa_eventos.pdf"'
