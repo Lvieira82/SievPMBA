@@ -17,7 +17,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import mm
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from apps.solicitacoes.models import AnexoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
+from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
 from apps.solicitacoes.permissoes import (
     eh_desenvolvedor,
@@ -148,7 +148,10 @@ def opos_geradas_seguro(request):
         if a.solicitacao.protocolo not in grupos:
             grupos[a.solicitacao.protocolo] = {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": [], "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento"))}
         grupos[a.solicitacao.protocolo]["arquivos"].append(a)
-    return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values()), "pode_apoio": eh_desenvolvedor(request.user) or eh_gestor(request.user)})
+    pode_apoio_base = eh_desenvolvedor(request.user) or eh_gestor(request.user)
+    for protocolo in grupos.values():
+        protocolo["pode_apoio"] = pode_apoio_base and not CumprimentoOPO.objects.filter(opo__solicitacao=protocolo["solicitacao"], respondido_em__isnull=False).exists()
+    return render(request, "gestao/opos_geradas.html", {"protocolos": list(grupos.values()), "pode_apoio": pode_apoio_base})
 
 
 @login_required
@@ -163,7 +166,7 @@ def detalhe_opo_seguro(request, id):
     anexos = AnexoOPO.objects.filter(solicitacao=s).exclude(arquivo="").order_by("-criado_em")
     documentos = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     a = getattr(request.user, "acesso_institucional", None)
-    pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))))
+    pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))) and not CumprimentoOPO.objects.filter(opo__solicitacao=s, respondido_em__isnull=False).exists())
     return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio})
 
 
@@ -181,32 +184,24 @@ def mapa_eventos_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-
     eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
     data_inicio = (request.GET.get("data_inicio") or "").strip()
     data_fim = (request.GET.get("data_fim") or "").strip()
     if data_inicio:
-        try:
-            eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
-        except ValueError:
-            data_inicio = ""
+        try: eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
+        except ValueError: data_inicio = ""
     if data_fim:
-        try:
-            eventos = eventos.filter(data_evento__lte=datetime.strptime(data_fim, "%Y-%m-%d").date())
-        except ValueError:
-            data_fim = ""
+        try: eventos = eventos.filter(data_evento__lte=datetime.strptime(data_fim, "%Y-%m-%d").date())
+        except ValueError: data_fim = ""
     return render(request, "gestao/mapa_eventos.html", {"eventos": eventos, "data_inicio": data_inicio, "data_fim": data_fim})
 
 
 def _tipo_opo_mapa(solicitacao):
     anexo = AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
-    if not anexo:
-        return "ORDINÁRIO"
+    if not anexo: return "ORDINÁRIO"
     descricao = (anexo.descricao or "").upper()
-    if "EVENTO EXTRA: SIM" in descricao:
-        return "EXTRAORDINÁRIO"
-    if "EVENTO EXTRA: NÃO" in descricao or "EVENTO EXTRA: NAO" in descricao:
-        return "ORDINÁRIO"
+    if "EVENTO EXTRA: SIM" in descricao: return "EXTRAORDINÁRIO"
+    if "EVENTO EXTRA: NÃO" in descricao or "EVENTO EXTRA: NAO" in descricao: return "ORDINÁRIO"
     return "ORDINÁRIO"
 
 
@@ -215,85 +210,33 @@ def gerar_mapa_eventos_pdf_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-
     eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
-    data_inicio = (request.GET.get("data_inicio") or "").strip()
-    data_fim = (request.GET.get("data_fim") or "").strip()
+    data_inicio = (request.GET.get("data_inicio") or "").strip(); data_fim = (request.GET.get("data_fim") or "").strip()
     if data_inicio:
-        try:
-            eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
-        except ValueError:
-            data_inicio = ""
+        try: eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
+        except ValueError: data_inicio = ""
     if data_fim:
-        try:
-            eventos = eventos.filter(data_evento__lte=datetime.strptime(data_fim, "%Y-%m-%d").date())
-        except ValueError:
-            data_fim = ""
-
+        try: eventos = eventos.filter(data_evento__lte=datetime.strptime(data_fim, "%Y-%m-%d").date())
+        except ValueError: data_fim = ""
     response = HttpResponse(content_type="application/pdf")
-    inicio_nome = data_inicio or "inicio"
-    fim_nome = data_fim or "fim"
-    response["Content-Disposition"] = f'inline; filename="mapa_eventos_{inicio_nome}_{fim_nome}.pdf"'
-
-    pagina = landscape(A4)
-    doc = SimpleDocTemplate(response, pagesize=pagina, rightMargin=12*mm, leftMargin=12*mm, topMargin=12*mm, bottomMargin=12*mm)
-    styles = getSampleStyleSheet()
-    titulo = ParagraphStyle("TituloMapa", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=18, leading=21, alignment=TA_CENTER, spaceAfter=3)
-    subtitulo = ParagraphStyle("SubtituloMapa", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=12, leading=15, alignment=TA_CENTER, spaceAfter=3)
-    periodo = ParagraphStyle("PeriodoMapa", parent=styles["Normal"], fontSize=8.5, alignment=TA_CENTER, textColor=colors.HexColor("#444444"), spaceAfter=10)
-    celula = ParagraphStyle("CelulaMapa", parent=styles["Normal"], fontSize=7.5, leading=9)
-    cabecalho = ParagraphStyle("CabecalhoMapa", parent=celula, fontName="Helvetica-Bold", textColor=colors.white, alignment=TA_CENTER)
-
-    story = []
-    logo_path = finders.find("logos/logo_pmba.png")
+    inicio_nome=data_inicio or "inicio"; fim_nome=data_fim or "fim"; response["Content-Disposition"]=f'inline; filename="mapa_eventos_{inicio_nome}_{fim_nome}.pdf"'
+    pagina=landscape(A4); doc=SimpleDocTemplate(response,pagesize=pagina,rightMargin=12*mm,leftMargin=12*mm,topMargin=12*mm,bottomMargin=12*mm)
+    styles=getSampleStyleSheet(); titulo=ParagraphStyle("TituloMapa",parent=styles["Title"],fontName="Helvetica-Bold",fontSize=18,leading=21,alignment=TA_CENTER,spaceAfter=3); subtitulo=ParagraphStyle("SubtituloMapa",parent=styles["Normal"],fontName="Helvetica-Bold",fontSize=12,leading=15,alignment=TA_CENTER,spaceAfter=3); periodo=ParagraphStyle("PeriodoMapa",parent=styles["Normal"],fontSize=8.5,alignment=TA_CENTER,textColor=colors.HexColor("#444444"),spaceAfter=10); celula=ParagraphStyle("CelulaMapa",parent=styles["Normal"],fontSize=7.5,leading=9); cabecalho=ParagraphStyle("CabecalhoMapa",parent=celula,fontName="Helvetica-Bold",textColor=colors.white,alignment=TA_CENTER)
+    story=[]; logo_path=finders.find("logos/logo_pmba.png")
     if logo_path:
-        logo = Image(logo_path, width=22*mm, height=22*mm)
-        logo.hAlign = "CENTER"
-        story.append(logo)
-        story.append(Spacer(1, 2*mm))
-    story.append(Paragraph("POLÍCIA MILITAR DA BAHIA", titulo))
-    unidades_titulo = []
+        logo=Image(logo_path,width=22*mm,height=22*mm); logo.hAlign="CENTER"; story.append(logo); story.append(Spacer(1,2*mm))
+    story.append(Paragraph("POLÍCIA MILITAR DA BAHIA",titulo)); unidades_titulo=[]
     for evento in eventos:
-        if evento.unidade and evento.unidade.nome not in unidades_titulo:
-            unidades_titulo.append(evento.unidade.nome)
-    unidade_titulo = unidades_titulo[0] if len(unidades_titulo) == 1 else (" / ".join(unidades_titulo) if unidades_titulo else "UNIDADE RESPONSÁVEL")
-    story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}", subtitulo))
-    if data_inicio and data_fim:
-        periodo_texto = f"Período: {datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')}"
-    elif data_inicio:
-        periodo_texto = f"A partir de {datetime.strptime(data_inicio, '%Y-%m-%d').strftime('%d/%m/%Y')}"
-    elif data_fim:
-        periodo_texto = f"Até {datetime.strptime(data_fim, '%Y-%m-%d').strftime('%d/%m/%Y')}"
-    else:
-        periodo_texto = "Todos os eventos do âmbito institucional"
-    story.append(Paragraph(periodo_texto, periodo))
-
-    dados = [[Paragraph("DATA", cabecalho), Paragraph("HORA", cabecalho), Paragraph("EVENTO", cabecalho), Paragraph("MUNICÍPIO", cabecalho), Paragraph("UNIDADE QUE GEROU", cabecalho), Paragraph("TIPO", cabecalho)]]
+        if evento.unidade and evento.unidade.nome not in unidades_titulo: unidades_titulo.append(evento.unidade.nome)
+    unidade_titulo=unidades_titulo[0] if len(unidades_titulo)==1 else (" / ".join(unidades_titulo) if unidades_titulo else "UNIDADE RESPONSÁVEL"); story.append(Paragraph(f"MAPA DE EVENTO - {unidade_titulo}",subtitulo))
+    if data_inicio and data_fim: periodo_texto=f"Período: {datetime.strptime(data_inicio,'%Y-%m-%d').strftime('%d/%m/%Y')} a {datetime.strptime(data_fim,'%Y-%m-%d').strftime('%d/%m/%Y')}"
+    elif data_inicio: periodo_texto=f"A partir de {datetime.strptime(data_inicio,'%Y-%m-%d').strftime('%d/%m/%Y')}"
+    elif data_fim: periodo_texto=f"Até {datetime.strptime(data_fim,'%Y-%m-%d').strftime('%d/%m/%Y')}"
+    else: periodo_texto="Todos os eventos do âmbito institucional"
+    story.append(Paragraph(periodo_texto,periodo))
+    dados=[[Paragraph("DATA",cabecalho),Paragraph("HORA",cabecalho),Paragraph("EVENTO",cabecalho),Paragraph("MUNICÍPIO",cabecalho),Paragraph("UNIDADE QUE GEROU",cabecalho),Paragraph("TIPO",cabecalho)]]
     for evento in eventos:
-        unidade = evento.unidade.nome if evento.unidade else "Não definida"
-        dados.append([
-            Paragraph(evento.data_evento.strftime("%d/%m/%Y"), celula),
-            Paragraph(evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-", celula),
-            Paragraph(evento.nome_evento or "-", celula),
-            Paragraph(evento.municipio.nome if evento.municipio else "-", celula),
-            Paragraph(unidade, celula),
-            Paragraph(_tipo_opo_mapa(evento), celula),
-        ])
-    tabela = Table(dados, repeatRows=1, colWidths=[22*mm, 18*mm, 50*mm, 38*mm, 72*mm, 30*mm])
-    tabela.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#6b7280")),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-        ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#9ca3af")),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (0, 0), (1, -1), "CENTER"),
-        ("ALIGN", (5, 1), (5, -1), "CENTER"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f3f4f6")]),
-        ("TOPPADDING", (0, 0), (-1, -1), 5),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
-    ]))
-    story.append(tabela)
-    if not eventos.exists():
-        story.append(Spacer(1, 8*mm))
-        story.append(Paragraph("Nenhum evento encontrado para o período selecionado.", celula))
-    doc.build(story)
-    return response
+        unidade=evento.unidade.nome if evento.unidade else "Não definida"; dados.append([Paragraph(evento.data_evento.strftime("%d/%m/%Y"),celula),Paragraph(evento.hora_inicio.strftime("%H:%M") if evento.hora_inicio else "-",celula),Paragraph(evento.nome_evento or "-",celula),Paragraph(evento.municipio.nome if evento.municipio else "-",celula),Paragraph(unidade,celula),Paragraph(_tipo_opo_mapa(evento),celula)])
+    tabela=Table(dados,repeatRows=1,colWidths=[22*mm,18*mm,50*mm,38*mm,72*mm,30*mm]); tabela.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#6b7280")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("GRID",(0,0),(-1,-1),0.4,colors.HexColor("#9ca3af")),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("ALIGN",(0,0),(1,-1),"CENTER"),("ALIGN",(5,1),(5,-1),"CENTER"),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f3f4f6")]),("TOPPADDING",(0,0),(-1,-1),5),("BOTTOMPADDING",(0,0),(-1,-1),5)])); story.append(tabela)
+    if not eventos.exists(): story.append(Spacer(1,8*mm)); story.append(Paragraph("Nenhum evento encontrado para o período selecionado.",celula))
+    doc.build(story); return response
