@@ -290,7 +290,7 @@ def analise_unidades(request):
     acesso = getattr(request.user, "acesso_institucional", None)
     eh_coppm = bool(acesso and acesso.perfil == "COPPM" and acesso.funcao == "GESTOR")
     mostrar_grafico_justificativas = bool(
-        acesso and acesso.perfil in {"CPR", "UNIDADE"}
+        acesso and acesso.perfil in {"CPR", "UNIDADE", "COPPM"}
     )
     ranking_cpr = []
     media_cumprimento_cpr = None
@@ -362,165 +362,12 @@ def analise_unidades(request):
             "media_cumprimento_unidades": media_cumprimento_unidades,
             "media_cumprimento_cpr": media_cumprimento_cpr,
             "ranking_cpr": ranking_cpr,
-            "eh_coppm": eh_coppm,
             "max_tempo_unidade": max_tempo_unidade,
             "max_tempo_cpr": max_tempo_cpr,
             "media_tempo_geral_horas": media_tempo_geral_horas,
             "media_tempo_geral_minutos": media_tempo_geral_minutos,
             "media_tempo_geral_dias": media_tempo_geral_dias,
+            "eh_coppm": eh_coppm,
+            "pode_ver_ranking": True,
         },
-    )
-
-
-@login_required
-def painel_analise(request):
-    return analise_unidades(request)
-
-
-@login_required
-def fila_analise(request):
-    if not pode_ver_ranking(request.user):
-        return _sem_acesso(request)
-    unidades = _unidades_permitidas(request.user)
-    solicitacoes = (
-        Solicitacao.objects
-        .filter(
-            unidade__in=unidades,
-            status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"],
-        )
-        .select_related("municipio", "bairro", "unidade")
-        .order_by("criado_em")
-    )
-    return render(request, "analise/fila.html", {"solicitacoes": solicitacoes})
-
-
-@login_required
-def detalhes(request, pk):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=pk,
-    )
-    if not pode_ver_solicitacao(request.user, solicitacao):
-        messages.error(request, "Você não possui acesso a esta solicitação.")
-        return redirect("analise_unidades")
-    documentos = solicitacao.documentos.select_related("tipo_documento").all()
-    historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
-    return render(
-        request,
-        "analise/detalhes.html",
-        {"solicitacao": solicitacao, "documentos": documentos, "historico": historico},
-    )
-
-
-@login_required
-def aprovar(request, pk):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=pk,
-    )
-    if not pode_ver_solicitacao(request.user, solicitacao):
-        messages.error(request, "Você não possui acesso a esta solicitação.")
-        return redirect("fila_analise")
-    if not solicitacao.documentos.exists():
-        messages.error(request, "A solicitação não pode ser aprovada sem documentos anexados.")
-        return redirect("detalhes", pk=pk)
-    solicitacao.status = "APROVADA"
-    solicitacao.data_aprovacao = timezone.now()
-    solicitacao.aprovado_por = request.user.get_full_name() or request.user.username
-    solicitacao.save(update_fields=["status", "data_aprovacao", "aprovado_por", "atualizado_em"])
-    HistoricoSolicitacao.objects.create(
-        solicitacao=solicitacao,
-        usuario=request.user,
-        acao="APROVADA",
-        observacao="Solicitação aprovada.",
-    )
-    messages.success(request, "Solicitação aprovada com sucesso.")
-    return redirect("fila_analise")
-
-
-@login_required
-def solicitar_correcao(request, pk):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=pk,
-    )
-    if not pode_ver_solicitacao(request.user, solicitacao):
-        messages.error(request, "Você não possui acesso a esta solicitação.")
-        return redirect("fila_analise")
-    motivo = request.POST.get("motivo", "").strip()
-    if request.method == "POST" and not solicitacao.documentos.exists():
-        messages.error(request, "A solicitação não pode ser enviada para correção sem documentos anexados.")
-        return redirect("detalhes", pk=pk)
-    if request.method == "POST" and not motivo:
-        messages.error(request, "Informe o motivo da correção.")
-        return redirect("detalhes", pk=pk)
-    if request.method == "POST":
-        solicitacao.status = "CORRECAO"
-        solicitacao.save(update_fields=["status", "atualizado_em"])
-        HistoricoSolicitacao.objects.create(
-            solicitacao=solicitacao,
-            usuario=request.user,
-            acao="CORREÇÃO",
-            observacao=motivo,
-        )
-        messages.success(request, "Correção solicitada.")
-    return redirect("fila_analise")
-
-
-@login_required
-def indeferir(request, pk):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=pk,
-    )
-    if not pode_ver_solicitacao(request.user, solicitacao):
-        messages.error(request, "Você não possui acesso a esta solicitação.")
-        return redirect("analise_unidades")
-    motivo = request.POST.get("motivo", "").strip()
-    if request.method == "POST" and not motivo:
-        messages.error(request, "Informe o motivo do indeferimento.")
-        return redirect("detalhes", pk=pk)
-    if request.method == "POST":
-        solicitacao.status = "REJEITADA"
-        solicitacao.data_aprovacao = timezone.now()
-        solicitacao.save(update_fields=["status", "data_aprovacao", "atualizado_em"])
-        HistoricoSolicitacao.objects.create(
-            solicitacao=solicitacao,
-            usuario=request.user,
-            acao="REJEITADA",
-            observacao=motivo,
-        )
-        messages.success(request, "Solicitação rejeitada.")
-    return redirect("fila_analise")
-
-
-@login_required
-def historico(request, pk):
-    solicitacao = get_object_or_404(
-        Solicitacao.objects.select_related("unidade"),
-        pk=pk,
-    )
-    if not pode_ver_solicitacao(request.user, solicitacao):
-        messages.error(request, "Você não possui acesso a esta solicitação.")
-        return redirect("analise_unidades")
-    historico = solicitacao.historico.select_related("usuario").order_by("-criado_em")
-    return render(request, "analise/historico.html", {"solicitacao": solicitacao, "historico": historico})
-
-
-@login_required
-def estatisticas(request):
-    if not pode_ver_ranking(request.user):
-        return _sem_acesso(request)
-    unidades = _unidades_permitidas(request.user)
-    dados = (
-        Solicitacao.objects
-        .filter(unidade__in=unidades)
-        .values("status")
-        .annotate(total=Count("id"))
-        .order_by("status")
-    )
-    return render(
-        request,
-        "analise/estatisticas.html",
-        {"dados": dados, "total": sum(item["total"] for item in dados)},
     )
