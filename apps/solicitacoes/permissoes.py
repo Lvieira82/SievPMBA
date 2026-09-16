@@ -103,8 +103,8 @@ def pode_ver_documentacao_solicitacao(user):
 
 
 def pode_gerar_opo(user, solicitacao=None):
-    # Membros passam a ter a mesma permissão operacional do respectivo gestor.
-    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
+    # Geração de OPO é operacionalmente exclusiva do âmbito de Unidade.
+    return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def escopo_unidades(user):
@@ -127,8 +127,8 @@ def pode_administrar_usuarios(user):
 
 
 def pode_lancamento_manual(user):
-    """Permite lançamento manual a gestores e membros institucionais."""
-    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
+    """Lançamento manual exclusivo de Gestor/Membro de Unidade."""
+    return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
