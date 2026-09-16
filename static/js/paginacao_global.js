@@ -1,7 +1,7 @@
 (function(){
   function iniciar(container){
     const tamanho=Math.max(1,parseInt(container.dataset.paginaTamanho||10,10));
-    const itens=Array.from(container.children).filter(el=>el.dataset.paginavelItem==='1');
+    const itens=Array.from(container.querySelectorAll('[data-paginavel-item="1"]'));
     if(itens.length<=tamanho)return;
     let pagina=1;
     const total=Math.ceil(itens.length/tamanho);
