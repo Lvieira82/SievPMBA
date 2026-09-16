@@ -37,3 +37,10 @@ aprovar_solicitacao=aprovar_solicitacao_segura
 solicitar_correcao_gestao=solicitar_correcao_segura
 indeferir_solicitacao=indeferir_seguro
 aprovar=aprovar_analise
+
+# O config/urls.py importa diretamente a view do módulo mapa_eventos_pdf.
+# Substituímos somente a implementação dessa view para o PDF normal do mapa,
+# preservando os relatórios de cumprimento e o restante das views públicas.
+from . import mapa_eventos_pdf as _mapa_eventos_pdf_module
+from .mapa_eventos_pdf_territorial import gerar_mapa_eventos_pdf_seguro as _gerar_mapa_eventos_pdf_territorial
+_mapa_eventos_pdf_module.gerar_mapa_eventos_pdf_seguro = _gerar_mapa_eventos_pdf_territorial
