@@ -2,57 +2,8 @@
 {% block title %}Administração do Sistema{% endblock %}
 {% block titulo %}Administração do Sistema{% endblock %}
 {% block content %}
-<div class="container-fluid" style="max-width:1250px">
-  <div class="card mb-4">
-    <div class="card-body p-4">
-      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div>
-          <h1 class="mb-2" style="color:#907C64">⚙️ Administração do Sistema</h1>
-          <p class="mb-0">Cadastro institucional sem uso do Django Admin. As permissões são determinadas pelo vínculo do usuário.</p>
-        </div>
-        <a href="{% url 'administracao_usuario_novo' %}" class="btn btn-primary">+ Novo usuário</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="card"><div class="card-body p-4">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-      <div><h2 class="mb-1" style="color:#907C64">Usuários sob sua gestão</h2><p class="text-muted mb-0">Unidades e bairros continuam exclusivos do desenvolvedor.</p></div>
-      <a href="{% url 'painel_gestao' %}" class="btn btn-outline-secondary">← Painel</a>
-    </div>
-    <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
-        <thead><tr><th>Matrícula</th><th>Nome</th><th>CPF</th><th>Âmbito</th><th>Função</th><th>CPR</th><th>Unidade</th><th>Status</th><th>Ações</th></tr></thead>
-        <tbody>
-        {% for p in perfis %}
-          <tr>
-            <td>{{ p.matricula }}</td>
-            <td>{{ p.usuario.get_full_name }}</td>
-            <td>{{ p.cpf }}</td>
-            <td>{{ p.get_perfil_display }}</td>
-            <td>{{ p.get_funcao_display }}</td>
-            <td>{{ p.cpr.sigla|default:'—' }}</td>
-            <td>{{ p.unidade.sigla|default:'—' }}</td>
-            <td>{% if p.ativo and p.usuario.is_active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td>
-            <td>
-              <a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>
-              {% if scope.desenvolvedor %}
-                · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>
-                {% if p.ativo and p.usuario.is_active %}
-                  · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>
-                {% else %}
-                  · <a href="{% url 'administracao_usuario_ativar' p.usuario.id %}">Ativar</a>
-                {% endif %}
-                · <a href="{% url 'administracao_usuario_excluir' p.usuario.id %}" onclick="return confirm('Excluir definitivamente este registro? Esta ação não pode ser desfeita.');">Excluir</a>
-              {% elif p.ativo %}
-                · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>
-              {% endif %}
-            </td>
-          </tr>
-        {% empty %}<tr><td colspan="9" class="text-center py-4">Nenhum membro cadastrado neste âmbito.</td></tr>{% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div></div>
-</div>
+<div class="container-fluid" style="max-width:1250px"><div class="card mb-4"><div class="card-body p-4"><div class="d-flex flex-wrap justify-content-between align-items-center gap-3"><div><h1 class="mb-2" style="color:#907C64">⚙️ Administração do Sistema</h1><p class="mb-0">Cadastro institucional sem uso do Django Admin. As permissões são determinadas pelo vínculo do usuário.</p></div><a href="{% url 'administracao_usuario_novo' %}" class="btn btn-primary">+ Novo usuário</a></div></div></div>
+<div class="card"><div class="card-body p-4"><div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3"><div><h2 class="mb-1" style="color:#907C64">Usuários sob sua gestão</h2><p class="text-muted mb-0">Unidades e bairros continuam exclusivos do desenvolvedor.</p></div><a href="{% url 'painel_gestao' %}" class="btn btn-outline-secondary">← Painel</a></div>
+<div class="paginacao-global-container" data-pagina-tamanho="15"><div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th>Matrícula</th><th>Nome</th><th>CPF</th><th>Âmbito</th><th>Função</th><th>CPR</th><th>Unidade</th><th>Status</th><th>Ações</th></tr></thead><tbody>{% for p in perfis %}<tr data-paginavel-item="1"><td>{{ p.matricula }}</td><td>{{ p.usuario.get_full_name }}</td><td>{{ p.cpf }}</td><td>{{ p.get_perfil_display }}</td><td>{{ p.get_funcao_display }}</td><td>{{ p.cpr.sigla|default:'—' }}</td><td>{{ p.unidade.sigla|default:'—' }}</td><td>{% if p.ativo and p.usuario.is_active %}<span class="badge text-bg-success">Ativo</span>{% else %}<span class="badge text-bg-secondary">Inativo</span>{% endif %}</td><td><a href="{% url 'administracao_usuario_editar' p.usuario.id %}">Editar</a>{% if scope.desenvolvedor %} · <a href="{% url 'administracao_usuario_senha' p.usuario.id %}">Nova senha</a>{% if p.ativo and p.usuario.is_active %} · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>{% else %} · <a href="{% url 'administracao_usuario_ativar' p.usuario.id %}">Ativar</a>{% endif %} · <a href="{% url 'administracao_usuario_excluir' p.usuario.id %}" onclick="return confirm('Excluir definitivamente este registro? Esta ação não pode ser desfeita.');">Excluir</a>{% elif p.ativo %} · <a href="{% url 'administracao_usuario_desativar' p.usuario.id %}">Desativar</a>{% endif %}</td></tr>{% empty %}<tr><td colspan="9" class="text-center py-4">Nenhum membro cadastrado neste âmbito.</td></tr>{% endfor %}</tbody></table></div></div>
+</div></div></div>
 {% endblock %}
