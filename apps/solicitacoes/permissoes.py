@@ -38,6 +38,24 @@ def perfil_gestor(user, perfil):
     return bool(a and a.ativo and user.is_active and a.funcao == "GESTOR" and a.perfil == perfil)
 
 
+def perfil_gestor_ou_membro(user, perfil):
+    """Permissões operacionais de gestor + membro do mesmo perfil.
+
+    Não concede, por si só, poderes de administração de usuários. O cadastro
+    de membros continua controlado separadamente pelas regras de gestão.
+    """
+    if eh_desenvolvedor(user):
+        return True
+    a = acesso_do_usuario(user)
+    return bool(
+        a
+        and a.ativo
+        and user.is_active
+        and a.perfil == perfil
+        and a.funcao in {"GESTOR", "MEMBRO"}
+    )
+
+
 def eh_membro_unidade(user):
     a = acesso_do_usuario(user)
     return bool(a and a.ativo and user.is_active and a.funcao == "MEMBRO" and a.perfil == "UNIDADE")
@@ -49,34 +67,36 @@ def pode_ver_administracao(user):
         or perfil_gestor(user, "COPPM")
         or perfil_gestor(user, "CPR")
         or perfil_gestor(user, "UNIDADE")
-        or eh_membro_unidade(user)
+        or eh_membro(user)
     )
 
 
 def pode_cadastrar_usuario(user):
+    # Membros podem acessar o cadastro apenas para criar OPERADORES. A view e
+    # o formulario continuam impedindo que um membro crie outro membro.
     return bool(
         eh_desenvolvedor(user)
         or perfil_gestor(user, "COPPM")
         or perfil_gestor(user, "CPR")
         or perfil_gestor(user, "UNIDADE")
-        or eh_membro_unidade(user)
+        or eh_membro(user)
     )
 
 
 def pode_cadastrar_operador(user):
-    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "UNIDADE") or eh_membro_unidade(user))
+    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "UNIDADE") or eh_membro_unidade(user) or (acesso_do_usuario(user) and acesso_do_usuario(user).funcao == "MEMBRO" and acesso_do_usuario(user).perfil == "CPR"))
 
 
 def pode_ver_historico(user):
-    return bool(perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_ranking(user):
-    return bool(perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_proximos_eventos(user):
-    return bool(perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_cprs(user):
@@ -88,19 +108,19 @@ def pode_ver_unidades(user):
 
 
 def pode_ver_mapa_eventos(user):
-    return bool(perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_dashboard(user):
-    return bool(perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_documentacao_solicitacao(user):
-    return bool(perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_gerar_opo(user, solicitacao=None):
-    return bool(perfil_gestor(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def escopo_unidades(user):
@@ -123,8 +143,12 @@ def pode_administrar_usuarios(user):
 
 
 def pode_lancamento_manual(user):
-    """Permite lançamento manual somente a Gestor ou Membro de Unidade."""
-    return bool(perfil_gestor(user, "UNIDADE") or eh_membro_unidade(user))
+    """Permite lançamento manual somente a Gestor ou Membro institucional."""
+    return bool(
+        perfil_gestor_ou_membro(user, "COPPM")
+        or perfil_gestor_ou_membro(user, "CPR")
+        or perfil_gestor_ou_membro(user, "UNIDADE")
+    )
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
@@ -134,7 +158,7 @@ def pode_aprovar_solicitacao(user, solicitacao):
     if not a or not a.ativo or not user.is_active:
         return False
     if a.perfil == "UNIDADE":
-        return bool(a.funcao == "GESTOR" and a.unidade_id and solicitacao.unidade_id == a.unidade_id)
+        return bool(a.funcao in {"GESTOR", "MEMBRO"} and a.unidade_id and solicitacao.unidade_id == a.unidade_id)
     return False
 
 
@@ -155,7 +179,7 @@ def pode_ver_solicitacao(user, solicitacao):
 
 def pode_transferir(user, solicitacao):
     a = acesso_do_usuario(user)
-    return bool(a and a.ativo and user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
+    return bool(a and a.ativo and user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil in {"COPPM", "CPR", "UNIDADE"} and pode_ver_solicitacao(user, solicitacao))
 
 
 def descricao_acesso(user):
