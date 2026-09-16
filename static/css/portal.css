@@ -78,6 +78,14 @@ h2{
     font-weight:600;
 }
 
+.nome-siev{
+    color:var(--dourado);
+    font-size:24px;
+    line-height:1.2;
+    font-weight:600;
+    margin:-20px 0 30px;
+}
+
 .descricao{
     max-width:850px;
     margin:0 auto 35px;
@@ -218,6 +226,7 @@ footer{margin-top:35px;color:#777;font-size:15px;padding-bottom:20px}
     .logo-principal{width:205px;max-width:76%;margin-bottom:20px}
     h1{font-size:30px}
     h2{font-size:21px;margin-bottom:22px}
+    .nome-siev{font-size:23px;margin:-14px 0 24px}
     .descricao{font-size:16px;line-height:1.65;margin-bottom:25px}
     .row.g-4{display:flex;flex-direction:column;gap:18px}
     .row.g-4 > [class*="col-"]{width:100%;max-width:100%}
@@ -238,6 +247,7 @@ footer{margin-top:35px;color:#777;font-size:15px;padding-bottom:20px}
     .logo-principal{width:190px;max-width:84%}
     h1{font-size:26px}
     h2{font-size:19px}
+    .nome-siev{font-size:22px;margin:-12px 0 22px}
     .descricao{font-size:15px}
     .servico{padding:22px 16px}
     .servico h3{font-size:21px}
