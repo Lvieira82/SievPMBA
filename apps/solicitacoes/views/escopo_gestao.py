@@ -179,12 +179,29 @@ def gerar_opo_seguro(request, id):
     return gerar_opo_com_evento_extra(request, id)
 
 
+def _eventos_mapa_territorial(request):
+    """Retorna os eventos do mapa conforme o território efetivo do perfil.
+
+    Para CPR, o território é definido pelo município do evento, não pela
+    unidade que gerou a OPO. Assim, uma OPO da CIPE ou de uma unidade de
+    outro CPR aparece no mapa quando o município pertence ao CPR logado.
+    Para Unidade, permanece o escopo restrito à própria unidade.
+    """
+    acesso = getattr(request.user, "acesso_institucional", None)
+    base = Solicitacao.objects.select_related(
+        "municipio", "municipio__unidade_responsavel", "municipio__unidade_responsavel__cpr", "bairro", "unidade"
+    )
+    if acesso and acesso.perfil == "CPR" and acesso.cpr_id:
+        return base.filter(municipio__unidade_responsavel__cpr_id=acesso.cpr_id).order_by("data_evento", "hora_inicio")
+    return base.filter(unidade__in=escopo_unidades(request.user)).order_by("data_evento", "hora_inicio")
+
+
 @login_required
 def mapa_eventos_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
+    eventos = _eventos_mapa_territorial(request)
     data_inicio = (request.GET.get("data_inicio") or "").strip()
     data_fim = (request.GET.get("data_fim") or "").strip()
     if data_inicio:
@@ -210,7 +227,7 @@ def gerar_mapa_eventos_pdf_seguro(request):
     if not pode_ver_mapa_eventos(request.user):
         messages.error(request, "O mapa de eventos está disponível para gestores de CPR e Unidade.")
         return redirect("painel_gestao")
-    eventos = Solicitacao.objects.filter(unidade__in=escopo_unidades(request.user)).select_related("municipio", "bairro", "unidade").order_by("data_evento", "hora_inicio")
+    eventos = _eventos_mapa_territorial(request)
     data_inicio = (request.GET.get("data_inicio") or "").strip(); data_fim = (request.GET.get("data_fim") or "").strip()
     if data_inicio:
         try: eventos = eventos.filter(data_evento__gte=datetime.strptime(data_inicio, "%Y-%m-%d").date())
