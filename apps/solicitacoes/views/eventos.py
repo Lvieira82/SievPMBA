@@ -115,7 +115,7 @@ def sincronizar_evento_offline(request):
     if resposta not in {"SIM","NAO"}:return JsonResponse({"ok":False,"erro":"Resposta inválida."},status=400)
     registro,_=CumprimentoOPO.objects.get_or_create(opo=opo,operador=request.user)
     if registro.respondido_em is not None:return JsonResponse({"ok":True,"ja_registrado":True})
-    latitude=(request.POST.get("latitude") or "").strip();longitude=(request.POST.get("longitude") or "").strip();precisao=(request.POST.get("precisao") or "").strip()
+    latitude=(request.POST.get("latitude") or "").strip();longitude=(request.POST.get("longitude") or "").strip();precisao=(request.POST.get("precisao") or "").strip();relato=(request.POST.get("relato_atendimento") or "").strip()[:500]
     if resposta=="SIM":
         imagem=request.FILES.get("imagem")
         if not imagem or not latitude or not longitude:return JsonResponse({"ok":False,"erro":"Foto e GPS são obrigatórios."},status=400)
@@ -133,7 +133,9 @@ def sincronizar_evento_offline(request):
         registro.cumprida=True;registro.imagem.name=caminho;registro.justificativa="";registro.respondido_em=timezone.now();registro.save()
         try:_organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho,latitude=f"{lat:.7f}",longitude=f"{lon:.7f}",precisao=precisao,operador=request.user)
         except Exception:pass
-        LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=f"Registro sincronizado. Coordenadas GPS: latitude={lat:.7f}, longitude={lon:.7f}, precisão={precisao or 'não informada'}.")
+        detalhes=f"Registro sincronizado. Coordenadas GPS: latitude={lat:.7f}, longitude={lon:.7f}, precisão={precisao or 'não informada'}."
+        if relato:detalhes+=f" Relato do atendimento: {relato}"
+        LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=detalhes)
     else:
         justificativa=(request.POST.get("justificativa") or "").strip();motivos=[m for m in request.POST.getlist("motivos_nao") if m in MOTIVOS_NAO]
         if not motivos:return JsonResponse({"ok":False,"erro":"Selecione pelo menos um motivo para o não cumprimento."},status=400)
@@ -149,5 +151,6 @@ def sincronizar_evento_offline(request):
         except Exception:pass
         nomes=[MOTIVOS_NAO[m] for m in motivos];detalhes=f"Registro sincronizado como não cumprida. Motivos: {'; '.join(nomes)}."
         if justificativa:detalhes+=f" Observações: {justificativa}"
+        if relato:detalhes+=f" Relato do atendimento: {relato}"
         LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO OFFLINE",detalhes=detalhes)
     return JsonResponse({"ok":True})
