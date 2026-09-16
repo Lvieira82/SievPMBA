@@ -55,7 +55,31 @@ class UsuarioSistemaForm(forms.Form):
         self.fields["unidade"].queryset = Unidade.objects.filter(ativo=True).select_related("cpr").order_by("nome")
 
         if scope and not scope["desenvolvedor"]:
-            if scope["perfil"] == "CPR":
+            if scope.get("funcao") == "MEMBRO":
+                # Membro não cria/edita outro membro: somente OPERADOR.
+                self.fields["perfil"].choices = [("OPERADOR", "Operador")]
+                self.fields["perfil"].initial = "OPERADOR"
+                self.fields["perfil"].disabled = True
+                self.fields["funcao"].initial = "MEMBRO"
+                self.fields["funcao"].disabled = True
+                if scope["perfil"] == "CPR":
+                    self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["cpr"].pk)
+                    self.fields["cpr"].initial = scope["cpr"].pk
+                    self.fields["cpr"].disabled = True
+                    self.fields["unidade"].queryset = Unidade.objects.filter(cpr=scope["cpr"], ativo=True).select_related("cpr").order_by("nome")
+                elif scope["perfil"] == "UNIDADE":
+                    self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["unidade"].cpr_id)
+                    self.fields["cpr"].initial = scope["unidade"].cpr_id
+                    self.fields["cpr"].disabled = True
+                    self.fields["unidade"].queryset = Unidade.objects.filter(pk=scope["unidade"].pk)
+                    self.fields["unidade"].initial = scope["unidade"].pk
+                    self.fields["unidade"].disabled = True
+                else:
+                    self.fields["cpr"].queryset = CPR.objects.filter(ativo=True).order_by("sigla")
+                    self.fields["cpr"].required = False
+                    self.fields["cpr"].disabled = True
+                    self.fields["unidade"].queryset = Unidade.objects.filter(ativo=True).select_related("cpr").order_by("nome")
+            elif scope["perfil"] == "CPR":
                 self.fields["perfil"].choices = [("CPR", "CPR")]
                 self.fields["perfil"].initial = "CPR"
                 self.fields["perfil"].disabled = True
@@ -74,7 +98,6 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["cpr"].disabled = True
                 self.fields["unidade"].queryset = Unidade.objects.filter(pk=scope["unidade"].pk)
                 self.fields["unidade"].initial = scope["unidade"].pk
-                self.fields["unidade"].disabled = True
                 self.fields["funcao"].initial = "MEMBRO"
                 self.fields["funcao"].disabled = True
 
@@ -102,6 +125,10 @@ class UsuarioSistemaForm(forms.Form):
                 })
                 if scope and not scope["desenvolvedor"]:
                     self.fields["perfil"].disabled = True
+                    if scope.get("funcao") == "MEMBRO":
+                        self.fields["funcao"].disabled = True
+                        self.fields["cpr"].disabled = True
+                        self.fields["unidade"].disabled = True
 
     def clean_matricula(self):
         valor = self.cleaned_data["matricula"].strip()
@@ -142,6 +169,14 @@ class UsuarioSistemaForm(forms.Form):
             cleaned["cpr"] = unidade.cpr
 
         if self.scope and not self.scope["desenvolvedor"]:
+            if self.scope.get("funcao") == "MEMBRO":
+                if perfil != "OPERADOR":
+                    self.add_error("perfil", "Membro só pode cadastrar ou alterar operadores.")
+                if self.scope["perfil"] == "CPR" and (not unidade or unidade.cpr_id != self.scope["cpr"].id):
+                    self.add_error("unidade", "O operador deve pertencer ao seu CPR.")
+                elif self.scope["perfil"] == "UNIDADE" and (not unidade or unidade.id != self.scope["unidade"].id):
+                    self.add_error("unidade", "O operador deve pertencer à sua Unidade.")
+                return cleaned
             if funcao != "MEMBRO":
                 self.add_error("funcao", "Somente membros podem ser cadastrados por gestores.")
             if self.scope["perfil"] == "CPR":
@@ -161,16 +196,16 @@ class UsuarioSistemaForm(forms.Form):
 
 def _escopo(request):
     if request.user.is_superuser:
-        return {"desenvolvedor": True, "perfil": None, "cpr": None, "unidade": None}
+        return {"desenvolvedor": True, "perfil": None, "cpr": None, "unidade": None, "funcao": "GESTOR"}
     acesso = getattr(request.user, "acesso_institucional", None)
-    if not acesso or not acesso.ativo or not request.user.is_active or acesso.funcao != "GESTOR":
+    if not acesso or not acesso.ativo or not request.user.is_active or acesso.funcao not in {"GESTOR", "MEMBRO"}:
         return None
     if acesso.perfil == "CPR" and acesso.cpr:
-        return {"desenvolvedor": False, "perfil": "CPR", "cpr": acesso.cpr, "unidade": None}
+        return {"desenvolvedor": False, "perfil": "CPR", "cpr": acesso.cpr, "unidade": None, "funcao": acesso.funcao}
     if acesso.perfil == "UNIDADE" and acesso.unidade:
-        return {"desenvolvedor": False, "perfil": "UNIDADE", "cpr": acesso.unidade.cpr, "unidade": acesso.unidade}
+        return {"desenvolvedor": False, "perfil": "UNIDADE", "cpr": acesso.unidade.cpr, "unidade": acesso.unidade, "funcao": acesso.funcao}
     if acesso.perfil == "COPPM":
-        return {"desenvolvedor": False, "perfil": "COPPM", "cpr": None, "unidade": None}
+        return {"desenvolvedor": False, "perfil": "COPPM", "cpr": None, "unidade": None, "funcao": acesso.funcao}
     return None
 
 
@@ -179,14 +214,24 @@ def _pode_gerenciar(scope, acesso):
         return False
     if scope["desenvolvedor"]:
         return True
-    if acesso.funcao != "MEMBRO":
-        return False
-    if scope["perfil"] == "COPPM":
-        return acesso.perfil == "COPPM"
-    if scope["perfil"] == "CPR":
-        return acesso.perfil == "CPR" and acesso.cpr_id == scope["cpr"].id
-    if scope["perfil"] == "UNIDADE":
-        return acesso.perfil in ("UNIDADE", "OPERADOR") and acesso.unidade_id == scope["unidade"].id
+    if scope.get("funcao") == "GESTOR":
+        if acesso.funcao != "MEMBRO":
+            return False
+        if scope["perfil"] == "COPPM":
+            return acesso.perfil == "COPPM"
+        if scope["perfil"] == "CPR":
+            return acesso.perfil == "CPR" and acesso.cpr_id == scope["cpr"].id
+        if scope["perfil"] == "UNIDADE":
+            return acesso.perfil in ("UNIDADE", "OPERADOR") and acesso.unidade_id == scope["unidade"].id
+    if scope.get("funcao") == "MEMBRO":
+        if acesso.funcao != "MEMBRO" or acesso.perfil != "OPERADOR":
+            return False
+        if scope["perfil"] == "COPPM":
+            return True
+        if scope["perfil"] == "CPR":
+            return acesso.cpr_id == scope["cpr"].id
+        if scope["perfil"] == "UNIDADE":
+            return acesso.unidade_id == scope["unidade"].id
     return False
 
 
@@ -242,7 +287,13 @@ def administracao_sistema(request):
         return redirect("painel_gestao")
     qs = AcessoInstitucional.objects.select_related("usuario", "cpr", "unidade")
     if not scope["desenvolvedor"]:
-        if scope["perfil"] == "COPPM":
+        if scope.get("funcao") == "MEMBRO":
+            qs = qs.filter(perfil="OPERADOR", funcao="MEMBRO")
+            if scope["perfil"] == "CPR":
+                qs = qs.filter(cpr=scope["cpr"])
+            elif scope["perfil"] == "UNIDADE":
+                qs = qs.filter(unidade=scope["unidade"])
+        elif scope["perfil"] == "COPPM":
             qs = qs.filter(perfil="COPPM", funcao="MEMBRO")
         elif scope["perfil"] == "CPR":
             qs = qs.filter(perfil="CPR", funcao="MEMBRO", cpr=scope["cpr"])
@@ -266,33 +317,48 @@ def usuario_novo(request):
         if form.is_valid():
             data = form.cleaned_data
             if not scope["desenvolvedor"]:
-                data["funcao"] = "MEMBRO"
-                if scope["perfil"] == "CPR":
-                    data["perfil"] = "CPR"
-                    data["cpr"] = scope["cpr"]
-                elif scope["perfil"] == "UNIDADE":
-                    data["unidade"] = scope["unidade"]
-                    data["cpr"] = scope["cpr"]
-                    if data["perfil"] not in ("UNIDADE", "OPERADOR"):
-                        data["perfil"] = "UNIDADE"
-                elif scope["perfil"] == "COPPM":
-                    data["perfil"] = "COPPM"
-                    data["cpr"] = None
-                    data["unidade"] = None
-            senha = _senha_inicial(data["matricula"], data["perfil"])
-            try:
-                with transaction.atomic():
-                    user = User.objects.create_user(username=data["matricula"], email=data["email"], password=senha, first_name=data["nome"], is_active=data["ativo"])
-                    AcessoInstitucional.objects.create(usuario=user, matricula=data["matricula"], cpf=data["cpf"], telefone=data["telefone"], perfil=data["perfil"], funcao=data["funcao"], cpr=data["cpr"], unidade=data["unidade"], primeiro_acesso=True, ativo=data["ativo"])
-                    _sincronizar_perfil_compat(user, data)
-                    _enviar_senha_inicial(user, senha)
-            except Exception:
-                if "user" in locals() and user.pk:
-                    user.delete()
-                form.add_error(None, "Não foi possível concluir o cadastro ou enviar a senha para o e-mail informado.")
-            else:
-                messages.success(request, "Usuário criado. A senha inicial foi enviada para o e-mail cadastrado.")
-                return redirect("administracao_sistema")
+                if scope.get("funcao") == "MEMBRO":
+                    data["perfil"] = "OPERADOR"
+                    data["funcao"] = "MEMBRO"
+                    if scope["perfil"] == "CPR":
+                        data["cpr"] = scope["cpr"]
+                    elif scope["perfil"] == "UNIDADE":
+                        data["cpr"] = scope["cpr"]
+                        data["unidade"] = scope["unidade"]
+                    elif scope["perfil"] == "COPPM":
+                        if not data.get("unidade"):
+                            form.add_error("unidade", "Selecione a unidade do operador.")
+                        else:
+                            data["cpr"] = data["unidade"].cpr
+                else:
+                    data["funcao"] = "MEMBRO"
+                    if scope["perfil"] == "CPR":
+                        data["perfil"] = "CPR"
+                        data["cpr"] = scope["cpr"]
+                    elif scope["perfil"] == "UNIDADE":
+                        data["unidade"] = scope["unidade"]
+                        data["cpr"] = scope["cpr"]
+                        if data["perfil"] not in ("UNIDADE", "OPERADOR"):
+                            data["perfil"] = "UNIDADE"
+                    elif scope["perfil"] == "COPPM":
+                        data["perfil"] = "COPPM"
+                        data["cpr"] = None
+                        data["unidade"] = None
+            if not form.errors:
+                senha = _senha_inicial(data["matricula"], data["perfil"])
+                try:
+                    with transaction.atomic():
+                        user = User.objects.create_user(username=data["matricula"], email=data["email"], password=senha, first_name=data["nome"], is_active=data["ativo"])
+                        AcessoInstitucional.objects.create(usuario=user, matricula=data["matricula"], cpf=data["cpf"], telefone=data["telefone"], perfil=data["perfil"], funcao=data["funcao"], cpr=data["cpr"], unidade=data["unidade"], primeiro_acesso=True, ativo=data["ativo"])
+                        _sincronizar_perfil_compat(user, data)
+                        _enviar_senha_inicial(user, senha)
+                except Exception:
+                    if "user" in locals() and user.pk:
+                        user.delete()
+                    form.add_error(None, "Não foi possível concluir o cadastro ou enviar a senha para o e-mail informado.")
+                else:
+                    messages.success(request, "Usuário criado. A senha inicial foi enviada para o e-mail cadastrado.")
+                    return redirect("administracao_sistema")
     else:
         form = UsuarioSistemaForm(scope=scope)
     return render(request, "administracao_sistema/form.html", {"form": form, "novo": True, "scope": scope})
