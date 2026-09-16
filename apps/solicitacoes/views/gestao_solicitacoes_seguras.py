@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from datetime import date, timedelta
 
 from django.contrib.auth.decorators import login_required
@@ -38,7 +39,6 @@ def proximos_eventos_gestao_seguro(request):
     if fim < inicio:
         inicio, fim = fim, inicio
 
-    # A visão de Eventos da semana trabalha, no máximo, com os próximos 15 dias.
     if inicio < hoje:
         inicio = hoje
     if fim > limite_futuro:
@@ -49,13 +49,17 @@ def proximos_eventos_gestao_seguro(request):
     inicio_str = inicio.isoformat()
     fim_str = fim.isoformat()
 
+    # A unidade gravada na Solicitacao representa sempre a unidade atualmente
+    # responsavel. Em uma transferencia, esse campo e atualizado para a unidade
+    # de destino; portanto, Eventos Futuros nunca deve usar a unidade de origem
+    # para classificar ou exibir o evento.
     eventos = list(
         Solicitacao.objects.filter(
             unidade__in=escopo_unidades(request.user),
             status__in=["APROVADA", "CORRECAO"],
             data_evento__range=[inicio, fim],
         )
-        .select_related("municipio", "unidade", "bairro")
+        .select_related("municipio", "unidade", "unidade__cpr", "bairro")
         .order_by("data_evento", "hora_inicio")
     )
 
@@ -82,20 +86,18 @@ def proximos_eventos_gestao_seguro(request):
         })
         acumulado += percentual
 
-    # Eventos por dia: mantém todos os dias do período, inclusive os dias sem eventos.
-    # A altura é proporcional ao dia mais movimentado e a cor indica a intensidade.
     maior_dia = max(dias.values()) if dias else 1
 
     def cor_por_quantidade(quantidade):
         if quantidade == 0:
-            return "#e5e7eb"      # cinza — sem evento
+            return "#e5e7eb"
         if quantidade <= 2:
-            return "#FFD600"      # amarelo — pouca movimentação
+            return "#FFD600"
         if quantidade <= 4:
-            return "#FF9800"      # laranja — movimentação moderada
+            return "#FF9800"
         if quantidade <= 6:
-            return "#F44336"      # vermelho — movimentação alta
-        return "#FF1744"          # vermelho flamejante — concentração muito alta
+            return "#F44336"
+        return "#FF1744"
 
     dias_grafico = []
     dia_atual = inicio
@@ -110,6 +112,44 @@ def proximos_eventos_gestao_seguro(request):
         })
         dia_atual += timedelta(days=1)
 
+    acesso = getattr(request.user, "acesso_institucional", None)
+    perfil_proximos = getattr(acesso, "perfil", None)
+    if request.user.is_superuser or request.user.is_staff:
+        perfil_proximos = "COPPM"
+
+    # A arvore apresentada para a COPPM e construida a partir da unidade atual
+    # de cada solicitacao. Assim, uma solicitacao transferida deixa de aparecer
+    # no CPR/unidade de origem e passa a aparecer somente no destino final.
+    cprs_pastas_map = OrderedDict()
+    for evento in eventos:
+        unidade = evento.unidade
+        if not unidade or not unidade.cpr:
+            continue
+        cpr = unidade.cpr
+        cpr_key = cpr.pk
+        if cpr_key not in cprs_pastas_map:
+            cprs_pastas_map[cpr_key] = {
+                "nome": cpr.sigla,
+                "quantidade": 0,
+                "unidades_map": OrderedDict(),
+            }
+        pasta = cprs_pastas_map[cpr_key]
+        pasta["quantidade"] += 1
+        unidade_key = unidade.pk
+        if unidade_key not in pasta["unidades_map"]:
+            pasta["unidades_map"][unidade_key] = {
+                "nome": unidade.sigla,
+                "quantidade": 0,
+            }
+        pasta["unidades_map"][unidade_key]["quantidade"] += 1
+
+    cprs_pastas = []
+    for pasta in cprs_pastas_map.values():
+        pasta["unidades"] = list(pasta.pop("unidades_map").values())
+        cprs_pastas.append(pasta)
+
+    rotulo_agrupamento = "CPR" if perfil_proximos == "COPPM" else "cidade"
+
     return render(request, "gestao/proximos_eventos.html", {
         "eventos": eventos,
         "filtro_inicio": inicio_str,
@@ -117,6 +157,9 @@ def proximos_eventos_gestao_seguro(request):
         "total_eventos": len(eventos),
         "cidades_grafico": cidades_grafico,
         "dias_grafico": dias_grafico,
+        "perfil_proximos": perfil_proximos,
+        "cprs_pastas": cprs_pastas,
+        "rotulo_agrupamento": rotulo_agrupamento,
     })
 
 
