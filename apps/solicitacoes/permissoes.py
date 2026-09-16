@@ -91,7 +91,7 @@ def pode_ver_unidades(user):
 
 
 def pode_ver_mapa_eventos(user):
-    return bool(perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_ver_dashboard(user):
