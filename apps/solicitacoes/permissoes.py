@@ -47,13 +47,7 @@ def perfil_gestor_ou_membro(user, perfil):
     if eh_desenvolvedor(user):
         return True
     a = acesso_do_usuario(user)
-    return bool(
-        a
-        and a.ativo
-        and user.is_active
-        and a.perfil == perfil
-        and a.funcao in {"GESTOR", "MEMBRO"}
-    )
+    return bool(a and a.ativo and user.is_active and a.perfil == perfil and a.funcao in {"GESTOR", "MEMBRO"})
 
 
 def eh_membro_unidade(user):
@@ -62,29 +56,18 @@ def eh_membro_unidade(user):
 
 
 def pode_ver_administracao(user):
-    return bool(
-        eh_desenvolvedor(user)
-        or perfil_gestor(user, "COPPM")
-        or perfil_gestor(user, "CPR")
-        or perfil_gestor(user, "UNIDADE")
-        or eh_membro(user)
-    )
+    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE") or eh_membro(user))
 
 
 def pode_cadastrar_usuario(user):
-    # Membros podem acessar o cadastro apenas para criar OPERADORES. A view e
-    # o formulario continuam impedindo que um membro crie outro membro.
-    return bool(
-        eh_desenvolvedor(user)
-        or perfil_gestor(user, "COPPM")
-        or perfil_gestor(user, "CPR")
-        or perfil_gestor(user, "UNIDADE")
-        or eh_membro(user)
-    )
+    # Membros podem acessar o cadastro apenas para criar OPERADORES. O fluxo
+    # de administração/formulário impede que um membro crie outro membro.
+    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "COPPM") or perfil_gestor(user, "CPR") or perfil_gestor(user, "UNIDADE") or eh_membro(user))
 
 
 def pode_cadastrar_operador(user):
-    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "UNIDADE") or eh_membro_unidade(user) or (acesso_do_usuario(user) and acesso_do_usuario(user).funcao == "MEMBRO" and acesso_do_usuario(user).perfil == "CPR"))
+    a = acesso_do_usuario(user)
+    return bool(eh_desenvolvedor(user) or perfil_gestor(user, "UNIDADE") or (a and a.ativo and user.is_active and a.funcao == "MEMBRO" and a.perfil in {"CPR", "UNIDADE"}))
 
 
 def pode_ver_historico(user):
@@ -120,7 +103,8 @@ def pode_ver_documentacao_solicitacao(user):
 
 
 def pode_gerar_opo(user, solicitacao=None):
-    return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
+    # Membros passam a ter a mesma permissão operacional do respectivo gestor.
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def escopo_unidades(user):
@@ -143,12 +127,8 @@ def pode_administrar_usuarios(user):
 
 
 def pode_lancamento_manual(user):
-    """Permite lançamento manual somente a Gestor ou Membro institucional."""
-    return bool(
-        perfil_gestor_ou_membro(user, "COPPM")
-        or perfil_gestor_ou_membro(user, "CPR")
-        or perfil_gestor_ou_membro(user, "UNIDADE")
-    )
+    """Permite lançamento manual a gestores e membros institucionais."""
+    return bool(perfil_gestor_ou_membro(user, "COPPM") or perfil_gestor_ou_membro(user, "CPR") or perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
 def pode_aprovar_solicitacao(user, solicitacao):
