@@ -32,17 +32,16 @@
                     <li><a href="{% url 'proximos_eventos_gestao' %}" title="Eventos futuros"><i class="bi bi-calendar-event"></i><span>Eventos futuros</span></a></li>
                     <li><a href="{% url 'agenda_gestao' %}" title="Históricos"><i class="bi bi-clock-history"></i><span>Históricos</span></a></li>
                     <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-bar-chart"></i><span>Análise</span></a></li>
-                    {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" %}
+                    {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "COPPM" or user.acesso_institucional.perfil == "UNIDADE" %}
                         <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
                     {% endif %}
                     {% if user.acesso_institucional.perfil == "UNIDADE" %}
-                        <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a>
+                        <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
                         <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
                         <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Manual"><i class="bi bi-pencil-square"></i><span>Lançamento Manual</span></a></li>
                     {% endif %}
-                    <li><a href="{% url 'dashboard_operacional' %}" title="Dashboard"><i class="bi bi-graph-up"></i><span>Dashboard</span></a></li>
                     {% if user.acesso_institucional.perfil == "UNIDADE" %}
-                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a>
                     {% else %}
                         <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                     {% endif %}
