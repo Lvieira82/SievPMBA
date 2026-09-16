@@ -33,7 +33,7 @@ def _unidade_executor(request, solicitacao):
     return unidade or solicitacao.unidade
 
 
-def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=None):
+def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=None, observacoes_adicionais=""):
     data_geracao = timezone.localtime()
 
     url_verificacao = request.build_absolute_uri(
@@ -64,6 +64,7 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=No
             "gerado_por_nome": request.user.get_full_name() or request.user.username,
             "unidade_executor": unidade_executor,
             "logo_pmba_base64": _logo_pmba_base64(),
+            "observacoes_adicionais": observacoes_adicionais,
         },
         request=request,
     )
@@ -102,12 +103,14 @@ def gerar_opo_com_evento_extra(request, id):
         )
 
     evento_extra = request.POST.get("evento_extra") == "SIM"
+    observacoes_adicionais = (request.POST.get("observacoes_adicionais") or "").strip()
     unidade_executor = _unidade_executor(request, solicitacao)
     conteudo = _gerar_pdf_opo(
         request,
         solicitacao,
         evento_extra=evento_extra,
         unidade_executor=unidade_executor,
+        observacoes_adicionais=observacoes_adicionais,
     )
     nome = f"OPO_{solicitacao.protocolo}.pdf"
 
