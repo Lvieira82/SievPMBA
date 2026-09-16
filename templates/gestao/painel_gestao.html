@@ -17,7 +17,9 @@
       <a href="{% url 'dashboard_operacional' %}?aba=tempo" class="card-painel"><div class="icone">⏱️</div><h2>Tempo de preenchimento</h2><p>Medir quanto tempo o usuário externo leva do aceite dos termos até o envio da solicitação.</p></a>{% endif %}
     {% else %}
       {% if pode_administrar %}
-        {% if eh_membro_unidade %}
+        {% if perfil and perfil.funcao == 'MEMBRO' %}
+          <a href="{% url 'administracao_sistema' %}" class="card-painel"><div class="icone">⚙️</div><h2>Administração</h2><p>Cadastrar e gerenciar os operadores do seu âmbito.</p></a>
+        {% elif eh_membro_unidade %}
           <a href="{% url 'administracao_unidade_membro' %}" class="card-painel"><div class="icone">⚙️</div><h2>Administração</h2><p>Cadastrar operadores da sua unidade.</p></a>
         {% else %}
           <a href="{% url 'administracao_sistema' %}" class="card-painel"><div class="icone">⚙️</div><h2>Administração</h2><p>Cadastrar e gerenciar os membros do seu âmbito.</p></a>
