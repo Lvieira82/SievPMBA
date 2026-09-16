@@ -23,117 +23,39 @@
 <div class="preview-box">
 <strong>👁️ Pré-visualização do relatório — {{ request.GET.data_inicio|date:'d/m/Y' }} a {{ request.GET.data_fim|date:'d/m/Y' }}</strong>
 <div class="preview-table-wrap">
-<table class="preview-table">
-<thead><tr><th>Data</th><th>Local</th><th>Evento</th><th>Desfecho</th><th>Geolocalização</th></tr></thead>
+<table class="preview-table"><thead><tr><th>Data</th><th>Local</th><th>Evento</th><th>Desfecho</th><th>Geolocalização</th></tr></thead>
 <tbody id="preview-cumprimentos">
-{% for protocolo in protocolos %}
-{% for arquivo in protocolo.arquivos %}
-{% for cumprimento in arquivo.cumprimentos.all %}
-{% if cumprimento.respondido_em %}
-<tr data-data="{{ protocolo.solicitacao.data_evento|date:'Y-m-d' }}">
-<td>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</td>
-<td>{{ protocolo.solicitacao.local }}{% if protocolo.solicitacao.municipio %} - {{ protocolo.solicitacao.municipio.nome }}{% endif %}</td>
-<td>{{ protocolo.solicitacao.nome_evento|default:'-' }}</td>
-<td>
-{% if cumprimento.cumprida is True %}<span class="preview-status-sim">CUMPRIDA</span>
-{% elif cumprimento.justificativa %}<span class="preview-status-just">JUSTIFICADA</span>
-<span class="preview-justificativa"><strong>Justificativa:</strong> {{ cumprimento.justificativa }}</span>
-{% else %}<span class="preview-status-nao">DESCUMPRIDA</span>
-{% endif %}
-</td>
-<td>
-{% for log in protocolo.solicitacao.logsistema_set.all %}
-{% if 'Coordenadas GPS:' in log.detalhes %}{{ log.detalhes }}{% endif %}
-{% endfor %}
-{% if not protocolo.solicitacao.logsistema_set.all %}Não disponível{% endif %}
-</td>
-</tr>
-{% endif %}
-{% endfor %}
-{% endfor %}
-{% endfor %}
+{% for protocolo in protocolos %}{% for arquivo in protocolo.arquivos %}{% for cumprimento in arquivo.cumprimentos.all %}{% if cumprimento.respondido_em %}
+<tr data-data="{{ protocolo.solicitacao.data_evento|date:'Y-m-d' }}"><td>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</td><td>{{ protocolo.solicitacao.local }}{% if protocolo.solicitacao.municipio %} - {{ protocolo.solicitacao.municipio.nome }}{% endif %}</td><td>{{ protocolo.solicitacao.nome_evento|default:'-' }}</td><td>{% if cumprimento.cumprida is True %}<span class="preview-status-sim">CUMPRIDA</span>{% elif cumprimento.justificativa %}<span class="preview-status-just">JUSTIFICADA</span><span class="preview-justificativa"><strong>Justificativa:</strong> {{ cumprimento.justificativa }}</span>{% else %}<span class="preview-status-nao">DESCUMPRIDA</span>{% endif %}</td><td>{% for log in protocolo.solicitacao.logsistema_set.all %}{% if 'Coordenadas GPS:' in log.detalhes %}{{ log.detalhes }}{% endif %}{% endfor %}{% if not protocolo.solicitacao.logsistema_set.all %}Não disponível{% endif %}</td></tr>
+{% endif %}{% endfor %}{% endfor %}{% endfor %}
 <tr id="preview-vazio"><td colspan="5" class="preview-vazio">Nenhum atendimento registrado no período selecionado.</td></tr>
-</tbody>
-</table>
-</div>
-<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
-<a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a>
-<a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">📊 Exportar XLS</a>
-</div>
+</tbody></table></div>
+<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;"><a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a><a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">📊 Exportar XLS</a></div>
 </div>
 {% endif %}
 </div>
+<div class="paginacao-global-container" data-pagina-tamanho="5">
 {% for protocolo in protocolos %}
-<div class="opo-item">
+<div class="opo-item" data-paginavel-item="1">
 <div class="opo-head"><strong>Protocolo {{ protocolo.codigo }}</strong><span>{{ protocolo.solicitacao.data_evento|date:'d/m/Y' }}</span></div>
 <div class="meta">{{ protocolo.solicitacao.nome_evento }} · {{ protocolo.solicitacao.municipio.nome }} · {{ protocolo.solicitacao.unidade.sigla|default:'Sem unidade' }}</div>
-<div class="bloco-documentos">
-<span class="titulo-documentos">📎 Documentação original da solicitação</span>
-{% for documento in protocolo.documentos %}
-<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener" class="btn-documento">📄 {{ documento.tipo_documento.nome }}{% if documento.descricao %} — {{ documento.descricao }}{% endif %}</a>
-{% empty %}<span class="sem-documento">Nenhum documento original encontrado no banco.</span>{% endfor %}
+<div class="bloco-documentos"><span class="titulo-documentos">📎 Documentação original da solicitação</span>
+{% for documento in protocolo.documentos %}<a href="{% url 'abrir_documento_solicitacao' documento.id 'arquivo' %}" target="_blank" rel="noopener" class="btn-documento">📄 {{ documento.tipo_documento.nome }}{% if documento.descricao %} — {{ documento.descricao }}{% endif %}</a>{% empty %}<span class="sem-documento">Nenhum documento original encontrado no banco.</span>{% endfor %}
 </div>
 <div class="bloco-documentos"><span class="titulo-documentos">📑 OPO gerada</span>
-{% for arquivo in protocolo.arquivos %}
-{% if arquivo.arquivo %}
-<a class="btn" href="{% url 'abrir_opo_gestao' arquivo.id %}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>
-{% for cumprimento in arquivo.cumprimentos.all %}
-<div class="cumprimento">
-  {% if cumprimento.cumprida is True %}
-    <div class="cumprimento-sim">📸 SIM — Cumprimento registrado</div>
-    {% if cumprimento.imagem %}
-      <img src="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" class="foto-cumprimento" alt="Foto do cumprimento da OPO">
-      <a class="btn-documento" href="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" target="_blank" rel="noopener">📷 Abrir foto do cumprimento</a>
-    {% endif %}
-    {% for log in protocolo.solicitacao.logsistema_set.all %}
-      {% if 'Coordenadas GPS:' in log.detalhes and log.acao in 'CUMPRIMENTO OPO,CUMPRIMENTO OPO OFFLINE' %}
-        <div class="gps">📍 <strong>Geolocalização:</strong> {{ log.detalhes }}</div>
-      {% endif %}
-    {% endfor %}
-  {% elif cumprimento.cumprida is False %}
-    <div class="cumprimento-nao">❌ NÃO — OPO não cumprida</div>
-    <div class="justificativa"><strong>Justificativa:</strong> {{ cumprimento.justificativa|default:'Sem observação informada.' }}</div>
-  {% endif %}
-  {% if cumprimento.respondido_em %}<div class="sem-documento">Registrado em {{ cumprimento.respondido_em|date:'d/m/Y H:i' }}{% if cumprimento.operador %} por {{ cumprimento.operador.get_full_name|default:cumprimento.operador.username }}{% endif %}</div>{% endif %}
+{% for arquivo in protocolo.arquivos %}{% if arquivo.arquivo %}<a class="btn" href="{% url 'abrir_opo_gestao' arquivo.id %}" target="_blank" rel="noopener">📄 {{ arquivo.descricao|default:'OPO' }}</a>
+{% for cumprimento in arquivo.cumprimentos.all %}<div class="cumprimento">
+{% if cumprimento.cumprida is True %}<div class="cumprimento-sim">📸 SIM — Cumprimento registrado</div>{% if cumprimento.imagem %}<img src="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" class="foto-cumprimento" alt="Foto do cumprimento da OPO"><a class="btn-documento" href="{% url 'cumprimento_opo' protocolo.solicitacao.id %}?imagem_id={{ cumprimento.id }}" target="_blank" rel="noopener">📷 Abrir foto do cumprimento</a>{% endif %}{% for log in protocolo.solicitacao.logsistema_set.all %}{% if 'Coordenadas GPS:' in log.detalhes and log.acao in 'CUMPRIMENTO OPO,CUMPRIMENTO OPO OFFLINE' %}<div class="gps">📍 <strong>Geolocalização:</strong> {{ log.detalhes }}</div>{% endif %}{% endfor %}
+{% elif cumprimento.cumprida is False %}<div class="cumprimento-nao">❌ NÃO — OPO não cumprida</div><div class="justificativa"><strong>Justificativa:</strong> {{ cumprimento.justificativa|default:'Sem observação informada.' }}</div>{% endif %}
+{% if cumprimento.respondido_em %}<div class="sem-documento">Registrado em {{ cumprimento.respondido_em|date:'d/m/Y H:i' }}{% if cumprimento.operador %} por {{ cumprimento.operador.get_full_name|default:cumprimento.operador.username }}{% endif %}</div>{% endif %}
+</div>{% endfor %}{% endif %}{% empty %}<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>{% endfor %}
 </div>
-{% endfor %}
-{% endif %}
-{% empty %}
-<span class="sem-documento">Nenhum PDF de OPO encontrado.</span>
-{% endfor %}
-</div>
-<div class="bloco-documentos">
-<span class="titulo-documentos">📂 Documentação do atendimento</span>
-<div class="sem-documento">📄 OPO · 📄 Ofício do Comandante · 📍 Localização · {% if protocolo.arquivos.0.cumprimentos.all %}comprovante do atendimento{% else %}comprovante{% endif %}</div>
-{% for log in protocolo.solicitacao.logsistema_set.all %}
-{% if 'Coordenadas GPS:' in log.detalhes %}
-<div class="gps">📍 <strong>Localização registrada:</strong> {{ log.detalhes }}</div>
-{% endif %}
-{% endfor %}
-</div>
-<div class="acoes-op">
-<a class="btn btn-detalhes" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>
-{% if pode_apoio %}<a class="btn btn-apoio" href="{% url 'enviar_apoio' protocolo.solicitacao.id %}">🤝 Compartilhar / Apoio</a>{% endif %}
-</div>
+<div class="bloco-documentos"><span class="titulo-documentos">📂 Documentação do atendimento</span><div class="sem-documento">📄 OPO · 📄 Ofício do Comandante · 📍 Localização · {% if protocolo.arquivos.0.cumprimentos.all %}comprovante do atendimento{% else %}comprovante{% endif %}</div>{% for log in protocolo.solicitacao.logsistema_set.all %}{% if 'Coordenadas GPS:' in log.detalhes %}<div class="gps">📍 <strong>Localização registrada:</strong> {{ log.detalhes }}</div>{% endif %}{% endfor %}</div>
+<div class="acoes-op"><a class="btn btn-detalhes" href="{% url 'detalhe_opo' protocolo.solicitacao.id %}">🔎 Detalhes</a>{% if protocolo.pode_apoio %}<a class="btn btn-apoio" href="{% url 'enviar_apoio' protocolo.solicitacao.id %}">🤝 Compartilhar / Apoio</a>{% endif %}</div>
 </div>
 {% empty %}<div class="empty">Nenhuma OPO foi gerada até o momento.</div>{% endfor %}
+</div>
 <a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
 </div></div>
-<script>
-(function(){
-  const inicio=document.getElementById('data_inicio');
-  const fim=document.getElementById('data_fim');
-  const linhas=document.querySelectorAll('#preview-cumprimentos tr[data-data]');
-  const vazio=document.getElementById('preview-vazio');
-  if(!inicio||!fim||!linhas.length){return;}
-  let visiveis=0;
-  linhas.forEach(function(linha){
-    const data=linha.getAttribute('data-data')||'';
-    const mostrar=(!inicio.value||data>=inicio.value)&&(!fim.value||data<=fim.value);
-    linha.style.display=mostrar?'':'none';
-    if(mostrar)visiveis++;
-  });
-  if(vazio)vazio.style.display=visiveis?'none':'';
-})();
-</script>
+<script>(function(){const inicio=document.getElementById('data_inicio'),fim=document.getElementById('data_fim'),linhas=document.querySelectorAll('#preview-cumprimentos tr[data-data]'),vazio=document.getElementById('preview-vazio');if(!inicio||!fim||!linhas.length)return;let visiveis=0;linhas.forEach(function(linha){const data=linha.getAttribute('data-data')||'',mostrar=(!inicio.value||data>=inicio.value)&&(!fim.value||data<=fim.value);linha.style.display=mostrar?'':'none';if(mostrar)visiveis++});if(vazio)vazio.style.display=visiveis?'none':''})();</script>
 {% endblock %}
