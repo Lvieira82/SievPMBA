@@ -4,7 +4,21 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from apps.solicitacoes.models import Solicitacao
-from apps.solicitacoes.permissoes import eh_desenvolvedor, escopo_unidades, perfil_gestor
+from apps.solicitacoes.permissoes import (
+    eh_desenvolvedor,
+    eh_membro_unidade,
+    escopo_unidades,
+    pode_cadastrar_usuario,
+    pode_gerar_opo,
+    pode_lancamento_manual,
+    pode_ver_administracao,
+    pode_ver_documentacao_solicitacao,
+    pode_ver_historico,
+    pode_ver_mapa_eventos,
+    pode_ver_proximos_eventos,
+    pode_ver_ranking,
+    perfil_gestor,
+)
 
 
 @login_required
@@ -28,6 +42,17 @@ def painel_gestao_seguro(request):
         "perfil": getattr(request.user, "acesso_institucional", None),
         "nivel": nivel,
         "titulo_painel": titulo,
+        "eh_desenvolvedor": eh_desenvolvedor(request.user),
+        "eh_membro_unidade": eh_membro_unidade(request.user),
+        "pode_administrar": pode_ver_administracao(request.user),
+        "pode_proximos": pode_ver_proximos_eventos(request.user),
+        "pode_historico": pode_ver_historico(request.user),
+        "pode_analise": pode_ver_ranking(request.user),
+        "pode_mapa": pode_ver_mapa_eventos(request.user),
+        "pode_documentacao": pode_ver_documentacao_solicitacao(request.user),
+        "pode_gerar_opo": pode_gerar_opo(request.user),
+        "pode_manual": pode_lancamento_manual(request.user),
+        "pode_cadastrar_usuario": pode_cadastrar_usuario(request.user),
         "pode_pesquisas": perfil_gestor(request.user, "COPPM"),
         "pendentes_opo": base.filter(status="PENDENTE").count(),
         "eventos_semana": base.filter(data_evento__range=[hoje, hoje + timedelta(days=7)]).count(),
