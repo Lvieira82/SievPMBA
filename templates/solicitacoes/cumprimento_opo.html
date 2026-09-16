@@ -55,19 +55,28 @@
           </div>
         </div>
       </div>
+
+      <div class="campo" style="margin-top:20px">
+        <label for="relato_atendimento">📝 Relato do atendimento / observações sobre o evento</label>
+        <textarea id="relato_atendimento" name="relato_atendimento" maxlength="500" placeholder="Registre fatos, ocorrências ou outras informações relevantes observadas durante o atendimento."></textarea>
+        <div style="text-align:right;color:#6b7280;font-size:13px;margin-top:4px"><span id="contador-relato">0</span>/500</div>
+        <div style="color:#6b7280;font-size:13px;margin-top:4px">Campo opcional. O relato será registrado junto ao histórico da operação.</div>
+      </div>
+
       <div style="display:flex;gap:10px;flex-wrap:wrap"><button id="btn-salvar" class="btn" type="submit">Salvar resposta</button><a class="btn btn2" href="{% url 'eventos_dia' %}">Voltar aos eventos</a></div>
     </form>
     {% endif %}
   </div>
 </div>
 <script>
-const imagemInput=document.getElementById('imagem'),latitudeInput=document.getElementById('latitude'),longitudeInput=document.getElementById('longitude'),precisaoInput=document.getElementById('precisao'),gpsStatus=document.getElementById('gps-status'),formCumprimento=document.getElementById('form-cumprimento'),justificativaInput=document.getElementById('justificativa'),contador=document.getElementById('contador');let capturaSolicitada=false;
+const imagemInput=document.getElementById('imagem'),latitudeInput=document.getElementById('latitude'),longitudeInput=document.getElementById('longitude'),precisaoInput=document.getElementById('precisao'),gpsStatus=document.getElementById('gps-status'),formCumprimento=document.getElementById('form-cumprimento'),justificativaInput=document.getElementById('justificativa'),contador=document.getElementById('contador'),relatoInput=document.getElementById('relato_atendimento'),contadorRelato=document.getElementById('contador-relato');let capturaSolicitada=false;
 function atualizarContador(){if(justificativaInput&&contador)contador.textContent=justificativaInput.value.length}if(justificativaInput){justificativaInput.addEventListener('input',atualizarContador);atualizarContador()}
+function atualizarContadorRelato(){if(relatoInput&&contadorRelato)contadorRelato.textContent=relatoInput.value.length}if(relatoInput){relatoInput.addEventListener('input',atualizarContadorRelato);atualizarContadorRelato()}
 function obterGPS(){if(!gpsStatus)return;gpsStatus.textContent='Obtendo localização GPS do dispositivo...';gpsStatus.className='gps-status';if(!navigator.geolocation){gpsStatus.textContent='GPS não disponível neste dispositivo/navegador.';gpsStatus.className='gps-status gps-erro';return}navigator.geolocation.getCurrentPosition(function(p){latitudeInput.value=p.coords.latitude;longitudeInput.value=p.coords.longitude;if(precisaoInput)precisaoInput.value=p.coords.accuracy||'';gpsStatus.textContent='✓ Localização GPS capturada.';gpsStatus.className='gps-status gps-ok'},function(){latitudeInput.value='';longitudeInput.value='';if(precisaoInput)precisaoInput.value='';gpsStatus.textContent='Não foi possível obter o GPS. Autorize a localização e tente novamente.';gpsStatus.className='gps-status gps-erro'},{enableHighAccuracy:true,timeout:15000,maximumAge:0})}
 function abrirCamera(){if(capturaSolicitada||!imagemInput)return;capturaSolicitada=true;imagemInput.click()}
 function mostrarCampos(){const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked,nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;document.getElementById('campo-imagem').classList.toggle('oculto',!sim);document.getElementById('campo-justificativa').classList.toggle('oculto',!nao);if(sim){obterGPS();abrirCamera()}else{capturaSolicitada=false;latitudeInput.value='';longitudeInput.value='';if(precisaoInput)precisaoInput.value=''}}
 if(imagemInput)imagemInput.addEventListener('change',function(){if(this.files&&this.files.length){gpsStatus.textContent='✓ Foto capturada: '+this.files[0].name;gpsStatus.className='gps-status gps-ok'}});
-if(formCumprimento)formCumprimento.addEventListener('submit',function(event){const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked,nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;if(nao&&!document.querySelectorAll('input[name="motivos_nao"]:checked').length){event.preventDefault();alert('Selecione pelo menos um motivo para o não cumprimento.');return}if(sim&&(!imagemInput.files||!imagemInput.files.length)){event.preventDefault();alert('Capture a foto da execução antes de salvar.');abrirCamera();return}if(sim&&(!latitudeInput.value||!longitudeInput.value)){event.preventDefault();alert('A localização GPS é obrigatória para registrar o cumprimento. Autorize a localização e tente novamente.');obterGPS()}});
+if(formCumprimento)formCumprimento.addEventListener('submit',function(event){const sim=document.querySelector('input[name="cumprida"][value="SIM"]').checked,nao=document.querySelector('input[name="cumprida"][value="NAO"]').checked;if(nao&&!document.querySelectorAll('input[name="motivos_nao"]:checked').length){event.preventDefault();alert('Selecione pelo menos um motivo para o não cumprimento.');return}if(sim&&(!imagemInput.files||!imagemInput.files.length)){event.preventDefault();alert('Capture a foto da execução antes de salvar.');abrirCamera();return}if(sim&&(!latitudeInput.value||!longitudeInput.value)){event.preventDefault();alert('A localização GPS é obrigatória para registrar o cumprimento. Autorize a localização e tente novamente.');obterGPS();return}if(relatoInput&&relatoInput.value.trim()){const limite=500;relatoInput.value=relatoInput.value.trim().slice(0,limite);const url=new URL(window.location.href);url.search='';url.searchParams.set('relato_atendimento',relatoInput.value);this.action=url.pathname+url.search}});
 window.addEventListener('load',function(){if(document.querySelector('input[name="cumprida"][value="SIM"]')?.checked)obterGPS()});
 </script>
 {% endblock %}
