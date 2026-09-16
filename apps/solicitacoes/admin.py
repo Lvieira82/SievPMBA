@@ -1,9 +1,8 @@
 from django.contrib import admin
 from .models import MatriculaAutorizada
 from django.utils import timezone
-from django.contrib import admin
 from .models import Municipio
-from .models import Solicitacao
+from .models import Solicitacao, LogSistema
 
 from .utils import gerar_pdf_autorizacao
 
@@ -62,6 +61,8 @@ class SolicitacaoAdmin(admin.ModelAdmin):
     aprovar_solicitacao.short_description = (
         'Aprovar solicitações'
     )
+
+
 @admin.register(MatriculaAutorizada)
 class MatriculaAutorizadaAdmin(admin.ModelAdmin):
     list_display = (
@@ -85,8 +86,6 @@ class MatriculaAutorizadaAdmin(admin.ModelAdmin):
         "posto",
         "unidade",
     )
-    
-
 
 
 @admin.register(Municipio)
@@ -104,3 +103,48 @@ class MunicipioAdmin(admin.ModelAdmin):
     list_filter = (
         "ativo",
     )
+
+
+@admin.register(LogSistema)
+class LogSistemaAdmin(admin.ModelAdmin):
+    """Consulta somente leitura dos registros de auditoria do SIEVPM."""
+
+    list_display = (
+        "criado_em",
+        "usuario",
+        "acao",
+        "solicitacao",
+        "ip",
+    )
+    list_filter = (
+        "acao",
+        "criado_em",
+    )
+    search_fields = (
+        "usuario__username",
+        "usuario__first_name",
+        "usuario__last_name",
+        "acao",
+        "detalhes",
+        "ip",
+        "solicitacao__protocolo",
+    )
+    readonly_fields = (
+        "usuario",
+        "solicitacao",
+        "acao",
+        "detalhes",
+        "ip",
+        "criado_em",
+    )
+    ordering = ("-criado_em",)
+    list_per_page = 50
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
