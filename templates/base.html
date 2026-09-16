@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="{% static 'css/siev.css' %}?v=10">
     {% block css %}{% endblock %}
+    <style>.paginacao-global{display:flex;align-items:center;justify-content:center;gap:7px;flex-wrap:wrap;margin:22px 0 6px;padding-top:16px;border-top:1px solid #e5e7eb}.paginacao-btn{border:1px solid #d1d5db;background:#fff;color:#374151;border-radius:7px;padding:7px 11px;font-weight:700;cursor:pointer}.paginacao-btn:hover:not(:disabled){background:#f3f4f6}.paginacao-btn.ativo{background:#907c64;color:#fff;border-color:#907c64}.paginacao-btn:disabled{opacity:.45;cursor:not-allowed}.paginacao-numeros{display:flex;gap:5px}.paginacao-info{color:#6b7280;font-size:13px;margin-left:8px;white-space:nowrap}@media(max-width:600px){.paginacao-global{gap:5px}.paginacao-info{width:100%;text-align:center;margin:3px 0 0}.paginacao-btn{padding:7px 9px}}</style>
 </head>
 <body>
 <div class="wrapper">
@@ -85,5 +86,5 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 {% block scripts %}{% endblock %}
-<script src="{% static 'js/menu.js' %}?v=1"></script><script src="{% static 'js/territorio.js' %}?v=1"></script>
+<script src="{% static 'js/menu.js' %}?v=1"></script><script src="{% static 'js/territorio.js' %}?v=1"></script><script src="{% static 'js/paginacao_global.js' %}?v=1"></script>
 </body></html>
