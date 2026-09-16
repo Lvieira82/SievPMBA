@@ -8,7 +8,7 @@ from .models import LogSistema, Solicitacao
 
 
 class MonitoramentoAcessosMiddleware:
-    """Registra acessos, atividade pública e o tempo do preenchimento externo."""
+    """Registra acessos, atividade pública e auditoria das ações no sistema."""
 
     CAMINHOS_IGNORADOS = ("/static/", "/media/", "/favicon.ico")
     CHAVE_ACESSO = "siev_acesso_registrado"
@@ -44,7 +44,12 @@ class MonitoramentoAcessosMiddleware:
                         logout(request)
                         return self.get_response(request)
                     if not request.session.get(self.CHAVE_ACESSO):
-                        LogSistema.objects.create(usuario=usuario, acao="ACESSO_SESSAO", detalhes="Início de sessão", ip=self._ip(request))
+                        LogSistema.objects.create(
+                            usuario=usuario,
+                            acao="ACESSO_SESSAO",
+                            detalhes="Início de sessão",
+                            ip=self._ip(request),
+                        )
                         request.session[self.CHAVE_ACESSO] = True
                     request.session.set_expiry(self.INATIVIDADE_SEGUNDOS)
                     request.session[self.CHAVE_ATIVIDADE] = agora.isoformat()
@@ -54,9 +59,13 @@ class MonitoramentoAcessosMiddleware:
                     request.session[self.CHAVE_ATIVIDADE_PUBLICA] = agora.isoformat()
                     request.session.modified = True
             except Exception:
+                # O monitoramento nunca pode impedir o funcionamento do SIEVPM.
                 pass
 
         response = self.get_response(request)
+
+        if not request.path.startswith(self.CAMINHOS_IGNORADOS):
+            self._registrar_auditoria_requisicao(request, response, inicio_requisicao)
 
         if request.method == "POST" and request.path in ("/nova/", "/confirmar-datas/"):
             try:
@@ -70,10 +79,21 @@ class MonitoramentoAcessosMiddleware:
                     # gravação de arquivos ou envio de e-mail.
                     segundos = max(0.0, (inicio_requisicao - aceito_em).total_seconds())
                     if segundos <= 24 * 60 * 60:
-                        solicitacoes = Solicitacao.objects.filter(origem="EXTERNA", criado_em__gte=inicio_requisicao).order_by("-criado_em")
+                        solicitacoes = Solicitacao.objects.filter(
+                            origem="EXTERNA",
+                            criado_em__gte=inicio_requisicao,
+                        ).order_by("-criado_em")
                         for solicitacao in solicitacoes:
-                            if not LogSistema.objects.filter(solicitacao=solicitacao, acao="TEMPO_ACEITE_TERMO_ATE_ENVIO").exists():
-                                LogSistema.objects.create(solicitacao=solicitacao, acao="TEMPO_ACEITE_TERMO_ATE_ENVIO", detalhes=f"segundos={segundos:.3f}", ip=self._ip(request))
+                            if not LogSistema.objects.filter(
+                                solicitacao=solicitacao,
+                                acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
+                            ).exists():
+                                LogSistema.objects.create(
+                                    solicitacao=solicitacao,
+                                    acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
+                                    detalhes=f"segundos={segundos:.3f}",
+                                    ip=self._ip(request),
+                                )
                         if solicitacoes:
                             request.session.pop(self.CHAVE_ACEITE_TERMOS, None)
                             request.session.modified = True
@@ -81,6 +101,43 @@ class MonitoramentoAcessosMiddleware:
                 pass
 
         return response
+
+    def _registrar_auditoria_requisicao(self, request, response, inicio_requisicao):
+        """Registra a requisição sem ler ou armazenar dados sensíveis do formulário."""
+        try:
+            usuario = getattr(request.user, "is_authenticated", False) and request.user or None
+            metodo = request.method.upper()
+
+            # Para visitantes não autenticados, registramos somente operações
+            # que realmente alteram ou enviam dados. Para usuários autenticados,
+            # registramos também as páginas acessadas.
+            if usuario:
+                acao = "ACESSO_PAGINA" if metodo in ("GET", "HEAD", "OPTIONS") else "ACAO_USUARIO"
+            elif metodo in ("POST", "PUT", "PATCH", "DELETE"):
+                acao = "ACAO_PUBLICA"
+            else:
+                return
+
+            duracao_ms = max(0.0, (timezone.now() - inicio_requisicao).total_seconds() * 1000)
+            query = request.META.get("QUERY_STRING", "")
+            caminho = request.path
+            if query:
+                caminho = f"{caminho}?{query[:500]}"
+
+            detalhes = (
+                f"método={metodo}; caminho={caminho}; status={response.status_code}; "
+                f"duracao_ms={duracao_ms:.1f}; agente={request.META.get('HTTP_USER_AGENT', '')[:300]}"
+            )
+
+            LogSistema.objects.create(
+                usuario=usuario,
+                acao=acao,
+                detalhes=detalhes,
+                ip=self._ip(request),
+            )
+        except Exception:
+            # Auditoria é complementar: uma falha no registro jamais deve derrubar uma requisição.
+            pass
 
     @classmethod
     def sessoes_ativas(cls, minutos=5):
@@ -98,7 +155,8 @@ class MonitoramentoAcessosMiddleware:
                     ultima = datetime.fromisoformat(atividade)
                     if timezone.is_naive(ultima):
                         ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
-                    if ultima >= limite: ativos.add(str(user_id))
+                    if ultima >= limite:
+                        ativos.add(str(user_id))
                 except (TypeError, ValueError):
                     continue
         except Exception:
@@ -113,14 +171,19 @@ class MonitoramentoAcessosMiddleware:
             agora = timezone.now()
             for sessao in Session.objects.filter(expire_date__gte=agora):
                 dados = sessao.get_decoded()
-                if dados.get("_auth_user_id") or not dados.get(cls.CHAVE_PUBLICO): continue
+                if dados.get("_auth_user_id") or not dados.get(cls.CHAVE_PUBLICO):
+                    continue
                 atividade = dados.get(cls.CHAVE_ATIVIDADE_PUBLICA)
-                if not atividade: continue
+                if not atividade:
+                    continue
                 try:
                     ultima = datetime.fromisoformat(atividade)
-                    if timezone.is_naive(ultima): ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
-                    if ultima >= limite: total += 1
-                except (TypeError, ValueError): continue
+                    if timezone.is_naive(ultima):
+                        ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
+                    if ultima >= limite:
+                        total += 1
+                except (TypeError, ValueError):
+                    continue
         except Exception:
             pass
         return total
@@ -128,15 +191,19 @@ class MonitoramentoAcessosMiddleware:
     @staticmethod
     def _ler_ultima_atividade(request):
         valor = request.session.get(MonitoramentoAcessosMiddleware.CHAVE_ATIVIDADE)
-        if not valor: return None
+        if not valor:
+            return None
         try:
             ultima = datetime.fromisoformat(valor)
-            if timezone.is_naive(ultima): ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
+            if timezone.is_naive(ultima):
+                ultima = timezone.make_aware(ultima, timezone.get_current_timezone())
             return ultima
-        except (TypeError, ValueError): return None
+        except (TypeError, ValueError):
+            return None
 
     @staticmethod
     def _ip(request):
         encaminhado = request.META.get("HTTP_X_FORWARDED_FOR")
-        if encaminhado: return encaminhado.split(",")[0].strip()
+        if encaminhado:
+            return encaminhado.split(",")[0].strip()
         return request.META.get("REMOTE_ADDR")
