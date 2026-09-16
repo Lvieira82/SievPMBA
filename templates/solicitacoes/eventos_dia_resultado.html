@@ -94,7 +94,7 @@
   const open=()=>new Promise((resolve,reject)=>{const r=indexedDB.open(DB,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains('eventos'))db.createObjectStore('eventos',{keyPath:'key'});if(!db.objectStoreNames.contains('pendentes'))db.createObjectStore('pendentes',{keyPath:'id',autoIncrement:true})};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
   open().then(db=>new Promise((resolve,reject)=>{const t=db.transaction('eventos','readwrite'),s=t.objectStore('eventos');const req=s.getAll();req.onsuccess=()=>{req.result.filter(x=>x.owner===owner&&x.data!==data).forEach(x=>s.delete(x.key));dados.forEach(e=>s.put({...e,owner,data,key:`${owner}|${data}|${e.id}`}));};req.onerror=()=>reject(req.error);t.oncomplete=resolve;t.onerror=()=>reject(t.error)})).catch(()=>{});
   if('serviceWorker' in navigator){navigator.serviceWorker.register('/eventos-do-dia/?sw=1',{scope:'/eventos-do-dia/'}).catch(()=>{});}
-  document.querySelectorAll('.btn-offline-cumprimento').forEach(btn=>{btn.addEventListener('click',function(e){e.preventDefault();if(navigator.onLine){window.location.href='/static/pwa/eventos_offline.html';}else{window.location.href=this.href;}});});
+  document.querySelectorAll('.btn-offline-cumprimento').forEach(btn=>{btn.addEventListener('click',function(e){e.preventDefault();if(navigator.onLine){window.location.href='/static/pwa/eventos_offline.html?v=5';}else{window.location.href=this.href;}});});
 })();
 </script>
 {% endblock %}
