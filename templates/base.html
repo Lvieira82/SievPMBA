@@ -27,26 +27,24 @@
                     <li><a href="{% url 'cadastro_unidades' %}" title="Unidades"><i class="bi bi-building"></i><span>Unidades</span></a></li>
                 {% elif user.acesso_institucional and user.acesso_institucional.perfil == "OPERADOR" %}
                     <li><a href="{% url 'eventos_dia' %}" title="Eventos do Dia"><i class="bi bi-calendar-event"></i><span>Eventos do Dia</span></a></li>
-                {% else %}
-                    {% if user.acesso_institucional and user.acesso_institucional.funcao == "GESTOR" %}
-                        <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
-                        <li><a href="{% url 'proximos_eventos_gestao' %}" title="Eventos futuros"><i class="bi bi-calendar-event"></i><span>Eventos futuros</span></a></li>
-                        <li><a href="{% url 'agenda_gestao' %}" title="Históricos"><i class="bi bi-clock-history"></i><span>Históricos</span></a></li>
-                        <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-bar-chart"></i><span>Análise</span></a></li>
-                        {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" %}
-                            <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
-                        {% endif %}
-                        {% if user.acesso_institucional.perfil == "UNIDADE" %}
-                            <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
-                            <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
-                            <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Manual"><i class="bi bi-pencil-square"></i><span>Lançamento Manual</span></a></li>
-                        {% endif %}
-                        <li><a href="{% url 'dashboard_operacional' %}" title="Dashboard"><i class="bi bi-graph-up"></i><span>Dashboard</span></a></li>
-                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
-                    {% elif user.acesso_institucional and user.acesso_institucional.perfil == "UNIDADE" and user.acesso_institucional.funcao == "MEMBRO" %}
-                        <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
-                        <li><a href="{% url 'administracao_unidade_membro' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                {% elif user.acesso_institucional and user.acesso_institucional.funcao in "GESTOR MEMBRO" %}
+                    <li><a href="{% url 'painel_gestao' %}" title="Painel"><i class="bi bi-speedometer2"></i><span>Painel</span></a></li>
+                    <li><a href="{% url 'proximos_eventos_gestao' %}" title="Eventos futuros"><i class="bi bi-calendar-event"></i><span>Eventos futuros</span></a></li>
+                    <li><a href="{% url 'agenda_gestao' %}" title="Históricos"><i class="bi bi-clock-history"></i><span>Históricos</span></a></li>
+                    <li><a href="{% url 'analise_unidades' %}" title="Análise"><i class="bi bi-bar-chart"></i><span>Análise</span></a></li>
+                    {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" %}
+                        <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
+                    {% endif %}
+                    {% if user.acesso_institucional.perfil == "UNIDADE" %}
+                        <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a>
+                        <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
                         <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Manual"><i class="bi bi-pencil-square"></i><span>Lançamento Manual</span></a></li>
+                    {% endif %}
+                    <li><a href="{% url 'dashboard_operacional' %}" title="Dashboard"><i class="bi bi-graph-up"></i><span>Dashboard</span></a></li>
+                    {% if user.acesso_institucional.perfil == "UNIDADE" %}
+                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
+                    {% else %}
+                        <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a></li>
                     {% endif %}
                 {% endif %}
                 <li><a href="{% url 'logout_gestao' %}" title="Sair da sessão"><i class="bi bi-box-arrow-right"></i><span>Sair da sessão</span></a></li>
