@@ -37,6 +37,12 @@
 .filtros-relatorio{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
 .campo-relatorio{display:flex;flex-direction:column;gap:4px}.campo-relatorio label{font-weight:700;color:#374151;font-size:.88rem}
 .campo-relatorio input{padding:9px;border:1px solid #d1d5db;border-radius:7px;background:#fff}
+.busca-opo{margin-bottom:16px;padding:13px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:11px}
+.busca-opo label{display:block;color:#374151;font-weight:700;font-size:.9rem;margin-bottom:7px}
+.busca-opo-campo{display:flex;align-items:center;gap:8px}
+.busca-opo input{width:100%;box-sizing:border-box;padding:11px 13px;border:1px solid #d1d5db;border-radius:8px;background:#fff;color:#111827;font-size:.95rem;outline:none}
+.busca-opo input:focus{border-color:#907C64;box-shadow:0 0 0 3px rgba(144,124,100,.12)}
+.busca-resultado{margin-top:7px;color:#64748b;font-size:.8rem}
 .preview-box{margin-top:12px;padding:11px;background:#fff;border:1px solid #e5e7eb;border-radius:9px}
 .preview-box strong{display:block;color:#374151;margin-bottom:8px}
 .preview-table-wrap{overflow-x:auto;border:1px solid #d1d5db;border-radius:7px}
@@ -45,7 +51,7 @@
 .preview-vazio{text-align:center;padding:18px;color:#6b7280}.preview-status-sim{color:#15803d;font-weight:700}.preview-status-nao{color:#b91c1c;font-weight:700}.preview-status-just{color:#b45309;font-weight:700}
 .preview-justificativa{display:block;margin-top:4px;font-size:.8rem;line-height:1.25;color:#374151}.preview-justificativa strong{display:inline;color:#374151;margin:0}
 @media(max-width:768px){
-.opo-card{padding:18px}.opo-wrap{margin:18px auto}.resumo-arquivos{grid-template-columns:1fr}.btn,.btn-documento{width:100%;box-sizing:border-box;justify-content:center}.acoes-op .btn{width:auto}.foto-cumprimento{max-width:100%;max-height:340px}.relatorios .btn{width:100%}.campo-relatorio{width:100%}.campo-relatorio input{width:100%;box-sizing:border-box}
+.opo-card{padding:18px}.opo-wrap{margin:18px auto}.resumo-arquivos{grid-template-columns:1fr}.btn,.btn-documento{width:100%;box-sizing:border-box;justify-content:center}.acoes-op .btn{width:auto}.foto-cumprimento{max-width:100%;max-height:340px}.relatorios .btn{width:100%}.campo-relatorio{width:100%}.campo-relatorio input{width:100%;box-sizing:border-box}.busca-opo-campo{display:block}.busca-opo input{font-size:1rem}
 }
 </style>
 
@@ -75,6 +81,12 @@
 <div style="margin-top:9px;display:flex;gap:7px;flex-wrap:wrap;"><a class="btn btn-pdf" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}" target="_blank" rel="noopener">📄 Abrir PDF</a><a class="btn btn-xls" href="{% url 'gerar_mapa_eventos_pdf' %}?relatorio=cumprimentos&formato=xls&data_inicio={{ request.GET.data_inicio }}&data_fim={{ request.GET.data_fim }}">📊 Exportar XLS</a></div>
 </div>
 {% endif %}
+</div>
+
+<div class="busca-opo">
+<label for="busca-opos">🔎 Buscar OPO rapidamente</label>
+<div class="busca-opo-campo"><input type="search" id="busca-opos" placeholder="Digite o protocolo, evento, município, unidade ou documento..." autocomplete="off" aria-label="Buscar OPO"></div>
+<div class="busca-resultado" id="busca-resultado">A busca procura em protocolo, evento, município, unidade e documentos.</div>
 </div>
 
 <div class="paginacao-global-container" data-pagina-tamanho="5">
@@ -122,5 +134,23 @@
 <a class="btn btn-back" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a>
 </div></div>
 
-<script>(function(){const inicio=document.getElementById('data_inicio'),fim=document.getElementById('data_fim'),linhas=document.querySelectorAll('#preview-cumprimentos tr[data-data]'),vazio=document.getElementById('preview-vazio');if(!inicio||!fim||!linhas.length)return;let visiveis=0;linhas.forEach(function(linha){const data=linha.getAttribute('data-data')||'',mostrar=(!inicio.value||data>=inicio.value)&&(!fim.value||data<=fim.value);linha.style.display=mostrar?'':'none';if(mostrar)visiveis++});if(vazio)vazio.style.display=visiveis?'none':''})();</script>
+<script>
+(function(){
+const inicio=document.getElementById('data_inicio'),fim=document.getElementById('data_fim'),linhas=document.querySelectorAll('#preview-cumprimentos tr[data-data]'),vazio=document.getElementById('preview-vazio');
+if(inicio&&fim&&linhas.length){let visiveis=0;linhas.forEach(function(linha){const data=linha.getAttribute('data-data')||'',mostrar=(!inicio.value||data>=inicio.value)&&(!fim.value||data<=fim.value);linha.style.display=mostrar?'':'none';if(mostrar)visiveis++});if(vazio)vazio.style.display=visiveis?'none':''}
+const campo=document.getElementById('busca-opos'),resultado=document.getElementById('busca-resultado'),container=document.querySelector('.paginacao-global-container');
+if(!campo||!container)return;
+const itens=Array.from(container.querySelectorAll('[data-paginavel-item="1"]'));
+const normalizar=function(v){return (v||'').toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'')};
+const textos=itens.map(function(item){return normalizar(item.innerText)});
+campo.addEventListener('input',function(){
+const termo=normalizar(campo.value.trim());
+if(!termo){window.location.reload();return}
+let encontrados=0;
+itens.forEach(function(item,i){const ok=textos[i].includes(termo);item.style.display=ok?'':'none';if(ok)encontrados++});
+const paginacao=container.querySelector('.paginacao-global');if(paginacao)paginacao.style.display='none';
+resultado.textContent=encontrados===0?'Nenhuma OPO encontrada.':encontrados+' OPO'+(encontrados===1?' encontrada.':'s encontradas.')+' — os resultados aparecem abaixo.';
+});
+})();
+</script>
 {% endblock %}
