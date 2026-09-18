@@ -80,7 +80,13 @@ def _salvar_anexos_manuais(request, solicitacao):
         if not tipo_id:
             raise ValueError("Selecione o tipo de cada documento complementar.")
 
-        tipo = TipoDocumento.objects.filter(pk=tipo_id, ativo=True).first()
+        # O formulário manual usa códigos textuais para manter todas as opções
+        # disponíveis no mesmo padrão do formulário externo. Só tentamos consultar
+        # por PK quando o valor recebido é realmente numérico.
+        tipo = None
+        if tipo_id.isdigit():
+            tipo = TipoDocumento.objects.filter(pk=int(tipo_id), ativo=True).first()
+
         if not tipo:
             nomes_tipos = {
                 "BOMBEIRO": "Corpo de Bombeiros",
@@ -109,11 +115,15 @@ def _salvar_anexos_manuais(request, solicitacao):
             nome_tipo = nomes_tipos.get(tipo_id)
             if not nome_tipo:
                 raise ValueError("Um dos tipos de documento selecionados é inválido.")
-            tipo, _ = TipoDocumento.objects.get_or_create(
-                nome=nome_tipo,
-                defaults={"descricao": nome_tipo, "extensoes_permitidas": "pdf", "ativo": True},
-            )
-            if not tipo.ativo:
+            tipo = TipoDocumento.objects.filter(nome__iexact=nome_tipo).first()
+            if not tipo:
+                tipo = TipoDocumento.objects.create(
+                    nome=nome_tipo,
+                    descricao=nome_tipo,
+                    extensoes_permitidas="pdf",
+                    ativo=True,
+                )
+            elif not tipo.ativo:
                 tipo.ativo = True
                 tipo.save(update_fields=["ativo"])
 
