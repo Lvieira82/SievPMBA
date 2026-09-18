@@ -45,8 +45,7 @@ def painel_gestao_seguro(request):
         if acesso.perfil == "CPR" and acesso.cpr_id:
             pendentes_apoio = ApoioEvento.objects.filter(
                 cpr_destino_id=acesso.cpr_id,
-                status__in=["ENVIADO", "RECEBIDO"],
-            ).count()
+            ).exclude(status="OPO_GERADA").count()
         elif (
             acesso.perfil == "UNIDADE"
             and acesso.unidade_id
@@ -55,8 +54,7 @@ def painel_gestao_seguro(request):
         ):
             pendentes_apoio = ApoioEvento.objects.filter(
                 unidade_destino_id=acesso.unidade_id,
-                status__in=["ENVIADO", "RECEBIDO"],
-            ).count()
+            ).exclude(status="OPO_GERADA").count()
 
     return render(request, "gestao/painel_gestao.html", {
         "perfil": getattr(request.user, "acesso_institucional", None),
