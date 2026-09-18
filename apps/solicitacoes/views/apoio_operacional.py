@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db import transaction
 
-from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, Unidade
+from apps.solicitacoes.models import CPR, HistoricoSolicitacao, Solicitacao, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
 from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import documentos_foram_conferidos, eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
@@ -54,23 +54,49 @@ def enviar_apoio(request, id):
         return redirect("aprovacoes")
 
     opo = solicitacao.opos.order_by("-criado_em").first()
-    unidades = _unidades_aptas_para_apoio(solicitacao)
+    cprs = CPR.objects.filter(ativo=True).order_by("sigla", "nome")
+    comandos = (
+        Unidade.objects
+        .filter(ativo=True, sigla__in={"CPE", "CPME", "CPRV", "CPAP"})
+        .exclude(pk=solicitacao.unidade_id)
+        .select_related("cpr")
+        .order_by("sigla", "nome")
+    )
 
     if request.method == "POST":
-        unidade_destino = get_object_or_404(Unidade, pk=request.POST.get("unidade_destino"), ativo=True, tipo__in=TIPOS_SEM_AREA)
-        if unidade_destino.pk == solicitacao.unidade_id:
-            messages.error(request, "A unidade de apoio deve ser diferente da unidade responsável pelo evento.")
-            return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "unidades": unidades})
+        destino = (request.POST.get("destino") or "").strip()
+        destino_tipo, _, destino_id = destino.partition(":")
+        if destino_tipo not in {"CPR", "COMANDO"} or not destino_id.isdigit():
+            messages.error(request, "Selecione um CPR ou Comando de destino.")
+            return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "cprs": cprs, "comandos": comandos})
 
-        apoio = ApoioEvento.objects.filter(solicitacao=solicitacao, unidade_destino=unidade_destino).first()
+        unidade_destino = None
+        cpr_destino = None
+        if destino_tipo == "CPR":
+            cpr_destino = get_object_or_404(CPR, pk=int(destino_id), ativo=True)
+        else:
+            unidade_destino = get_object_or_404(
+                Unidade, pk=int(destino_id), ativo=True, sigla__in={"CPE", "CPME", "CPRV", "CPAP"}
+            )
+            if unidade_destino.pk == solicitacao.unidade_id:
+                messages.error(request, "O Comando de destino deve ser diferente da unidade responsável pelo evento.")
+                return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "cprs": cprs, "comandos": comandos})
+
+        destino_nome = (
+            f"{cpr_destino.sigla} — {cpr_destino.nome}"
+            if cpr_destino
+            else f"{unidade_destino.sigla} — {unidade_destino.nome}"
+        )
+        filtro_destino = {"cpr_destino": cpr_destino, "unidade_destino": unidade_destino}
+        apoio = ApoioEvento.objects.filter(solicitacao=solicitacao, **filtro_destino).first()
         if apoio and apoio.status != "OPO_GERADA":
-            messages.warning(request, f"O apoio para {unidade_destino.sigla} já foi enviado.")
+            messages.warning(request, f"O apoio para {destino_nome} já foi enviado.")
             return redirect("apoios_recebidos")
 
         with transaction.atomic():
             apoio, criado = ApoioEvento.objects.update_or_create(
                 solicitacao=solicitacao,
-                unidade_destino=unidade_destino,
+                **filtro_destino,
                 defaults={
                     "unidade_origem": solicitacao.unidade,
                     "enviado_por": request.user,
@@ -83,33 +109,45 @@ def enviar_apoio(request, id):
                 usuario=request.user,
                 acao="APOIO ENVIADO",
                 status=solicitacao.status,
-                observacao=f"Apoio operacional compartilhado com {unidade_destino.sigla}. A documentação original permanece vinculada ao protocolo.",
+                observacao=f"Apoio operacional compartilhado com {destino_nome}. A documentação original permanece vinculada ao protocolo.",
             )
 
-        if unidade_destino.email:
+        destinatarios = []
+        if unidade_destino and unidade_destino.email:
+            destinatarios = [unidade_destino.email]
+        elif cpr_destino:
+            destinatarios = list(
+                AcessoInstitucional.objects
+                .filter(perfil="CPR", cpr=cpr_destino, ativo=True, usuario__is_active=True)
+                .exclude(usuario__email="")
+                .values_list("usuario__email", flat=True)
+                .distinct()
+            )
+
+        if destinatarios:
             link = request.build_absolute_uri(reverse("apoios_recebidos"))
             try:
                 send_mail(
                     subject=f"Apoio operacional recebido — Protocolo {solicitacao.protocolo}",
                     message=(
-                        f"A unidade {unidade_destino.sigla} recebeu um apoio operacional para o evento "
+                        f"{destino_nome} recebeu um pedido de apoio operacional para o evento "
                         f"{solicitacao.nome_evento} ({solicitacao.data_evento:%d/%m/%Y}).\n\n"
                         f"O pacote contém acesso à documentação original e aos dados do evento.\n"
-                        f"Acesse o SiEv para analisar e gerar a OPO própria da unidade:\n{link}"
+                        f"Acesse o SiEv para analisar o pedido:\n{link}"
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[unidade_destino.email],
+                    recipient_list=destinatarios,
                     fail_silently=False,
                 )
-                messages.success(request, f"Apoio enviado para {unidade_destino.sigla} e unidade notificada por e-mail.")
+                messages.success(request, f"Apoio enviado para {destino_nome} e entidade notificada por e-mail.")
             except Exception:
-                messages.warning(request, f"Apoio enviado para {unidade_destino.sigla}. O e-mail de notificação não pôde ser enviado.")
+                messages.warning(request, f"Apoio enviado para {destino_nome}. O e-mail de notificação não pôde ser enviado.")
         else:
-            messages.success(request, f"Apoio enviado para {unidade_destino.sigla}.")
+            messages.success(request, f"Apoio enviado para {destino_nome}.")
 
         return redirect("aprovacoes")
 
-    return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "unidades": unidades})
+    return render(request, "gestao/enviar_apoio.html", {"solicitacao": solicitacao, "opo": opo, "cprs": cprs, "comandos": comandos})
 
 
 @login_required
