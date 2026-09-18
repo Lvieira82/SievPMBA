@@ -38,11 +38,15 @@
         </div>
 
         <div class="informacoes-consulta">
-            {% if matricula %}<p><strong>Matrícula:</strong> {{ matricula }}</p>{% endif %}
-            {% if acesso.usuario %}<p><strong>Policial:</strong> {{ acesso.usuario.get_full_name }}</p>{% endif %}
-            {% if unidade %}<p><strong>Unidade:</strong> {{ unidade }}</p>{% endif %}
-            {% if acesso.perfil %}<p><strong>Perfil:</strong> {{ acesso.get_perfil_display }}</p>{% endif %}
-            {% if acesso.perfil == 'OPERADOR' %}<div class="offline-status">✓ Eventos de hoje armazenados neste dispositivo para uso offline</div>{% endif %}
+            {% if publico %}
+                <p><strong>Município:</strong> {{ municipio_publico.nome }}</p>
+            {% else %}
+                {% if matricula %}<p><strong>Matrícula:</strong> {{ matricula }}</p>{% endif %}
+                {% if acesso.usuario %}<p><strong>Policial:</strong> {{ acesso.usuario.get_full_name }}</p>{% endif %}
+                {% if unidade %}<p><strong>Unidade:</strong> {{ unidade }}</p>{% endif %}
+                {% if acesso.perfil %}<p><strong>Perfil:</strong> {{ acesso.get_perfil_display }}</p>{% endif %}
+                {% if acesso.perfil == 'OPERADOR' %}<div class="offline-status">✓ Eventos de hoje armazenados neste dispositivo para uso offline</div>{% endif %}
+            {% endif %}
         </div>
 
         {% if eventos %}
@@ -55,6 +59,7 @@
                     {% if evento.local %}<p><strong>Local:</strong> {{ evento.local }}</p>{% endif %}
                     {% if evento.unidade %}<p><strong>Unidade responsável:</strong> {{ evento.unidade }}</p>{% endif %}
                     <p><strong>Status:</strong> <span class="status-evento">{{ evento.get_status_display }}</span></p>
+                    {% if not publico %}
                     <div class="acoes-evento">
                         {% if acesso.perfil == 'OPERADOR' %}
                             <a href="{% url 'abrir_oficio_comandante_operador' evento.id %}" class="btn-oficio-comandante" target="_blank" rel="noopener">📄 Ofício do Comandante</a>
@@ -67,10 +72,11 @@
                         <a href="{% url 'cumprimento_opo' evento.id %}" class="btn-cumprimento">✅ OPO e cumprimento</a>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             {% endfor %}
         {% else %}
-            <div class="nenhum-evento">Não há eventos/OPOs aprovados para hoje nesta unidade.</div>
+            <div class="nenhum-evento">{% if publico %}Não há eventos registrados pela PM neste município para hoje!{% else %}Não há eventos/OPOs aprovados para hoje nesta unidade.{% endif %}</div>
         {% endif %}
 
         <div class="acoes-evento">
@@ -79,6 +85,7 @@
     </div>
 </div>
 
+{% if not publico %}
 {% csrf_token %}
 {{ offline_eventos|json_script:"eventos-offline-data" }}
 <script>
@@ -98,3 +105,5 @@
 })();
 </script>
 {% endblock %}
+
+{% endif %}
