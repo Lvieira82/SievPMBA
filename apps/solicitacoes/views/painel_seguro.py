@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
 from apps.solicitacoes.models import Solicitacao
+from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import (
     eh_desenvolvedor,
     eh_membro_unidade,
@@ -38,6 +39,25 @@ def painel_gestao_seguro(request):
         nivel = a.perfil
         titulo = str(a.unidade) if a.unidade_id else str(a.cpr) if a.cpr_id else a.get_perfil_display()
 
+    acesso = getattr(request.user, "acesso_institucional", None)
+    pendentes_apoio = 0
+    if acesso and acesso.ativo:
+        if acesso.perfil == "CPR" and acesso.cpr_id:
+            pendentes_apoio = ApoioEvento.objects.filter(
+                cpr_destino_id=acesso.cpr_id,
+                status__in=["ENVIADO", "RECEBIDO"],
+            ).count()
+        elif (
+            acesso.perfil == "UNIDADE"
+            and acesso.unidade_id
+            and acesso.unidade
+            and acesso.unidade.sigla in {"CPE", "CPME", "CPRV", "CPAP"}
+        ):
+            pendentes_apoio = ApoioEvento.objects.filter(
+                unidade_destino_id=acesso.unidade_id,
+                status__in=["ENVIADO", "RECEBIDO"],
+            ).count()
+
     return render(request, "gestao/painel_gestao.html", {
         "perfil": getattr(request.user, "acesso_institucional", None),
         "nivel": nivel,
@@ -55,6 +75,7 @@ def painel_gestao_seguro(request):
         "pode_cadastrar_usuario": pode_cadastrar_usuario(request.user),
         "pode_pesquisas": perfil_gestor(request.user, "COPPM"),
         "pendentes_opo": base.filter(status="PENDENTE").count(),
+        "pendentes_apoio": pendentes_apoio,
         "eventos_semana": base.filter(data_evento__range=[hoje, hoje + timedelta(days=7)]).count(),
         "eventos_mes": base.filter(data_evento__year=hoje.year, data_evento__month=hoje.month).count(),
         "proximos_eventos": base.filter(data_evento__gte=hoje).order_by("data_evento", "hora_inicio")[:5],
