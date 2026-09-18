@@ -220,9 +220,29 @@ textarea{min-height:120px;}
                     <label>Tipo do Documento</label>
                     <select name="tipo_documento_manual" class="form-control tipo-documento-manual" required>
                         <option value="">Selecione...</option>
-                        {% for tipo in tipos_documento %}
-                            <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
-                        {% endfor %}
+                        <option value="">Selecione...</option>
+                        <option value="BOMBEIRO">Corpo de Bombeiros</option>
+                        <option value="VIGILANCIA_SANITARIA">Vigilância Sanitária</option>
+                        <option value="MEIO_AMBIENTE">Meio Ambiente</option>
+                        <option value="MINISTERIO_PUBLICO">Ministério Público</option>
+                        <option value="TAC">TAC</option>
+                        <option value="CREA">CREA</option>
+                        <option value="CRM">CRM</option>
+                        <option value="CRMV">CRMV</option>
+                        <option value="CRO">CRO</option>
+                        <option value="IBAMA">IBAMA</option>
+                        <option value="INEMA">INEMA</option>
+                        <option value="PREFEITURA">Prefeitura</option>
+                        <option value="POLICIA_CIVIL">Polícia Civil</option>
+                        <option value="EXERCITO_BRASILEIRO">Exército Brasileiro</option>
+                        <option value="MARINHA_DO_BRASIL">Marinha do Brasil</option>
+                        <option value="PRF">PRF</option>
+                        <option value="DETRAN">DETRAN</option>
+                        <option value="DEFESA_CIVIL">Defesa Civil</option>
+                        <option value="ANAC">ANAC</option>
+                        <option value="DNIT">DNIT</option>
+                        <option value="DERBA_SIT">DERBA / SIT</option>
+                        <option value="OUTRO_DOCUMENTO">Outro Documento</option>
                     </select>
                 </div>
                 <div class="descricao-outro-manual" style="display:none">
