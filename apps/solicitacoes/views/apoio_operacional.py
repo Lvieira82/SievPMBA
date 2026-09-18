@@ -216,11 +216,15 @@ def abrir_apoio(request, id):
 @login_required
 def gerar_opo_apoio(request, id):
     apoio = get_object_or_404(
-        ApoioEvento.objects.select_related("solicitacao", "unidade_destino", "unidade_origem"),
+        ApoioEvento.objects.select_related("solicitacao", "unidade_destino", "unidade_origem", "cpr_destino"),
         pk=id,
     )
+    if apoio.cpr_destino_id:
+        messages.error(request, "O CPR destinatário recebe o pedido de apoio. A geração da OPO de apoio permanece vinculada ao Comando especializado executor.")
+        return redirect("abrir_apoio", id=id)
+
     if not (eh_desenvolvedor(request.user) or _eh_gestor_unidade_do(request, apoio.unidade_destino)):
-        messages.error(request, "Somente o gestor da unidade destinatária pode gerar a OPO própria de apoio.")
+        messages.error(request, "Somente o gestor da unidade/comando destinatário pode gerar a OPO própria de apoio.")
         return redirect("apoios_recebidos")
 
     if not apoio.solicitacao.documentos.exists():
