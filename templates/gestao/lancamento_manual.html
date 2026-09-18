@@ -93,7 +93,7 @@ textarea{min-height:120px;}
 <div class="container-formulario">
 <div class="card-formulario">
 
-<h1>📝 Lançamento Manual</h1>
+<h1>📝 Lançamento Interno</h1>
 <p class="subtitulo">Utilize esta área para cadastrar eventos presenciais.</p>
 
 {% if messages %}
@@ -161,6 +161,7 @@ textarea{min-height:120px;}
     const formPermanente = document.getElementById('form-lancamento-manual');
     if(!form || !formPermanente) return;
 
+    const tipoOpo = document.getElementById('id_tipo_opo');
     const permanente = document.getElementById('id_opo_permanente');
     const dataEvento = document.getElementById('id_data_evento');
     const dataFim = document.getElementById('id_opo_permanente_data_fim');
@@ -168,8 +169,9 @@ textarea{min-height:120px;}
     const card = document.getElementById('opo-permanente-card');
     const target = document.getElementById('opo-permanente-fields');
 
-    if(!permanente || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
+    if(!tipoOpo || !permanente || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
 
+    const pTipoOpo = tipoOpo.closest('p');
     const pPermanente = permanente.closest('p');
     const pDataEvento = dataEvento.closest('p');
     const pDataFim = dataFim.closest('p');
@@ -177,13 +179,14 @@ textarea{min-height:120px;}
 
     // A tag e todo o período da OPO permanente ficam no topo,
     // antes da pesquisa e antes dos demais campos.
+    if(pTipoOpo) target.appendChild(pTipoOpo);
     if(pPermanente) target.appendChild(pPermanente);
     if(pDataEvento) target.appendChild(pDataEvento);
     if(pDataFim) target.appendChild(pDataFim);
     if(pIndeterminado) target.appendChild(pIndeterminado);
 
     // Os campos continuam pertencendo ao formulário que será enviado.
-    [permanente, dataEvento, dataFim, indeterminado].forEach(function(campo){
+    [tipoOpo, permanente, dataEvento, dataFim, indeterminado].forEach(function(campo){
         campo.setAttribute('form', form.id);
     });
 
@@ -191,6 +194,12 @@ textarea{min-height:120px;}
         const label = pDataEvento.querySelector('label');
         if(label) label.dataset.normal = label.textContent;
         pDataEvento.classList.add('opo-field');
+    }
+
+    if(pTipoOpo){
+        pTipoOpo.classList.add('opo-field');
+        const label = pTipoOpo.querySelector('label');
+        if(label) label.textContent = 'Tipo de OPO';
     }
 
     if(pPermanente){
@@ -281,6 +290,7 @@ textarea{min-height:120px;}
 
     function atualizar(){
         const ativo = permanente.checked;
+        const institucional = tipoOpo.value === 'INSTITUCIONAL';
         const status = document.getElementById('opo-permanente-status');
 
         if(status) status.textContent = ativo ? 'SIM' : 'NÃO';
