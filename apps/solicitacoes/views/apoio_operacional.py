@@ -10,7 +10,7 @@ from django.db import transaction
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
 from apps.solicitacoes.models_apoio import ApoioEvento
-from apps.solicitacoes.permissoes import eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
+from apps.solicitacoes.permissoes import documentos_foram_conferidos, eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
 from .geracao_opo import _gerar_pdf_opo
 
 
@@ -47,6 +47,10 @@ def enviar_apoio(request, id):
 
     if not (eh_desenvolvedor(request.user) or (eh_gestor(request.user) and pode_ver_solicitacao(request.user, solicitacao))):
         messages.error(request, "Você não possui permissão para enviar apoio deste evento.")
+        return redirect("aprovacoes")
+
+    if not documentos_foram_conferidos(request, solicitacao):
+        messages.warning(request, "O compartilhamento de apoio está bloqueado até que todos os documentos anexados sejam conferidos.")
         return redirect("aprovacoes")
 
     opo = solicitacao.opos.order_by("-criado_em").first()
