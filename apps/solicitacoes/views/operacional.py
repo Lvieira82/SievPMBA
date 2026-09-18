@@ -57,6 +57,15 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        self.fields["tipo_opo"] = forms.ChoiceField(
+            required=False,
+            initial="FESTIVO",
+            label="Tipo de OPO",
+            choices=Solicitacao.TIPO_OPO_CHOICES,
+            widget=forms.RadioSelect(attrs={"class": "tipo-opo-toggle"}),
+            help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
+        )
+
         self.fields["opo_permanente"] = forms.BooleanField(
             required=False,
             initial=False,
@@ -96,6 +105,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             self.fields["bairro"].initial = self.instance.bairro_id
             self.fields["tipo_evento"].initial = self.instance.tipo_evento_id
             self.fields["unidade"].initial = self.instance.unidade_id
+            self.fields["tipo_opo"].initial = self.instance.tipo_opo
             self.fields["opo_permanente"].initial = self.instance.opo_permanente
             self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
             self.fields["opo_permanente_indeterminado"].initial = self.instance.opo_permanente_indeterminado
