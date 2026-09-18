@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
-{% block title %}Dashboard Operacional{% endblock %}
-{% block titulo %}Dashboard Operacional{% endblock %}
+{% block title %}{% if eh_dashboard_coppm %}Dashboard COPPM{% else %}Dashboard Operacional{% endif %}{% endblock %}
+{% block titulo %}{% if eh_dashboard_coppm %}Dashboard COPPM{% else %}Dashboard Operacional{% endif %}{% endblock %}
 {% block content %}
 <style>
 .dash{max-width:1250px;margin:30px auto;padding:0 18px}
@@ -16,8 +16,52 @@
 .resumo-item strong{display:block;font-size:13px;color:#6b7280;margin-bottom:5px}
 .resumo-item span{font-size:18px;font-weight:800;color:#1f2937}
 @media(max-width:850px){.resumo-acessos{grid-template-columns:1fr}}
+.dashboard-coppm{max-width:1250px;margin:30px auto;padding:0 18px}
+.dashboard-coppm h1{color:#907C64;margin:0 0 6px}
+.dashboard-coppm .subtitulo{color:#6b7280;margin:0 0 22px;font-weight:600}
+.dashboard-coppm .indicadores{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:25px}
+.dashboard-coppm .indicador{background:#fff;border-radius:15px;padding:22px;text-align:center;box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.dashboard-coppm .indicador .numero{font-size:34px;font-weight:800;color:#907C64;line-height:1.1}
+.dashboard-coppm .indicador h3{font-size:15px;margin:9px 0 0;color:#1f2937}
+.dashboard-coppm .bloco{background:#fff;border-radius:15px;padding:24px;box-shadow:0 5px 18px rgba(0,0,0,.08)}
+.dashboard-coppm .bloco h2{color:#907C64;margin-top:0}
+.dashboard-coppm .tabela-coppm{width:100%;border-collapse:collapse}
+.dashboard-coppm .tabela-coppm th,.dashboard-coppm .tabela-coppm td{padding:13px 12px;border-bottom:1px solid #e5e7eb;text-align:left}
+.dashboard-coppm .tabela-coppm th{background:#111827;color:#fff}
+.dashboard-coppm .tabela-coppm td:not(:first-child),.dashboard-coppm .tabela-coppm th:not(:first-child){text-align:center}
+.dashboard-coppm .total-geral{font-weight:800;background:#f3f4f6}
+@media(max-width:900px){.dashboard-coppm .indicadores{grid-template-columns:repeat(2,1fr)}.dashboard-coppm .bloco{overflow-x:auto}.dashboard-coppm .tabela-coppm{min-width:760px}}
+@media(max-width:520px){.dashboard-coppm .indicadores{grid-template-columns:1fr}}
 </style>
 
+{% if eh_dashboard_coppm %}
+<div class="dashboard-coppm">
+    <h1>📊 Dashboard COPPM</h1>
+    <p class="subtitulo">Visão geral das solicitações e OPOs em toda a Bahia, com detalhamento por CPR/Comando.</p>
+    <div class="indicadores">
+        <div class="indicador"><div class="numero">{{ total_solicitacoes }}</div><h3>Total de solicitações</h3></div>
+        <div class="indicador"><div class="numero">{{ total_opos }}</div><h3>Total de OPOs geradas</h3></div>
+        <div class="indicador"><div class="numero">{{ total_em_analise }}</div><h3>Total em análise</h3></div>
+        <div class="indicador"><div class="numero">{{ total_cumpridas }}</div><h3>Total de OPOs cumpridas</h3></div>
+    </div>
+    <div class="bloco">
+        <h2>📍 Indicadores por CPR / Comando</h2>
+        <div style="overflow-x:auto">
+            <table class="tabela-coppm">
+                <thead><tr><th>CPR / Comando</th><th>Solicitações</th><th>OPOs geradas</th><th>Em análise</th><th>Cumpridas</th></tr></thead>
+                <tbody>
+                    <tr class="total-geral"><td>GERAL BAHIA</td><td>{{ total_solicitacoes }}</td><td>{{ total_opos }}</td><td>{{ total_em_analise }}</td><td>{{ total_cumpridas }}</td></tr>
+                    {% for item in por_cpr %}
+                    <tr><td><strong>{{ item.sigla }}</strong>{% if item.nome %} — {{ item.nome }}{% endif %}</td><td>{{ item.total_solicitacoes }}</td><td>{{ item.total_opos }}</td><td>{{ item.total_em_analise }}</td><td>{{ item.total_cumpridas }}</td></tr>
+                    {% empty %}
+                    <tr><td colspan="5" style="text-align:center;padding:24px;color:#6b7280">Nenhum CPR/Comando ativo cadastrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="dash">
     <div class="indicadores">
         <div class="indicador"><div class="numero">{{ pendentes }}</div><h3>Em Análise</h3></div>
@@ -40,4 +84,6 @@
         </div>
     </div>
 </div>
+
+{% endif %}
 {% endblock %}
