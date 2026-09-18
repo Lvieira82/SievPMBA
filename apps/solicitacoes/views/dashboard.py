@@ -90,7 +90,7 @@ def _dashboard_coppm(request):
         ]
     ).count()
     total_em_analise = solicitacoes_validas.filter(
-        status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]
+        status__in=["ENVIADA", "PENDENTE", "EM_ANALISE", "CORRECAO"]
     ).count()
     total_cumpridas = AnexoOPO.objects.filter(
         solicitacao__status__in=[
@@ -116,7 +116,7 @@ def _dashboard_coppm(request):
                 "unidades__solicitacoes",
                 filter=Q(
                     unidades__solicitacoes__status__in=[
-                        "PENDENTE", "EM_ANALISE", "CORRECAO"
+                        "ENVIADA", "PENDENTE", "EM_ANALISE", "CORRECAO"
                     ]
                 ),
                 distinct=True,
