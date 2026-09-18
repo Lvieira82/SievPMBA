@@ -132,9 +132,17 @@ class GestaoManualForm(SolicitacaoManualForm):
     def clean(self):
         cleaned_data = super().clean()
         permanente = cleaned_data.get("opo_permanente", False)
+        tipo_opo = cleaned_data.get("tipo_opo", "FESTIVO")
+        efetivo_institucional = (cleaned_data.get("efetivo_institucional") or "").strip()
         data_inicio = cleaned_data.get("data_evento")
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
+
+        if tipo_opo == "INSTITUCIONAL" and not efetivo_institucional:
+            self.add_error(
+                "efetivo_institucional",
+                "Informe o efetivo da OPO institucional.",
+            )
 
         if permanente:
             if not data_inicio:
