@@ -62,7 +62,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             initial="FESTIVO",
             label="Tipo de OPO",
             choices=Solicitacao.TIPO_OPO_CHOICES,
-            widget=forms.RadioSelect(attrs={"class": "tipo-opo-toggle"}),
+            widget=forms.Select(attrs={"class": "tipo-opo-toggle"}),
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
