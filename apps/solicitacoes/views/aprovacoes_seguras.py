@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.solicitacoes.models import HistoricoSolicitacao, Solicitacao
-from apps.solicitacoes.permissoes import perfil_gestor, pode_aprovar_solicitacao
+from apps.solicitacoes.permissoes import documentos_foram_conferidos, perfil_gestor, pode_aprovar_solicitacao
 from .geracao_opo import gerar_opo_com_evento_extra
 
 
@@ -28,9 +28,7 @@ def aprovacoes(request):
     solicitacoes = solicitacoes.filter(id__in=permitidas)
 
     for s in solicitacoes:
-        ids = {str(item.id) for item in s.documentos.all()}
-        vistos = set(request.session.get(f"documentos_conferidos_{s.id}", []))
-        s.documentos_conferidos = bool(ids) and ids.issubset(vistos)
+        s.documentos_conferidos = documentos_foram_conferidos(request, s)
 
     return render(request, "gestao/aprovacoes.html", {"solicitacoes": solicitacoes, "pode_aprovar": True})
 
