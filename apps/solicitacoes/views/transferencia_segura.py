@@ -4,7 +4,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from apps.solicitacoes.models import Municipio, Solicitacao, TransferenciaSolicitacao, Unidade, HistoricoSolicitacao
-from apps.solicitacoes.permissoes import pode_transferir
+from apps.solicitacoes.permissoes import documentos_foram_conferidos, pode_transferir
 
 
 @login_required
@@ -16,6 +16,10 @@ def transferir_solicitacao_seguro(request, id):
 
     if not pode_transferir(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para transferir esta solicitação.")
+        return redirect("aprovacoes")
+
+    if not documentos_foram_conferidos(request, solicitacao):
+        messages.warning(request, "A transferência está bloqueada até que todos os documentos anexados sejam conferidos.")
         return redirect("aprovacoes")
 
     unidades = Unidade.objects.filter(ativo=True).exclude(pk=solicitacao.unidade_id).select_related("cpr").order_by("sigla", "nome")
