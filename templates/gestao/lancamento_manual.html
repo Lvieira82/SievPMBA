@@ -198,13 +198,25 @@ textarea{min-height:120px;}
     if(pPermanente){
         pPermanente.classList.add('opo-field');
         const label = pPermanente.querySelector('label');
-        if(label) label.classList.add('opo-switch');
+        if(label){
+            label.classList.add('opo-switch');
+            const status = document.createElement('span');
+            status.id = 'opo-permanente-status';
+            status.style.cssText = 'margin-left:8px;padding:3px 9px;border-radius:999px;background:#e5e7eb;color:#374151;font-size:12px;';
+            label.appendChild(status);
+        }
     }
     if(pDataFim) pDataFim.classList.add('opo-field');
     if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
 
     function atualizar(){
         const ativo = permanente.checked;
+        const status = document.getElementById('opo-permanente-status');
+        if(status) status.textContent = ativo ? 'SIM' : 'NÃO';
+        if(status){
+            status.style.background = ativo ? '#dcfce7' : '#e5e7eb';
+            status.style.color = ativo ? '#166534' : '#374151';
+        }
         card.style.display = '';
         if(pDataEvento){
             const label = pDataEvento.querySelector('label');
