@@ -6,6 +6,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from apps.solicitacoes.models import Solicitacao, PerfilUsuario
+from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import (
     acesso_do_usuario,
     descricao_acesso,
@@ -84,6 +85,13 @@ def painel_gestao(request):
         "pode_gerar_opo": bool(pode_gerar_opo(user)),
         "pode_manual": pode_lancamento_manual(user),
         "pendentes_opo": solicitacoes.filter(status="PENDENTE").count(),
+        "pendentes_apoio": (
+            ApoioEvento.objects.filter(cpr_destino_id=acesso.cpr_id).exclude(status="OPO_GERADA").count()
+            if acesso and acesso.perfil == "CPR" and acesso.cpr_id
+            else ApoioEvento.objects.filter(unidade_destino_id=acesso.unidade_id).exclude(status="OPO_GERADA").count()
+            if acesso and acesso.perfil == "UNIDADE" and acesso.unidade_id and acesso.unidade and acesso.unidade.sigla in {"CPE", "CPME", "CPRV", "CPAP"}
+            else 0
+        ),
         "eventos_semana": solicitacoes.filter(data_evento__gte=hoje, data_evento__lte=hoje + timedelta(days=7)).count(),
         "eventos_mes": solicitacoes.filter(data_evento__year=hoje.year, data_evento__month=hoje.month).count(),
         "proximos_eventos": solicitacoes.filter(data_evento__gte=hoje).select_related("unidade", "municipio", "bairro").order_by("data_evento", "hora_inicio")[:5],
