@@ -3,6 +3,7 @@ from pathlib import Path
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.core.files.storage import default_storage
 from django.http import FileResponse, Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -17,8 +18,23 @@ MOTIVOS_NAO={"VIATURA_PROBLEMA":"Viatura apresentou problema","DELEGACIA":"Apres
 def _acesso_por_matricula(matricula):
     return AcessoInstitucional.objects.select_related("usuario","cpr","unidade").filter(matricula__iexact=matricula,ativo=True,usuario__is_active=True).first()
 
+def _filtro_evento_ativo(hoje):
+    permanente_ativo = Q(
+        opo_permanente=True,
+        data_evento__lte=hoje,
+    ) & (
+        Q(opo_permanente_indeterminado=True)
+        | Q(opo_permanente_data_fim__gte=hoje)
+    )
+    return Q(data_evento=hoje) | permanente_ativo
+
+
 def _eventos_do_acesso(acesso,hoje):
-    eventos=Solicitacao.objects.filter(data_evento=hoje,status="APROVADA").select_related("municipio","unidade","bairro").order_by("hora_inicio","nome_evento")
+    eventos=Solicitacao.objects.filter(
+        status="APROVADA",
+    ).filter(
+        _filtro_evento_ativo(hoje)
+    ).select_related("municipio","unidade","bairro").order_by("hora_inicio","nome_evento")
     if acesso.perfil=="OPERADOR":
         if not acesso.unidade_id:return eventos.none()
         return eventos.filter(unidade_id=acesso.unidade_id)
@@ -74,7 +90,13 @@ def abrir_oficio_comandante_operador(request, id):
     if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil!="OPERADOR" or not acesso.unidade_id or id not in autorizados:
         raise Http404("Evento não autorizado para este operador.")
 
-    solicitacao=get_object_or_404(Solicitacao.objects.select_related("unidade"),pk=id,data_evento=timezone.localdate(),status="APROVADA",unidade_id=acesso.unidade_id)
+    solicitacao=get_object_or_404(
+        Solicitacao.objects.select_related("unidade"),
+        _filtro_evento_ativo(timezone.localdate()),
+        pk=id,
+        status="APROVADA",
+        unidade_id=acesso.unidade_id,
+    )
     if not hasattr(solicitacao,"oficio_comandante"):
         raise Http404("Ofício do Comandante não encontrado para este evento.")
     arquivo_field=solicitacao.oficio_comandante
@@ -107,7 +129,12 @@ def sincronizar_evento_offline(request):
     if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil!="OPERADOR" or not acesso.unidade_id:return JsonResponse({"ok":False,"erro":"Acesso de operador inválido."},status=403)
     try:evento_id=int(request.POST.get("evento_id"))
     except (TypeError,ValueError):return JsonResponse({"ok":False,"erro":"Evento inválido."},status=400)
-    solicitacao=Solicitacao.objects.select_related("unidade","municipio","bairro").filter(id=evento_id,data_evento=timezone.localdate(),status="APROVADA",unidade_id=acesso.unidade_id).first()
+    solicitacao=Solicitacao.objects.select_related("unidade","municipio","bairro").filter(
+        _filtro_evento_ativo(timezone.localdate()),
+        id=evento_id,
+        status="APROVADA",
+        unidade_id=acesso.unidade_id,
+    ).first()
     if not solicitacao:return JsonResponse({"ok":False,"erro":"Evento não autorizado para este operador."},status=403)
     opo=AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
     if not opo:return JsonResponse({"ok":False,"erro":"OPO não encontrada."},status=404)
