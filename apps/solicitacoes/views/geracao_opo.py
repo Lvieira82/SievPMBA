@@ -44,11 +44,14 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=No
         qr_buffer.getvalue()
     ).decode("utf-8")
 
-    efetivo = (
-        "Efetivo extraordinário escalado."
-        if evento_extra
-        else "01 (uma) Guarnição a critério do Coordenador de Área."
-    )
+    if solicitacao.origem == "MANUAL" and solicitacao.tipo_opo == "INSTITUCIONAL":
+        efetivo = solicitacao.efetivo_institucional
+    else:
+        efetivo = (
+            "Efetivo extraordinário escalado."
+            if evento_extra
+            else "01 (uma) Guarnição a critério do Coordenador de Área."
+        )
 
     html = render_to_string(
         "solicitacoes/opo_pdf.html",
