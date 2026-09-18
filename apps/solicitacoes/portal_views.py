@@ -214,12 +214,50 @@ def _salvar_documentos(request, solicitacao):
         except Exception as erro:
             messages.error(request, f"Documento rejeitado: {erro}")
             continue
-        tipo_nome = tipos[indice] if indice < len(tipos) else ""
-        descricao = descricoes[indice] if indice < len(descricoes) else ""
-        tipo_documento = TipoDocumento.objects.filter(nome=tipo_nome, ativo=True).first() if tipo_nome else None
+        tipo_codigo = (tipos[indice] if indice < len(tipos) else "").strip()
+        descricao = (descricoes[indice] if indice < len(descricoes) else "").strip()
+
+        # O formulário usa códigos estáveis, enquanto TipoDocumento usa o nome
+        # cadastrado no banco. Fazemos a conversão aqui para que todas as opções
+        # exibidas no formulário externo sejam aceitas corretamente.
+        nomes_tipos = {
+            "BOMBEIRO": "Corpo de Bombeiros",
+            "SANITARIO": "Vigilância Sanitária",
+            "MEIO_AMBIENTE": "Meio Ambiente",
+            "MP": "Ministério Público",
+            "TAC": "TAC",
+            "CREA": "CREA",
+            "CRM": "CRM",
+            "CRMV": "CRMV",
+            "CRO": "CRO",
+            "IBAMA": "IBAMA",
+            "INEMA": "INEMA",
+            "PREFEITURA": "Prefeitura",
+            "POLICIA_CIVIL": "Polícia Civil",
+            "EXERCITO": "Exército Brasileiro",
+            "MARINHA": "Marinha do Brasil",
+            "PRF": "PRF",
+            "DETRAN": "DETRAN",
+            "DEFESA_CIVIL": "Defesa Civil",
+            "ANAC": "ANAC",
+            "DNIT": "DNIT",
+            "DERBA": "DERBA / SIT",
+            "OUTRO": "Outro Documento",
+        }
+        tipo_nome = nomes_tipos.get(tipo_codigo, tipo_codigo)
+        tipo_documento = (
+            TipoDocumento.objects.filter(nome__iexact=tipo_nome, ativo=True).first()
+            if tipo_nome else None
+        )
         if not tipo_documento:
             continue
-        DocumentoSolicitacao.objects.create(solicitacao=solicitacao, tipo_documento=tipo_documento, descricao=descricao, arquivo=arquivo)
+
+        DocumentoSolicitacao.objects.create(
+            solicitacao=solicitacao,
+            tipo_documento=tipo_documento,
+            descricao=descricao,
+            arquivo=arquivo,
+        )
 
 
 def _enviar_email_recebimento(solicitacao):
