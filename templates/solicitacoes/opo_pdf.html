@@ -51,13 +51,19 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;b
     <div class="linha-info"><div class="rotulo">HORÁRIO:</div><div class="valor">{{ solicitacao.hora_inicio|time:"H:i" }} - {{ solicitacao.hora_fim|time:"H:i" }}</div></div>
     <div class="linha-info"><div class="rotulo">EFETIVO:</div><div class="valor">{{ efetivo_opo }}</div></div>
     <div class="linha-info"><div class="rotulo">UNIFORME E ARMAMENTO:</div><div class="valor">O de Dotação desta UOPM</div></div>
+    {% if solicitacao.tipo_opo == "INSTITUCIONAL" and solicitacao.origem == "MANUAL" %}
+    <div class="linha-info"><div class="rotulo">SOLICITANTE:</div><div class="valor">{{ solicitacao.solicitante }}</div></div>
+    {% else %}
     <div class="linha-info"><div class="rotulo">SOLICITANTE:</div><div class="valor">{{ solicitacao.solicitante }} {{ solicitacao.telefone }}</div></div>
+    {% endif %}
 
     <div class="obs">
         <div class="obs-titulo">OBSERVAÇÕES:</div>
+        {% if not solicitacao.tipo_opo == "INSTITUCIONAL" or solicitacao.origem != "MANUAL" %}
         <p>¤ O organizador do evento está ciente que caso haja perturbação do sossego, aglomeração ou outro tipo de infração, a guarnição adotará as medidas cabíveis.</p>
         <p>¤ A viatura deve realizar Alfa 16 e no local, durante o evento.</p>
         <p>¤ Constar o desenvolvimento desta OPO no relatório de serviço.</p>
+        {% endif %}
         {% if solicitacao.observacoes %}
         <div class="campo-observacao"><strong>OBSERVAÇÃO: {{ solicitacao.observacoes|linebreaksbr }}</strong></div>
         {% endif %}
