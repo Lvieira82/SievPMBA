@@ -167,14 +167,14 @@ textarea{min-height:120px;}
     const cpf = document.getElementById('id_cpf');
     const email = document.getElementById('id_email');
     const telefone = document.getElementById('id_telefone');
-    const permanente = document.getElementById('id_opo_permanente');
+    const permanenteInput = document.getElementById('id_opo_permanente');
     const dataEvento = document.getElementById('id_data_evento');
     const dataFim = document.getElementById('id_opo_permanente_data_fim');
     const indeterminado = document.getElementById('id_opo_permanente_indeterminado');
     const card = document.getElementById('opo-permanente-card');
     const target = document.getElementById('opo-permanente-fields');
 
-    if(!tipoOpo || !efetivoInstitucional || !permanente || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
+    if(!tipoOpo || !efetivoInstitucional || !permanenteInput || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
 
     const pTipoOpo = tipoOpo.closest('p');
     const pEfetivoInstitucional = efetivoInstitucional.closest('p');
@@ -182,38 +182,26 @@ textarea{min-height:120px;}
     const pCpf = cpf ? cpf.closest('p') : null;
     const pEmail = email ? email.closest('p') : null;
     const pTelefone = telefone ? telefone.closest('p') : null;
-    const permanente = permanente.closest('p');
+    const pPermanente = permanenteInput.closest('p');
     const pDataEvento = dataEvento.closest('p');
     const pDataFim = dataFim.closest('p');
     const pIndeterminado = indeterminado.closest('p');
 
-    // A tag e todo o período da OPO permanente ficam no topo,
-    // antes da pesquisa e antes dos demais campos.
+    // SOMENTE estas duas opções ficam permanentemente no topo:
+    // Tipo de OPO e OPO permanente.
     if(pTipoOpo) target.appendChild(pTipoOpo);
-    if(pEfetivoInstitucional) target.appendChild(pEfetivoInstitucional);
     if(pPermanente) target.appendChild(pPermanente);
-    if(pDataEvento) target.appendChild(pDataEvento);
-    if(pDataFim) target.appendChild(pDataFim);
-    if(pIndeterminado) target.appendChild(pIndeterminado);
 
-    // Os campos continuam pertencendo ao formulário que será enviado.
-    [tipoOpo, efetivoInstitucional, permanente, dataEvento, dataFim, indeterminado].forEach(function(campo){
+    // Os campos continuam pertencendo ao formulário principal que será enviado.
+    [tipoOpo, efetivoInstitucional, permanenteInput, dataEvento, dataFim, indeterminado].forEach(function(campo){
         campo.setAttribute('form', form.id);
     });
-
-    if(pDataEvento){
-        const label = pDataEvento.querySelector('label');
-        if(label) label.dataset.normal = label.textContent;
-        pDataEvento.classList.add('opo-field');
-    }
 
     if(pTipoOpo){
         pTipoOpo.classList.add('opo-field');
         const label = pTipoOpo.querySelector('label');
         if(label) label.textContent = 'Tipo de OPO';
     }
-
-    if(pEfetivoInstitucional) pEfetivoInstitucional.classList.add('opo-field');
 
     if(pPermanente){
         pPermanente.classList.add('opo-field');
@@ -227,8 +215,15 @@ textarea{min-height:120px;}
         }
     }
 
+    if(pEfetivoInstitucional) pEfetivoInstitucional.classList.add('opo-field');
+    if(pDataEvento) pDataEvento.classList.add('opo-field');
     if(pDataFim) pDataFim.classList.add('opo-field');
     if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
+
+    if(pDataEvento){
+        const label = pDataEvento.querySelector('label');
+        if(label) label.dataset.normal = label.textContent;
+    }
 
     const listaAnexos = document.getElementById('lista-anexos-manuais');
     const btnAdicionarAnexo = document.getElementById('btnAdicionarAnexoManual');
@@ -295,44 +290,60 @@ textarea{min-height:120px;}
             if(event.target.classList.contains('tipo-documento-manual')){
                 const item = event.target.closest('.anexo-manual-item');
                 const descricao = item ? item.querySelector('.descricao-outro-manual') : null;
-                if(descricao) descricao.style.display = event.target.value === 'OUTRO' ? 'block' : 'none';
+                if(descricao) descricao.style.display = event.target.value === 'OUTRO_DOCUMENTO' ? 'block' : 'none';
             }
         });
     }
 
     function atualizar(){
-        const ativo = permanente.checked;
+        const permanente = permanenteInput.checked;
         const institucional = tipoOpo.value === 'INSTITUCIONAL';
-        if(pEfetivoInstitucional && pSolicitante) pSolicitante.after(pEfetivoInstitucional);
+
+        // Institucional: o Efetivo aparece depois de Solicitante.
+        if(pEfetivoInstitucional && pSolicitante){
+            pSolicitante.after(pEfetivoInstitucional);
+        }
+        if(pEfetivoInstitucional) pEfetivoInstitucional.style.display = institucional ? '' : 'none';
+
+        // Institucional: ocultar CPF, e-mail e telefone somente neste fluxo.
         [pCpf, pEmail, pTelefone].forEach(function(p){
             if(p) p.style.display = institucional ? 'none' : '';
         });
-        if(pEfetivoInstitucional) pEfetivoInstitucional.style.display = institucional ? '' : 'none';
         if(!institucional) efetivoInstitucional.value = '';
-        const status = document.getElementById('opo-permanente-status');
 
-        if(status) status.textContent = ativo ? 'SIM' : 'NÃO';
+        const status = document.getElementById('opo-permanente-status');
+        if(status) status.textContent = permanente ? 'SIM' : 'NÃO';
         if(status){
-            status.style.background = ativo ? '#dcfce7' : '#e5e7eb';
-            status.style.color = ativo ? '#166534' : '#374151';
+            status.style.background = permanente ? '#dcfce7' : '#e5e7eb';
+            status.style.color = permanente ? '#166534' : '#374151';
         }
 
+        // A data do evento só muda de nome quando a OPO permanente for marcada.
         if(pDataEvento){
             const label = pDataEvento.querySelector('label');
-            if(label) label.textContent = ativo ? 'Data de início da OPO permanente' : label.dataset.normal;
+            if(label) label.textContent = permanente ? 'Data de início da OPO permanente' : (label.dataset.normal || 'Data evento');
         }
 
-        if(pDataFim) pDataFim.style.display = ativo && !indeterminado.checked ? '' : 'none';
-        if(pIndeterminado) pIndeterminado.style.display = ativo ? '' : 'none';
+        // Estes campos aparecem somente após marcar OPO permanente.
+        if(pDataFim){
+            pDataFim.style.display = permanente && !indeterminado.checked ? '' : 'none';
+            if(permanente && pDataEvento && pDataEvento.nextElementSibling !== pDataFim){
+                pDataEvento.after(pDataFim);
+            }
+        }
+        if(pIndeterminado) pIndeterminado.style.display = permanente ? '' : 'none';
+        if(permanente && pIndeterminado && pDataFim && pDataFim.nextElementSibling !== pIndeterminado){
+            pDataFim.after(pIndeterminado);
+        }
 
-        if(!ativo){
+        if(!permanente){
             dataFim.value = '';
             indeterminado.checked = false;
         }
     }
 
     tipoOpo.addEventListener('change', atualizar);
-    permanente.addEventListener('change', atualizar);
+    permanenteInput.addEventListener('change', atualizar);
     indeterminado.addEventListener('change', atualizar);
     atualizar();
 })();
