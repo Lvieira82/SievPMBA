@@ -35,7 +35,7 @@
                     {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "COPPM" or user.acesso_institucional.perfil == "UNIDADE" %}
                         <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
                     {% endif %}
-                    {% if user.acesso_institucional.perfil == "CPR" %}
+                    {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "UNIDADE" and user.acesso_institucional.unidade and user.acesso_institucional.unidade.sigla in "CPE CPME CPRV CPAP" %}
                         <li><a href="{% url 'apoios_recebidos' %}" title="Solicitação de Apoio"><i class="bi bi-hand-index-thumb"></i><span>Solicitação de Apoio</span></a></li>
                     {% endif %}
                     {% if user.acesso_institucional.perfil == "UNIDADE" %}
