@@ -68,6 +68,12 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Informe o efetivo que deverá constar na OPO institucional.",
         )
 
+        tipo_opo_inicial = (
+            (self.data.get("tipo_opo") if self.is_bound else None)
+            or (self.instance.tipo_opo if getattr(self.instance, "pk", None) else None)
+            or "FESTIVO"
+        )
+
         self.fields["tipo_opo"] = forms.ChoiceField(
             required=False,
             initial="FESTIVO",
@@ -76,6 +82,12 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "tipo-opo-toggle"}),
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
+
+        if tipo_opo_inicial == "INSTITUCIONAL":
+            for campo in ("cpf", "email", "telefone"):
+                if campo in self.fields:
+                    self.fields[campo].required = False
+                    self.fields[campo].initial = ""
 
         self.fields["opo_permanente"] = forms.BooleanField(
             required=False,
