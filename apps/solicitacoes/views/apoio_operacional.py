@@ -24,11 +24,31 @@ def _acesso(request):
     return getattr(request.user, "acesso_institucional", None)
 
 
+COMANDOS_APOIO = {"CPE", "CPME", "CPRV", "CPAP"}
+
+
 def _eh_gestor_unidade_do(request, unidade):
     if eh_desenvolvedor(request.user):
         return True
     a = _acesso(request)
     return bool(a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil == "UNIDADE" and a.unidade_id == unidade.id)
+
+
+def _eh_destinatario_que_pode_encaminhar(request, apoio):
+    if eh_desenvolvedor(request.user):
+        return True
+    a = _acesso(request)
+    if not (a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"}):
+        return False
+    if apoio.cpr_destino_id:
+        return a.perfil == "CPR" and a.cpr_id == apoio.cpr_destino_id
+    return bool(
+        apoio.unidade_destino_id
+        and a.perfil == "UNIDADE"
+        and a.unidade_id == apoio.unidade_destino_id
+        and apoio.unidade_destino
+        and apoio.unidade_destino.sigla in COMANDOS_APOIO
+    )
 
 
 def _unidades_aptas_para_apoio(solicitacao):
@@ -57,7 +77,7 @@ def enviar_apoio(request, id):
     cprs = CPR.objects.filter(ativo=True).order_by("sigla", "nome")
     comandos = (
         Unidade.objects
-        .filter(ativo=True, sigla__in={"CPE", "CPME", "CPRV", "CPAP"})
+        .filter(ativo=True, sigla__in=COMANDOS_APOIO)
         .exclude(pk=solicitacao.unidade_id)
         .select_related("cpr")
         .order_by("sigla", "nome")
@@ -221,46 +241,59 @@ def encaminhar_apoio(request, id):
         ),
         pk=id,
     )
-    a = _acesso(request)
-    autorizado = bool(
-        eh_desenvolvedor(request.user)
-        or (
-            a and a.ativo and request.user.is_active
-            and a.funcao in {"GESTOR", "MEMBRO"}
-            and a.perfil == "CPR"
-            and a.cpr_id == apoio.cpr_destino_id
-        )
-    )
-    if not autorizado:
-        messages.error(request, "Somente o CPR destinatário pode encaminhar este pedido de apoio.")
+    if not _eh_destinatario_que_pode_encaminhar(request, apoio):
+        messages.error(request, "Somente a entidade destinatária pode encaminhar este pedido de apoio.")
         return redirect("apoios_recebidos")
 
-    if not apoio.cpr_destino_id:
-        messages.error(request, "Este apoio já foi encaminhado para uma unidade.")
-        return redirect("abrir_apoio", id=id)
-
+    cprs = CPR.objects.filter(ativo=True).exclude(pk=apoio.cpr_destino_id).order_by("sigla", "nome")
+    comandos = (
+        Unidade.objects
+        .filter(ativo=True, sigla__in=COMANDOS_APOIO)
+        .exclude(pk=apoio.unidade_destino_id)
+        .select_related("cpr")
+        .order_by("sigla", "nome")
+    )
     unidades = (
         Unidade.objects
         .filter(ativo=True)
         .exclude(pk=apoio.unidade_origem_id)
+        .exclude(pk=apoio.unidade_destino_id)
         .select_related("cpr")
         .order_by("sigla", "nome")
     )
 
     if request.method == "POST":
-        unidade_id = request.POST.get("unidade_destino")
-        motivo = (request.POST.get("motivo") or "").strip()
-        unidade_destino = get_object_or_404(Unidade, pk=unidade_id, ativo=True)
+        destino = (request.POST.get("destino") or "").strip()
+        destino_tipo, _, destino_id = destino.partition(":")
+        if destino_tipo not in {"CPR", "COMANDO", "UNIDADE"} or not destino_id.isdigit():
+            messages.error(request, "Selecione um CPR, Comando ou Unidade de destino.")
+            return render(request, "gestao/encaminhar_apoio.html", {
+                "apoio": apoio, "cprs": cprs, "comandos": comandos, "unidades": unidades
+            })
 
-        if unidade_destino.pk == apoio.unidade_origem_id:
-            messages.error(request, "A unidade destinatária deve ser diferente da unidade de origem.")
-            return render(request, "gestao/encaminhar_apoio.html", {"apoio": apoio, "unidades": unidades})
+        unidade_destino = None
+        cpr_destino = None
+        if destino_tipo == "CPR":
+            cpr_destino = get_object_or_404(CPR, pk=int(destino_id), ativo=True)
+        else:
+            unidade_destino = get_object_or_404(Unidade, pk=int(destino_id), ativo=True)
+            if unidade_destino.pk in {apoio.unidade_origem_id, apoio.unidade_destino_id}:
+                messages.error(request, "Escolha uma unidade diferente da origem e do destinatário atual.")
+                return render(request, "gestao/encaminhar_apoio.html", {
+                    "apoio": apoio, "cprs": cprs, "comandos": comandos, "unidades": unidades
+                })
+
+        destino_nome = (
+            f"{cpr_destino.sigla} — {cpr_destino.nome}"
+            if cpr_destino
+            else f"{unidade_destino.sigla} — {unidade_destino.nome}"
+        )
 
         with transaction.atomic():
-            apoio.cpr_destino = None
+            apoio.cpr_destino = cpr_destino
             apoio.unidade_destino = unidade_destino
             apoio.status = "ENVIADO"
-            apoio.observacao = motivo
+            apoio.observacao = (request.POST.get("motivo") or "").strip()
             apoio.save(update_fields=["cpr_destino", "unidade_destino", "status", "observacao", "atualizado_em"])
 
             HistoricoSolicitacao.objects.create(
@@ -268,33 +301,46 @@ def encaminhar_apoio(request, id):
                 usuario=request.user,
                 acao="APOIO ENCAMINHADO",
                 status=apoio.solicitacao.status,
-                observacao=(
-                    f"CPR encaminhou o pedido de apoio para {unidade_destino}. "
-                    + (f"Motivo: {motivo}" if motivo else "")
+                observacao=f"Apoio encaminhado para {destino_nome}." + (
+                    f" Orientação: {apoio.observacao}" if apoio.observacao else ""
                 ),
             )
 
-        if unidade_destino.email:
+        destinatarios = []
+        if cpr_destino:
+            destinatarios = list(
+                AcessoInstitucional.objects
+                .filter(perfil="CPR", cpr=cpr_destino, ativo=True, usuario__is_active=True)
+                .exclude(usuario__email="")
+                .values_list("usuario__email", flat=True)
+                .distinct()
+            )
+        elif unidade_destino and unidade_destino.email:
+            destinatarios = [unidade_destino.email]
+
+        if destinatarios:
             link = request.build_absolute_uri(reverse("apoios_recebidos"))
             try:
                 send_mail(
                     subject=f"Solicitação de apoio encaminhada — Protocolo {apoio.solicitacao.protocolo}",
                     message=(
-                        f"O CPR encaminhou um pedido de apoio para sua unidade referente ao evento "
+                        f"Você recebeu um pedido de apoio referente ao evento "
                         f"{apoio.solicitacao.nome_evento} ({apoio.solicitacao.data_evento:%d/%m/%Y}).\n\n"
-                        f"Acesse o SiEv para consultar a documentação e as orientações do apoio:\n{link}"
+                        f"Acesse o SiEv para consultar a documentação e as orientações:\n{link}"
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[apoio.unidade_destino.email],
+                    recipient_list=destinatarios,
                     fail_silently=False,
                 )
             except Exception:
                 messages.warning(request, "O apoio foi encaminhado, mas o e-mail de notificação não pôde ser enviado.")
 
-        messages.success(request, f"Pedido de apoio encaminhado para {unidade_destino}.")
+        messages.success(request, f"Pedido de apoio encaminhado para {destino_nome}.")
         return redirect("apoios_recebidos")
 
-    return render(request, "gestao/encaminhar_apoio.html", {"apoio": apoio, "unidades": unidades})
+    return render(request, "gestao/encaminhar_apoio.html", {
+        "apoio": apoio, "cprs": cprs, "comandos": comandos, "unidades": unidades
+    })
 
 
 @login_required
