@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Documentos da Solicitação{% endblock %}
 {% block content %}
+<style>.btn-voltar-aprovacoes{display:inline-block;background:#6b7280;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none;font-weight:700;transition:.2s}.btn-voltar-aprovacoes:hover{background:#4b5563}</style>
 <div style="max-width:1000px;margin:35px auto;padding:0 15px"><div style="background:#fff;border-radius:18px;padding:30px;box-shadow:0 8px 24px rgba(0,0,0,.08)">
 <h1 style="color:#907C64">📁 Documentação da Solicitação</h1>
 <p><strong>Protocolo:</strong> {{ solicitacao.protocolo }}</p>
@@ -55,6 +56,6 @@ Esta solicitação já está na etapa de análise para aprovação e geração d
 </div>
 {% endif %}
 
-<p style="margin-top:25px"><a href="{% url 'aprovacoes' %}">← Voltar para Aprovações</a></p>
+<p style="margin-top:25px"><a class="btn-voltar-aprovacoes" href="{% url 'aprovacoes' %}">← Voltar para Aprovações</a></p>
 </div></div>
 {% endblock %}
