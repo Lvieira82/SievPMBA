@@ -102,6 +102,15 @@ def pode_ver_documentacao_solicitacao(user):
     return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
 
 
+def documentos_foram_conferidos(request, solicitacao):
+    """Retorna True somente quando todos os documentos anexados foram conferidos nesta sessão."""
+    documentos = list(solicitacao.documentos.all())
+    if not documentos:
+        return False
+    vistos = {str(item) for item in request.session.get(f"documentos_conferidos_{solicitacao.id}", [])}
+    return all(str(documento.id) in vistos for documento in documentos)
+
+
 def pode_gerar_opo(user, solicitacao=None):
     # Geração de OPO é operacionalmente exclusiva do âmbito de Unidade.
     return bool(perfil_gestor_ou_membro(user, "UNIDADE"))
