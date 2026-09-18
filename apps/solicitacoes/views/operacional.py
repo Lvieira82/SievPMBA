@@ -122,7 +122,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             elif not data_fim:
                 self.add_error(
                     "opo_permanente_data_fim",
-                    "Informe a data de fim ou marque "Indeterminado".",
+                    'Informe a data de fim ou marque "Indeterminado".',
                 )
             elif data_inicio and data_fim < data_inicio:
                 self.add_error(
