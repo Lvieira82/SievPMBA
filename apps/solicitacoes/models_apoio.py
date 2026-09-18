@@ -6,7 +6,13 @@ from django.db import models
 
 def pasta_apoio(instance, filename):
     protocolo = instance.solicitacao.protocolo or "SEM_PROTOCOLO"
-    sigla = (instance.unidade_destino.sigla or "UNIDADE").replace("/", "_")
+    if instance.cpr_destino_id and instance.cpr_destino:
+        sigla = instance.cpr_destino.sigla
+    elif instance.unidade_destino_id and instance.unidade_destino:
+        sigla = instance.unidade_destino.sigla
+    else:
+        sigla = "DESTINO"
+    sigla = (sigla or "DESTINO").replace("/", "_")
     return os.path.join("protocolos", protocolo, "apoio", sigla, filename)
 
 
@@ -31,6 +37,15 @@ class ApoioEvento(models.Model):
         "solicitacoes.Unidade",
         on_delete=models.PROTECT,
         related_name="apoios_recebidos",
+        null=True,
+        blank=True,
+    )
+    cpr_destino = models.ForeignKey(
+        "solicitacoes.CPR",
+        on_delete=models.PROTECT,
+        related_name="apoios_recebidos",
+        null=True,
+        blank=True,
     )
     enviado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -49,4 +64,5 @@ class ApoioEvento(models.Model):
         ordering = ["-criado_em"]
 
     def __str__(self):
-        return f"{self.solicitacao.protocolo} - {self.unidade_origem} → {self.unidade_destino}"
+        destino = self.cpr_destino or self.unidade_destino or "DESTINO"
+        return f"{self.solicitacao.protocolo} - {self.unidade_origem} → {destino}"
