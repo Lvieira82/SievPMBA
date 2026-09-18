@@ -19,19 +19,26 @@
 <form method="post">
 {% csrf_token %}
 <div class="campo">
-<label for="unidade_destino">Unidade destinatária</label>
-<select name="unidade_destino" id="unidade_destino" required>
-<option value="">Selecione a unidade</option>
-{% for unidade in unidades %}
-<option value="{{ unidade.id }}">{{ unidade.sigla }} — {{ unidade.nome }}{% if unidade.cpr %} — {{ unidade.cpr.sigla }}{% endif %}</option>
-{% endfor %}
+<label for="destino">Destino do encaminhamento</label>
+<select name="destino" id="destino" required>
+<option value="">Selecione o destino...</option>
+<optgroup label="CPRs">
+{% for cpr in cprs %}<option value="CPR:{{ cpr.id }}">{{ cpr.sigla }} — {{ cpr.nome }}</option>{% empty %}<option disabled>Nenhum CPR ativo cadastrado</option>{% endfor %}
+</optgroup>
+<optgroup label="Comandos">
+{% for comando in comandos %}<option value="COMANDO:{{ comando.id }}">{{ comando.sigla }} — {{ comando.nome }}</option>{% empty %}<option disabled>Nenhum Comando cadastrado</option>{% endfor %}
+</optgroup>
+<optgroup label="Unidades">
+{% for unidade in unidades %}<option value="UNIDADE:{{ unidade.id }}">{{ unidade.sigla }} — {{ unidade.nome }}{% if unidade.cpr %} — {{ unidade.cpr.sigla }}{% endif %}</option>{% empty %}<option disabled>Nenhuma Unidade ativa cadastrada</option>{% endfor %}
+</optgroup>
 </select>
+<small style="display:block;margin-top:6px;color:#64748b">O apoio pode ser encaminhado para outro CPR, Comando ou Unidade.</small>
 </div>
 <div class="campo">
-<label for="motivo">Observação / orientação do CPR</label>
-<textarea name="motivo" id="motivo" rows="4" placeholder="Informe, se necessário, a orientação para a unidade destinatária..."></textarea>
+<label for="motivo">Observação / orientação do destinatário</label>
+<textarea name="motivo" id="motivo" rows="4" placeholder="Informe, se necessário, a orientação para o próximo destinatário..."></textarea>
 </div>
-<button type="submit" class="btn btn-primary">↗ Encaminhar para Unidade</button>
+<button type="submit" class="btn btn-primary">↗ Encaminhar</button>
 <a href="{% url 'abrir_apoio' apoio.id %}" class="btn btn-secondary">Voltar</a>
 </form>
 </div>
