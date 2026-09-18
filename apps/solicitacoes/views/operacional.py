@@ -57,6 +57,17 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        self.fields["efetivo_institucional"] = forms.CharField(
+            required=False,
+            label="Efetivo",
+            max_length=250,
+            widget=forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "Informe o efetivo da OPO institucional",
+            }),
+            help_text="Informe o efetivo que deverá constar na OPO institucional.",
+        )
+
         self.fields["tipo_opo"] = forms.ChoiceField(
             required=False,
             initial="FESTIVO",
@@ -106,6 +117,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             self.fields["tipo_evento"].initial = self.instance.tipo_evento_id
             self.fields["unidade"].initial = self.instance.unidade_id
             self.fields["tipo_opo"].initial = self.instance.tipo_opo
+            self.fields["efetivo_institucional"].initial = self.instance.efetivo_institucional
             self.fields["opo_permanente"].initial = self.instance.opo_permanente
             self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
             self.fields["opo_permanente_indeterminado"].initial = self.instance.opo_permanente_indeterminado
