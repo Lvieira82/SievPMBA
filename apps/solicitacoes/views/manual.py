@@ -64,20 +64,26 @@ def _preparar_formulario(form, municipio_id=None):
 
 
 def _salvar_anexos_manuais(request, solicitacao):
-    """Anexos são opcionais; se enviados, devem ser PDFs e usar um tipo ativo."""
+    """Salva quantos anexos opcionais forem adicionados, cada um com seu próprio tipo."""
     arquivos = request.FILES.getlist("anexos_manuais")
+    tipos = request.POST.getlist("tipo_documento_manual")
+
     if not arquivos:
         return 0
 
-    tipo_id = (request.POST.get("tipo_documento_manual") or "").strip()
-    if not tipo_id:
-        raise ValueError("Selecione o tipo dos anexos enviados.")
+    if len(tipos) != len(arquivos):
+        raise ValueError("Confira o tipo e o arquivo de cada documento complementar.")
 
-    tipo = TipoDocumento.objects.filter(pk=tipo_id, ativo=True).first()
-    if not tipo:
-        raise ValueError("O tipo de documento selecionado é inválido.")
+    quantidade = 0
+    for tipo_id, arquivo in zip(tipos, arquivos):
+        tipo_id = (tipo_id or "").strip()
+        if not tipo_id:
+            raise ValueError("Selecione o tipo de cada documento complementar.")
 
-    for arquivo in arquivos:
+        tipo = TipoDocumento.objects.filter(pk=tipo_id, ativo=True).first()
+        if not tipo:
+            raise ValueError("Um dos tipos de documento selecionados é inválido.")
+
         validar_pdf_upload(arquivo)
         DocumentoSolicitacao.objects.create(
             solicitacao=solicitacao,
@@ -85,8 +91,9 @@ def _salvar_anexos_manuais(request, solicitacao):
             descricao="Anexo do lançamento manual",
             arquivo=arquivo,
         )
+        quantidade += 1
 
-    return len(arquivos)
+    return quantidade
 
 
 def _salvar_oficio_origem(request, solicitacao):
