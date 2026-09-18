@@ -2,13 +2,13 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import TruncDate, TruncHour
 from django.shortcuts import render, redirect
 from django.utils import timezone
 
 from apps.solicitacoes.middleware import MonitoramentoAcessosMiddleware
-from apps.solicitacoes.models import LogSistema, Solicitacao
+from apps.solicitacoes.models import AnexoOPO, CPR, LogSistema, Solicitacao
 from apps.solicitacoes.permissoes import eh_operador, escopo_unidades, pode_ver_proximos_eventos
 
 
@@ -78,8 +78,86 @@ def _tempo_aceite_envio(request):
     })
 
 
+def _dashboard_coppm(request):
+    """Dashboard executivo do COPPM com visão geral da Bahia e por CPR/Comando."""
+    solicitacoes_validas = Solicitacao.objects.exclude(status="RASCUNHO")
+
+    total_solicitacoes = solicitacoes_validas.count()
+    total_opos = AnexoOPO.objects.filter(
+        solicitacao__status__in=[
+            "ENVIADA", "EM_ANALISE", "PENDENTE", "CORRECAO",
+            "APROVADA", "REJEITADA", "CONCLUIDA",
+        ]
+    ).count()
+    total_em_analise = solicitacoes_validas.filter(
+        status__in=["PENDENTE", "EM_ANALISE", "CORRECAO"]
+    ).count()
+    total_cumpridas = AnexoOPO.objects.filter(
+        solicitacao__status__in=[
+            "APROVADA", "CONCLUIDA",
+        ],
+        cumprimentos__cumprida=True,
+    ).distinct().count()
+
+    por_cpr = (
+        CPR.objects
+        .filter(ativo=True)
+        .annotate(
+            total_solicitacoes=Count(
+                "unidades__solicitacoes",
+                filter=~Q(unidades__solicitacoes__status="RASCUNHO"),
+                distinct=True,
+            ),
+            total_opos=Count(
+                "unidades__solicitacoes__opos",
+                distinct=True,
+            ),
+            total_em_analise=Count(
+                "unidades__solicitacoes",
+                filter=Q(
+                    unidades__solicitacoes__status__in=[
+                        "PENDENTE", "EM_ANALISE", "CORRECAO"
+                    ]
+                ),
+                distinct=True,
+            ),
+            total_cumpridas=Count(
+                "unidades__solicitacoes__opos",
+                filter=Q(
+                    unidades__solicitacoes__opos__cumprimentos__cumprida=True
+                ),
+                distinct=True,
+            ),
+        )
+        .order_by("sigla")
+    )
+
+    return render(
+        request,
+        "dashboard/index.html",
+        {
+            "eh_dashboard_coppm": True,
+            "titulo_dashboard": "Dashboard COPPM",
+            "total_solicitacoes": total_solicitacoes,
+            "total_opos": total_opos,
+            "total_em_analise": total_em_analise,
+            "total_cumpridas": total_cumpridas,
+            "por_cpr": por_cpr,
+        },
+    )
+
 @login_required
 def dashboard(request):
+    acesso = getattr(request.user, "acesso_institucional", None)
+    if (
+        acesso
+        and acesso.ativo
+        and request.user.is_active
+        and acesso.perfil == "COPPM"
+        and acesso.funcao in {"GESTOR", "MEMBRO"}
+    ):
+        return _dashboard_coppm(request)
+
     if request.user.is_superuser and request.GET.get("aba") == "tempo":
         return _tempo_aceite_envio(request)
     if not request.user.is_superuser:
