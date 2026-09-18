@@ -137,30 +137,9 @@ textarea{min-height:120px;}
 
     <div class="anexos-card">
         <h3>📎 Anexos</h3>
-        <p>Anexos são <strong>opcionais</strong>. Quando necessários, podem ser incluídos aqui em PDF.</p>
-
-        <div class="anexos-grid">
-            <div>
-                <label for="tipo_documento_manual">Tipo do documento</label>
-                <select id="tipo_documento_manual" name="tipo_documento_manual">
-                    <option value="">Selecione o tipo (somente se enviar anexo)</option>
-                    {% for tipo in tipos_documento %}
-                        <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div>
-                <label for="anexos_manuais">Arquivo(s) PDF</label>
-                <input
-                    id="anexos_manuais"
-                    type="file"
-                    name="anexos_manuais"
-                    accept="application/pdf,.pdf"
-                    multiple
-                >
-                <small>Você pode selecionar um ou vários PDFs. Nenhum anexo é obrigatório.</small>
-            </div>
-        </div>
+        <p>Anexos são <strong>opcionais</strong>. Clique em <strong>+ Adicionar outro documento</strong> para incluir quantos forem necessários.</p>
+        <div id="lista-anexos-manuais"></div>
+        <button type="button" class="btn btn-outline-primary" id="btnAdicionarAnexoManual">+ Adicionar outro documento</button>
     </div>
 
     <div class="acoes">
@@ -224,6 +203,47 @@ textarea{min-height:120px;}
 
     if(pDataFim) pDataFim.classList.add('opo-field');
     if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
+
+    const listaAnexos = document.getElementById('lista-anexos-manuais');
+    const btnAdicionarAnexo = document.getElementById('btnAdicionarAnexoManual');
+
+    function criarAnexoManual(){
+        const item = document.createElement('div');
+        item.className = 'anexo-manual-item';
+        item.innerHTML = `
+            <div class="anexos-grid">
+                <div>
+                    <label>Tipo do documento</label>
+                    <select name="tipo_documento_manual" class="form-select tipo-documento-manual" required>
+                        <option value="">Selecione o tipo</option>
+                        {% for tipo in tipos_documento %}
+                            <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Arquivo (PDF)</label>
+                    <input type="file" name="anexos_manuais" accept="application/pdf,.pdf" required>
+                    <small>Somente PDF.</small>
+                </div>
+            </div>
+            <button type="button" class="btn btn-danger btn-sm remover-anexo-manual">Remover</button>
+        `;
+        return item;
+    }
+
+    if(btnAdicionarAnexo && listaAnexos){
+        btnAdicionarAnexo.addEventListener('click', function(){
+            listaAnexos.appendChild(criarAnexoManual());
+        });
+
+        listaAnexos.addEventListener('click', function(event){
+            if(event.target.classList.contains('remover-anexo-manual')){
+                const item = event.target.closest('.anexo-manual-item');
+                if(item) item.remove();
+            }
+        });
+    }
 
     function atualizar(){
         const ativo = permanente.checked;
