@@ -26,7 +26,11 @@ h1{margin-bottom:5px;color:#111827;}
 }
 .anexos-card h3{margin:0 0 6px;color:#111827;font-size:20px;}
 .anexos-card p{margin:0 0 18px;color:#6b7280;}
-.anexos-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:end;}
+.anexos-grid{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:start;}
+.anexo-manual-item{padding:14px 0 16px;border-bottom:1px solid #e5e7eb;margin-bottom:16px;}
+.anexo-manual-item .anexos-grid{grid-template-columns:280px 1fr;}
+.anexo-manual-item .remover-anexo-manual{margin-top:12px;}
+.anexo-manual-item small{display:block;margin-top:5px;color:#6b7280;}
 .busca-grid{display:flex;gap:12px;align-items:end;}
 .busca-grid div{flex:1;}
 label{display:block;margin-bottom:8px;font-weight:bold;color:#111827;}
@@ -211,22 +215,24 @@ textarea{min-height:120px;}
         const item = document.createElement('div');
         item.className = 'anexo-manual-item';
         item.innerHTML = `
-            <div class="anexos-grid">
+            <div class="grid">
                 <div>
-                    <label>Tipo do documento</label>
-                    <select name="tipo_documento_manual" class="form-select tipo-documento-manual" required>
-                        <option value="">Selecione o tipo</option>
+                    <label>Tipo do Documento</label>
+                    <select name="tipo_documento_manual" class="form-control tipo-documento-manual" required>
+                        <option value="">Selecione...</option>
                         {% for tipo in tipos_documento %}
                             <option value="{{ tipo.id }}">{{ tipo.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div>
-                    <label>Arquivo (PDF)</label>
-                    <input type="file" name="anexos_manuais" accept="application/pdf,.pdf" required>
-                    <small>Somente PDF.</small>
+                <div class="descricao-outro-manual" style="display:none">
+                    <label>Descreva o documento</label>
+                    <input type="text" name="descricao_documento_manual" class="form-control">
                 </div>
             </div>
+            <br>
+            <label>Arquivo (PDF)</label>
+            <input type="file" name="anexos_manuais" accept=".pdf" class="form-control" required>
             <button type="button" class="btn btn-danger btn-sm remover-anexo-manual">Remover</button>
         `;
         return item;
@@ -241,6 +247,14 @@ textarea{min-height:120px;}
             if(event.target.classList.contains('remover-anexo-manual')){
                 const item = event.target.closest('.anexo-manual-item');
                 if(item) item.remove();
+            }
+        });
+
+        listaAnexos.addEventListener('change', function(event){
+            if(event.target.classList.contains('tipo-documento-manual')){
+                const item = event.target.closest('.anexo-manual-item');
+                const descricao = item ? item.querySelector('.descricao-outro-manual') : null;
+                if(descricao) descricao.style.display = event.target.value === 'OUTRO' ? 'block' : 'none';
             }
         });
     }
