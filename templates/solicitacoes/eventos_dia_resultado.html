@@ -104,6 +104,5 @@
   document.querySelectorAll('.btn-offline-cumprimento').forEach(btn=>{btn.addEventListener('click',function(e){e.preventDefault();if(navigator.onLine){window.location.href='/static/pwa/eventos_offline.html?v=5';}else{window.location.href=this.href;}});});
 })();
 </script>
-{% endblock %}
-
 {% endif %}
+{% endblock %}
