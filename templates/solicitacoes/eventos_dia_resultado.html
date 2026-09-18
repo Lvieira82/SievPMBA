@@ -37,28 +37,23 @@
             {% if data_eventos %}<div class="data-eventos">{{ data_eventos|date:"d/m/Y" }}</div>{% endif %}
         </div>
 
+        {% if not publico %}
         <div class="informacoes-consulta">
-            {% if publico %}
-                <p><strong>Município:</strong> {{ municipio_publico.nome }}</p>
-            {% else %}
-                {% if matricula %}<p><strong>Matrícula:</strong> {{ matricula }}</p>{% endif %}
-                {% if acesso.usuario %}<p><strong>Policial:</strong> {{ acesso.usuario.get_full_name }}</p>{% endif %}
-                {% if unidade %}<p><strong>Unidade:</strong> {{ unidade }}</p>{% endif %}
-                {% if acesso.perfil %}<p><strong>Perfil:</strong> {{ acesso.get_perfil_display }}</p>{% endif %}
-                {% if acesso.perfil == 'OPERADOR' %}<div class="offline-status">✓ Eventos de hoje armazenados neste dispositivo para uso offline</div>{% endif %}
-            {% endif %}
+            {% if matricula %}<p><strong>Matrícula:</strong> {{ matricula }}</p>{% endif %}
+            {% if acesso.usuario %}<p><strong>Policial:</strong> {{ acesso.usuario.get_full_name }}</p>{% endif %}
+            {% if unidade %}<p><strong>Unidade:</strong> {{ unidade }}</p>{% endif %}
+            {% if acesso.perfil %}<p><strong>Perfil:</strong> {{ acesso.get_perfil_display }}</p>{% endif %}
+            {% if acesso.perfil == 'OPERADOR' %}<div class="offline-status">✓ Eventos de hoje armazenados neste dispositivo para uso offline</div>{% endif %}
         </div>
+        {% endif %}
 
         {% if eventos %}
             {% for evento in eventos %}
                 <div class="evento-card">
                     <h2>{{ evento.nome_evento }}</h2>
-                    {% if evento.hora_inicio %}<p><strong>Horário:</strong> {{ evento.hora_inicio }}{% if evento.hora_fim %} às {{ evento.hora_fim }}{% endif %}</p>{% endif %}
-                    {% if evento.municipio %}<p><strong>Município:</strong> {{ evento.municipio }}</p>{% endif %}
-                    {% if evento.bairro %}<p><strong>Bairro:</strong> {{ evento.bairro }}</p>{% endif %}
                     {% if evento.local %}<p><strong>Local:</strong> {{ evento.local }}</p>{% endif %}
-                    {% if evento.unidade %}<p><strong>Unidade responsável:</strong> {{ evento.unidade }}</p>{% endif %}
-                    <p><strong>Status:</strong> <span class="status-evento">{{ evento.get_status_display }}</span></p>
+                    <p><strong>Data:</strong> {{ evento.data_evento|date:"d/m/Y" }}</p>
+                    {% if evento.hora_inicio %}<p><strong>Horário de início:</strong> {{ evento.hora_inicio }}</p>{% endif %}
                     {% if not publico %}
                     <div class="acoes-evento">
                         {% if acesso.perfil == 'OPERADOR' %}
