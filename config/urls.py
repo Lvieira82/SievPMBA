@@ -72,6 +72,7 @@ from apps.solicitacoes.views.mapa_eventos_pdf import gerar_mapa_eventos_pdf_segu
 from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_seguro
 from apps.solicitacoes.views.apoio_operacional import (
     enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio, encaminhar_apoio,
+    abrir_documento_apoio, abrir_oficio_apoio, abrir_opo_principal_apoio,
 )
 from apps.solicitacoes.views.pesquisa import responder_pesquisa
 from apps.solicitacoes.views.pesquisas_painel import painel_pesquisas
@@ -178,6 +179,9 @@ urlpatterns = [
     path("gestao/apoio/<int:id>/", abrir_apoio, name="abrir_apoio"),
     path("gestao/apoio/<int:id>/encaminhar/", encaminhar_apoio, name="encaminhar_apoio"),
     path("gestao/apoio/<int:id>/gerar-opo/", gerar_opo_apoio, name="gerar_opo_apoio"),
+    path("gestao/apoio/<int:apoio_id>/documento/<int:documento_id>/", abrir_documento_apoio, name="abrir_documento_apoio"),
+    path("gestao/apoio/<int:apoio_id>/oficio/", abrir_oficio_apoio, name="abrir_oficio_apoio"),
+    path("gestao/apoio/<int:apoio_id>/opo-principal/", abrir_opo_principal_apoio, name="abrir_opo_principal_apoio"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
     path("consulta/opo/<int:id>/arquivo/", abrir_opo_publica, name="abrir_opo_publica"),
