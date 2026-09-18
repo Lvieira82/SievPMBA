@@ -104,6 +104,9 @@ def solicitar_correcao_gestao(request, id):
     if not pode_aprovar_solicitacao(request.user, solicitacao):
         messages.error(request, "Você não possui permissão para solicitar correção desta solicitação.")
         return redirect("aprovacoes")
+    if not documentos_foram_conferidos(request, solicitacao):
+        messages.warning(request, "A correção está bloqueada até que todos os documentos anexados sejam conferidos.")
+        return redirect("aprovacoes")
     if request.method == "POST":
         motivo = (request.POST.get("motivo_correcao") or request.POST.get("motivo") or "").strip()
         if not motivo:
