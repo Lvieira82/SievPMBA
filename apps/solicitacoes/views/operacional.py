@@ -57,6 +57,26 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        self.fields["opo_permanente"] = forms.BooleanField(
+            required=False,
+            initial=False,
+            label="OPO permanente",
+            help_text="Use para operações especiais que permanecem válidas por mais de um dia sem gerar novos protocolos.",
+            widget=forms.CheckboxInput(attrs={"class": "opo-permanente-toggle"}),
+        )
+        self.fields["opo_permanente_data_fim"] = forms.DateField(
+            required=False,
+            label="Data de fim da OPO permanente",
+            widget=forms.DateInput(attrs={"type": "date", "class": "opo-permanente-data-fim"}),
+        )
+        self.fields["opo_permanente_indeterminado"] = forms.BooleanField(
+            required=False,
+            initial=False,
+            label="Indeterminado",
+            help_text="Marque quando não houver previsão de encerramento.",
+            widget=forms.CheckboxInput(attrs={"class": "opo-permanente-indeterminado"}),
+        )
+
         if perfil and perfil.unidade_id:
             unidades = Unidade.objects.filter(pk=perfil.unidade_id, ativo=True)
         elif perfil and perfil.cpr_id:
@@ -76,6 +96,9 @@ class GestaoManualForm(SolicitacaoManualForm):
             self.fields["bairro"].initial = self.instance.bairro_id
             self.fields["tipo_evento"].initial = self.instance.tipo_evento_id
             self.fields["unidade"].initial = self.instance.unidade_id
+            self.fields["opo_permanente"].initial = self.instance.opo_permanente
+            self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
+            self.fields["opo_permanente_indeterminado"].initial = self.instance.opo_permanente_indeterminado
 
     def clean_bairro(self):
         bairro = self.cleaned_data.get("bairro")
@@ -83,6 +106,34 @@ class GestaoManualForm(SolicitacaoManualForm):
         if bairro and municipio and bairro.municipio_id != municipio.id:
             raise forms.ValidationError("O bairro selecionado não pertence ao município.")
         return bairro
+
+    def clean(self):
+        cleaned_data = super().clean()
+        permanente = cleaned_data.get("opo_permanente", False)
+        data_inicio = cleaned_data.get("data_evento")
+        data_fim = cleaned_data.get("opo_permanente_data_fim")
+        indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
+
+        if permanente:
+            if not data_inicio:
+                self.add_error("data_evento", "Informe a data de início da OPO permanente.")
+            if indeterminado:
+                cleaned_data["opo_permanente_data_fim"] = None
+            elif not data_fim:
+                self.add_error(
+                    "opo_permanente_data_fim",
+                    "Informe a data de fim ou marque "Indeterminado".",
+                )
+            elif data_inicio and data_fim < data_inicio:
+                self.add_error(
+                    "opo_permanente_data_fim",
+                    "A data de fim não pode ser anterior à data de início.",
+                )
+        else:
+            cleaned_data["opo_permanente_data_fim"] = None
+            cleaned_data["opo_permanente_indeterminado"] = False
+
+        return cleaned_data
 
 
 def _delegar(nome, modulo, request, *args, **kwargs):
