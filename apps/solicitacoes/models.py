@@ -225,7 +225,7 @@ class Solicitacao(models.Model):
     status = models.CharField(max_length=20, choices=STATUS, default="RASCUNHO")
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
-    ORIGEM_CHOICES = [("EXTERNA", "Externa"), ("MANUAL", "Manual"), ("TRANSFERIDA", "Transferida")]
+    ORIGEM_CHOICES = [("EXTERNA", "Externa"), ("INTERNA", "Interna"), ("TRANSFERIDA", "Transferida")]
     origem = models.CharField(max_length=20, choices=ORIGEM_CHOICES, default="EXTERNA")
     def save(self, *args, **kwargs):
         if not self.protocolo:
