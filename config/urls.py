@@ -71,7 +71,7 @@ from apps.solicitacoes.views.escopo_gestao import (
 from apps.solicitacoes.views.mapa_eventos_pdf import gerar_mapa_eventos_pdf_seguro
 from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_seguro
 from apps.solicitacoes.views.apoio_operacional import (
-    enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio,
+    enviar_apoio, apoios_recebidos, abrir_apoio, gerar_opo_apoio, encaminhar_apoio,
 )
 from apps.solicitacoes.views.pesquisa import responder_pesquisa
 from apps.solicitacoes.views.pesquisas_painel import painel_pesquisas
@@ -176,6 +176,7 @@ urlpatterns = [
     path("gestao/opo/<int:id>/apoio/", enviar_apoio, name="enviar_apoio"),
     path("gestao/apoios/", apoios_recebidos, name="apoios_recebidos"),
     path("gestao/apoio/<int:id>/", abrir_apoio, name="abrir_apoio"),
+    path("gestao/apoio/<int:id>/encaminhar/", encaminhar_apoio, name="encaminhar_apoio"),
     path("gestao/apoio/<int:id>/gerar-opo/", gerar_opo_apoio, name="gerar_opo_apoio"),
     path("consulta/opo/<int:id>/matricula/", validar_matricula_opo_publica, name="validar_matricula_opo_publica"),
     path("consulta/opo/<int:id>/detalhes/", detalhe_opo_publica, name="detalhe_opo_publica"),
