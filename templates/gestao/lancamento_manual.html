@@ -61,6 +61,22 @@ textarea{min-height:120px;}
     font-weight:600;
     margin-top:5px;
 }
+.opo-permanente-card{
+    margin:18px 0 24px;
+    padding:16px 18px;
+    background:#f8fafc;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+}
+.opo-permanente-card h3{margin:0 0 6px;color:#111827;font-size:18px}
+.opo-permanente-card p{margin:0 0 14px;color:#6b7280;font-size:14px}
+.opo-permanente-card .opo-field{margin-bottom:12px}
+.opo-permanente-card .opo-field:last-child{margin-bottom:0}
+.opo-permanente-card .opo-field label{margin-bottom:6px}
+.opo-permanente-card .opo-switch{display:flex;align-items:center;gap:10px;font-weight:700}
+.opo-permanente-card .opo-switch input{width:auto}
+.opo-periodo{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:end}
+.opo-indeterminado{padding-bottom:10px}
 @media(max-width:768px){
     .card-formulario{padding:20px;}
     .busca-grid,.anexos-grid{flex-direction:column;display:flex;align-items:stretch;}
@@ -108,6 +124,12 @@ textarea{min-height:120px;}
 
     {{ form.as_p }}
 
+    <div class="opo-permanente-card" id="opo-permanente-card">
+        <h3>📌 OPO permanente</h3>
+        <p>Use esta opção somente para operações especiais que precisam permanecer ativas por vários dias, mantendo um único protocolo.</p>
+        <div id="opo-permanente-fields"></div>
+    </div>
+
     <div class="anexos-card">
         <h3>📎 Anexos</h3>
         <p>Anexos são <strong>opcionais</strong>. Quando necessários, podem ser incluídos aqui em PDF.</p>
@@ -145,4 +167,60 @@ textarea{min-height:120px;}
 </div>
 </div>
 
+<script>
+(function(){
+    const form = document.querySelector('form[method="post"]');
+    if(!form) return;
+
+    const permanente = document.getElementById('id_opo_permanente');
+    const dataEvento = document.getElementById('id_data_evento');
+    const dataFim = document.getElementById('id_opo_permanente_data_fim');
+    const indeterminado = document.getElementById('id_opo_permanente_indeterminado');
+    const card = document.getElementById('opo-permanente-card');
+    const target = document.getElementById('opo-permanente-fields');
+
+    if(!permanente || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
+
+    const pPermanente = permanente.closest('p');
+    const pDataFim = dataFim.closest('p');
+    const pIndeterminado = indeterminado.closest('p');
+    const pDataEvento = dataEvento.closest('p');
+
+    if(pPermanente) target.appendChild(pPermanente);
+    if(pDataFim) target.appendChild(pDataFim);
+    if(pIndeterminado) target.appendChild(pIndeterminado);
+
+    if(pDataEvento){
+        const label = pDataEvento.querySelector('label');
+        if(label) label.dataset.normal = label.textContent;
+    }
+
+    if(pPermanente){
+        pPermanente.classList.add('opo-field');
+        const label = pPermanente.querySelector('label');
+        if(label) label.classList.add('opo-switch');
+    }
+    if(pDataFim) pDataFim.classList.add('opo-field');
+    if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
+
+    function atualizar(){
+        const ativo = permanente.checked;
+        card.style.display = '';
+        if(pDataEvento){
+            const label = pDataEvento.querySelector('label');
+            if(label) label.textContent = ativo ? 'Data de início da OPO permanente' : label.dataset.normal;
+        }
+        if(pDataFim) pDataFim.style.display = ativo && !indeterminado.checked ? '' : 'none';
+        if(pIndeterminado) pIndeterminado.style.display = ativo ? '' : 'none';
+        if(!ativo){
+            dataFim.value = '';
+            indeterminado.checked = false;
+        }
+    }
+
+    permanente.addEventListener('change', atualizar);
+    indeterminado.addEventListener('change', atualizar);
+    atualizar();
+})();
+</script>
 {% endblock %}
