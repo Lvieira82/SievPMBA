@@ -62,7 +62,7 @@ textarea{min-height:120px;}
     margin-top:5px;
 }
 .opo-permanente-card{
-    margin:18px 0 24px;
+    margin:0 0 24px;
     padding:16px 18px;
     background:#f8fafc;
     border:1px solid #e5e7eb;
@@ -105,6 +105,17 @@ textarea{min-height:120px;}
 </div>
 {% endif %}
 
+<form method="post" enctype="multipart/form-data" id="form-lancamento-manual">
+    {% csrf_token %}
+    <input type="hidden" name="protocolo_origem" value="{{ protocolo_origem }}">
+
+    <div class="opo-permanente-card" id="opo-permanente-card">
+        <h3>📌 OPO permanente</h3>
+        <p>Use esta opção somente para operações especiais que precisam permanecer ativas por vários dias, mantendo um único protocolo.</p>
+        <div id="opo-permanente-fields"></div>
+    </div>
+</form>
+
 <form method="get">
     <div class="busca-card">
         <label>Número do Protocolo (opcional)</label>
@@ -118,17 +129,11 @@ textarea{min-height:120px;}
     </div>
 </form>
 
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" id="form-dados-manual">
     {% csrf_token %}
     <input type="hidden" name="protocolo_origem" value="{{ protocolo_origem }}">
 
     {{ form.as_p }}
-
-    <div class="opo-permanente-card" id="opo-permanente-card">
-        <h3>📌 OPO permanente</h3>
-        <p>Use esta opção somente para operações especiais que precisam permanecer ativas por vários dias, mantendo um único protocolo.</p>
-        <div id="opo-permanente-fields"></div>
-    </div>
 
     <div class="anexos-card">
         <h3>📎 Anexos</h3>
@@ -169,8 +174,9 @@ textarea{min-height:120px;}
 
 <script>
 (function(){
-    const form = document.querySelector('form[method="post"]');
-    if(!form) return;
+    const form = document.getElementById('form-dados-manual');
+    const formPermanente = document.getElementById('form-lancamento-manual');
+    if(!form || !formPermanente) return;
 
     const permanente = document.getElementById('id_opo_permanente');
     const dataEvento = document.getElementById('id_data_evento');
@@ -182,17 +188,26 @@ textarea{min-height:120px;}
     if(!permanente || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
 
     const pPermanente = permanente.closest('p');
+    const pDataEvento = dataEvento.closest('p');
     const pDataFim = dataFim.closest('p');
     const pIndeterminado = indeterminado.closest('p');
-    const pDataEvento = dataEvento.closest('p');
 
+    // A tag e todo o período da OPO permanente ficam no topo,
+    // antes da pesquisa e antes dos demais campos.
     if(pPermanente) target.appendChild(pPermanente);
+    if(pDataEvento) target.appendChild(pDataEvento);
     if(pDataFim) target.appendChild(pDataFim);
     if(pIndeterminado) target.appendChild(pIndeterminado);
+
+    // Os campos continuam pertencendo ao formulário que será enviado.
+    [permanente, dataEvento, dataFim, indeterminado].forEach(function(campo){
+        campo.setAttribute('form', form.id);
+    });
 
     if(pDataEvento){
         const label = pDataEvento.querySelector('label');
         if(label) label.dataset.normal = label.textContent;
+        pDataEvento.classList.add('opo-field');
     }
 
     if(pPermanente){
@@ -206,24 +221,28 @@ textarea{min-height:120px;}
             label.appendChild(status);
         }
     }
+
     if(pDataFim) pDataFim.classList.add('opo-field');
     if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
 
     function atualizar(){
         const ativo = permanente.checked;
         const status = document.getElementById('opo-permanente-status');
+
         if(status) status.textContent = ativo ? 'SIM' : 'NÃO';
         if(status){
             status.style.background = ativo ? '#dcfce7' : '#e5e7eb';
             status.style.color = ativo ? '#166534' : '#374151';
         }
-        card.style.display = '';
+
         if(pDataEvento){
             const label = pDataEvento.querySelector('label');
             if(label) label.textContent = ativo ? 'Data de início da OPO permanente' : label.dataset.normal;
         }
+
         if(pDataFim) pDataFim.style.display = ativo && !indeterminado.checked ? '' : 'none';
         if(pIndeterminado) pIndeterminado.style.display = ativo ? '' : 'none';
+
         if(!ativo){
             dataFim.value = '';
             indeterminado.checked = false;
