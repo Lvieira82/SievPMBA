@@ -12,7 +12,7 @@
 <div class="pagina-eventos">
     <div class="card-eventos">
         <h1>📅 Eventos do Dia</h1>
-        <p class="subtitulo">Consulte as OPOs autorizadas para a sua unidade e abra os detalhes da OPO.</p>
+        <p class="subtitulo">{% if consulta_publica %}Selecione o município para consultar os eventos da PMBA programados para hoje.{% else %}Consulte as OPOs autorizadas para a sua unidade e abra os detalhes da OPO.{% endif %}</p>
 
         {% if messages %}{% for message in messages %}<div class="mensagem-eventos {% if message.tags == 'success' %}sucesso{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
 
@@ -23,19 +23,58 @@
             </div>
         {% endif %}
 
+        {% if consulta_publica %}
+        <form id="form-eventos" method="POST" class="form-eventos">
+            {% csrf_token %}
+            <label for="pesquisaMunicipio">Município</label>
+            <input type="text" id="pesquisaMunicipio" placeholder="Digite o município..." autocomplete="off" required>
+            <input type="hidden" id="municipioSelecionado" name="municipio">
+            <div id="listaMunicipios" class="list-group mt-2"></div>
+            <button type="submit" id="btnContinuar" class="btn-consultar-eventos">Consultar Eventos</button>
+        </form>
+        {% else %}
         <form id="form-eventos" method="POST" class="form-eventos">
             {% csrf_token %}
             <label for="matricula">Matrícula</label>
             <input type="text" id="matricula" name="matricula" value="{% if acesso_logado %}{{ acesso_logado.matricula }}{% endif %}" placeholder="Digite sua matrícula" autocomplete="off" {% if acesso_logado %}readonly{% endif %} required>
             <button type="submit" class="btn-consultar-eventos">Consultar Eventos</button>
         </form>
+        {% endif %}
         {% if acesso_logado and acesso_logado.perfil == 'OPERADOR' %}<div class="offline-aviso">✓ Ao entrar como operador, os eventos de hoje da sua unidade serão carregados automaticamente para uso offline.</div>{% endif %}
     </div>
 </div>
 <script>
 if('serviceWorker' in navigator){navigator.serviceWorker.register('/eventos-do-dia/?sw=1',{scope:'/eventos-do-dia/'}).catch(()=>{});}
+{% if consulta_publica %}
+const pesquisaMunicipio=document.getElementById('pesquisaMunicipio');
+const listaMunicipios=document.getElementById('listaMunicipios');
+const municipioSelecionado=document.getElementById('municipioSelecionado');
+if(pesquisaMunicipio){
+  pesquisaMunicipio.addEventListener('input',function(){
+    const termo=this.value.trim();
+    municipioSelecionado.value='';
+    listaMunicipios.innerHTML='';
+    if(termo.length<2)return;
+    fetch('/api/municipios/?q='+encodeURIComponent(termo),{headers:{'Accept':'application/json'}})
+      .then(r=>r.ok?r.json():Promise.reject(r.status))
+      .then(dados=>{
+        dados.forEach(item=>{
+          const opcao=document.createElement('button');
+          opcao.type='button';opcao.className='list-group-item list-group-item-action';opcao.textContent=item.nome;
+          opcao.addEventListener('click',()=>{pesquisaMunicipio.value=item.nome;municipioSelecionado.value=item.id;listaMunicipios.innerHTML='';});
+          listaMunicipios.appendChild(opcao);
+        });
+        if(!dados.length)listaMunicipios.innerHTML='<div class="list-group-item text-muted">Nenhum município encontrado.</div>';
+      }).catch(()=>{});
+  });
+  document.getElementById('form-eventos').addEventListener('submit',function(e){
+    if(!municipioSelecionado.value){e.preventDefault();alert('Selecione um município.');}
+  });
+}
+{% else %}
 const form=document.getElementById('form-eventos');
 const autoOperador={% if acesso_logado and acesso_logado.perfil == 'OPERADOR' %}true{% else %}false{% endif %};
 if(autoOperador && form){window.addEventListener('load',()=>setTimeout(()=>form.requestSubmit(),150));}
+{% endif %}
 </script>
 {% endblock %}
