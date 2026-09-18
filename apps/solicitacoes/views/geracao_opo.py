@@ -1,6 +1,5 @@
 import base64
 from io import BytesIO
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
@@ -8,10 +7,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.contrib.staticfiles import finders
-
 from qrcode import make as make_qr
 from weasyprint import HTML
-
 from apps.solicitacoes.models import AnexoOPO, HistoricoSolicitacao, Solicitacao
 from apps.solicitacoes.permissoes import pode_gerar_opo
 
