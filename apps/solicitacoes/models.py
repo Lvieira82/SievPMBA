@@ -218,6 +218,7 @@ class Solicitacao(models.Model):
         ("INSTITUCIONAL", "Institucional"),
     ]
     tipo_opo = models.CharField(max_length=20, choices=TIPO_OPO_CHOICES, default="FESTIVO")
+    efetivo_institucional = models.CharField(max_length=250, blank=True)
     opo_permanente = models.BooleanField(default=False)
     opo_permanente_data_fim = models.DateField(null=True, blank=True)
     opo_permanente_indeterminado = models.BooleanField(default=False)
