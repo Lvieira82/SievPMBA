@@ -35,6 +35,9 @@
                     {% if user.acesso_institucional.perfil == "CPR" or user.acesso_institucional.perfil == "COPPM" or user.acesso_institucional.perfil == "UNIDADE" %}
                         <li><a href="{% url 'mapa_eventos' %}" title="Mapa de Eventos"><i class="bi bi-map"></i><span>Mapa de Eventos</span></a></li>
                     {% endif %}
+                    {% if user.acesso_institucional.perfil == "CPR" %}
+                        <li><a href="{% url 'apoios_recebidos' %}" title="Solicitação de Apoio"><i class="bi bi-hand-index-thumb"></i><span>Solicitação de Apoio</span></a></li>
+                    {% endif %}
                     {% if user.acesso_institucional.perfil == "UNIDADE" %}
                         <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
                         <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
