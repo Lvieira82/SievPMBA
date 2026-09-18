@@ -37,7 +37,7 @@ def _preparar_bairros(form, municipio_id):
 
 
 def _preparar_formulario(form, municipio_id=None):
-    """Prepara o lançamento manual com os dois tipos oficiais de evento."""
+    """Prepara o lançamento interno com os dois tipos oficiais de evento."""
     tipos_ids = []
     for nome, descricao in TIPOS_EVENTO_MANUAL.items():
         tipo, _ = TipoEvento.objects.get_or_create(
@@ -131,7 +131,7 @@ def _salvar_anexos_manuais(request, solicitacao):
         DocumentoSolicitacao.objects.create(
             solicitacao=solicitacao,
             tipo_documento=tipo,
-            descricao="Anexo do lançamento manual",
+            descricao="Anexo do lançamento interno",
             arquivo=arquivo,
         )
         quantidade += 1
@@ -173,7 +173,7 @@ def _salvar_oficio_origem(request, solicitacao):
 @login_required
 def lancamento_manual(request):
     if not pode_lancamento_manual(request.user):
-        messages.error(request, "O lançamento manual é exclusivo do Gestor e dos Membros da Unidade.")
+        messages.error(request, "O lançamento interno é exclusivo do Gestor e dos Membros da Unidade.")
         return redirect("painel_gestao")
 
     perfil = getattr(request.user, "perfil_siev", None)
@@ -211,10 +211,10 @@ def lancamento_manual(request):
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
                         usuario=request.user,
-                        acao="LANÇAMENTO MANUAL",
+                        acao="lançamento interno",
                         observacao=(
                             "Solicitação criada/atualizada pelo Gestor ou Membro da Unidade "
-                            "no lançamento manual."
+                            "no lançamento interno."
                         ),
                     )
 
@@ -228,13 +228,13 @@ def lancamento_manual(request):
 
                     AnexoOPO.objects.filter(
                         solicitacao=obj,
-                        descricao__icontains="lançamento manual",
+                        descricao__icontains="lançamento interno",
                     ).delete()
 
                     anexo = AnexoOPO(
                         solicitacao=obj,
                         descricao=(
-                            "OPO gerada pelo lançamento manual — Tipo de evento: "
+                            "OPO gerada pelo lançamento interno — Tipo de evento: "
                             f"{obj.tipo_evento.nome}"
                         ),
                     )
@@ -245,7 +245,7 @@ def lancamento_manual(request):
                         usuario=request.user,
                         acao="OPO GERADA",
                         observacao=(
-                            f"OPO {nome_arquivo} gerada imediatamente pelo lançamento manual. "
+                            f"OPO {nome_arquivo} gerada imediatamente pelo lançamento interno. "
                             f"Tipo de evento: {obj.tipo_evento.nome}."
                         ),
                     )
@@ -258,19 +258,19 @@ def lancamento_manual(request):
                         partes.append(f"{quantidade_anexos} anexo(s) incluído(s)")
                     messages.success(
                         request,
-                        f"Lançamento manual salvo, {' e '.join(partes)} e OPO {obj.protocolo} gerada imediatamente.",
+                        f"lançamento interno salvo, {' e '.join(partes)} e OPO {obj.protocolo} gerada imediatamente.",
                     )
                 else:
                     messages.success(
                         request,
-                        f"Lançamento manual salvo e OPO {obj.protocolo} gerada imediatamente.",
+                        f"lançamento interno salvo e OPO {obj.protocolo} gerada imediatamente.",
                     )
                 return redirect("detalhe_opo", id=obj.id)
             except Exception as exc:
-                print("ERRO NO LANÇAMENTO MANUAL:", repr(exc))
+                print("ERRO NO lançamento interno:", repr(exc))
                 messages.error(
                     request,
-                    f"Não foi possível concluir o lançamento manual: {exc}",
+                    f"Não foi possível concluir o lançamento interno: {exc}",
                 )
     else:
         form = GestaoManualForm(instance=original, perfil=perfil)
