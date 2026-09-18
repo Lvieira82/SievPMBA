@@ -2,16 +2,19 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
+from django.http import FileResponse, Http404
+from pathlib import Path
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.db import transaction
 
-from apps.solicitacoes.models import CPR, HistoricoSolicitacao, Solicitacao, Unidade
+from apps.solicitacoes.models import CPR, DocumentoSolicitacao, HistoricoSolicitacao, Solicitacao, Unidade
 from apps.solicitacoes.models_acesso import AcessoInstitucional
 from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import documentos_foram_conferidos, eh_desenvolvedor, eh_gestor, pode_ver_solicitacao
 from .geracao_opo import _gerar_pdf_opo
+from .escopo_gestao import _abrir_pdf_seguro
 
 
 TIPOS_SEM_AREA = {
@@ -59,6 +62,92 @@ def _unidades_aptas_para_apoio(solicitacao):
         .exclude(pk=solicitacao.unidade_id)
         .order_by("sigla", "nome")
     )
+
+
+def _usuario_pode_ver_apoio(request, apoio):
+    if eh_desenvolvedor(request.user):
+        return True
+    a = _acesso(request)
+    if not (a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"}):
+        return False
+    if apoio.cpr_destino_id:
+        return a.perfil == "CPR" and a.cpr_id == apoio.cpr_destino_id
+    return (
+        a.perfil == "UNIDADE"
+        and a.unidade_id == apoio.unidade_destino_id
+        and apoio.unidade_destino
+        and apoio.unidade_destino.sigla in COMANDOS_APOIO
+    )
+
+
+@login_required
+def abrir_documento_apoio(request, apoio_id, documento_id):
+    apoio = get_object_or_404(ApoioEvento.objects.select_related("unidade_destino", "cpr_destino"), pk=apoio_id)
+    if not _usuario_pode_ver_apoio(request, apoio):
+        messages.error(request, "Você não possui acesso a este apoio.")
+        return redirect("apoios_recebidos")
+    doc = get_object_or_404(DocumentoSolicitacao, pk=documento_id, solicitacao_id=apoio.solicitacao_id)
+    arquivo = _abrir_pdf_seguro(doc.arquivo)
+    nome = Path(doc.arquivo.name).name or "documento.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
+
+
+@login_required
+def abrir_oficio_apoio(request, apoio_id):
+    apoio = get_object_or_404(ApoioEvento.objects.select_related("unidade_destino", "cpr_destino"), pk=apoio_id)
+    if not _usuario_pode_ver_apoio(request, apoio):
+        messages.error(request, "Você não possui acesso a este apoio.")
+        return redirect("apoios_recebidos")
+    solicitacao = get_object_or_404(Solicitacao, pk=apoio.solicitacao_id)
+    if not hasattr(solicitacao, "oficio_comandante") or not solicitacao.oficio_comandante:
+        raise Http404("O Ofício ao Comandante não foi encontrado.")
+    arquivo = _abrir_pdf_seguro(solicitacao.oficio_comandante)
+    nome = Path(solicitacao.oficio_comandante.name).name or "oficio_comandante.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
+
+
+@login_required
+def abrir_opo_principal_apoio(request, apoio_id):
+    apoio = get_object_or_404(ApoioEvento.objects.select_related("solicitacao", "unidade_destino", "cpr_destino"), pk=apoio_id)
+    if not _usuario_pode_ver_apoio(request, apoio):
+        messages.error(request, "Você não possui acesso a este apoio.")
+        return redirect("apoios_recebidos")
+    anexo = apoio.solicitacao.opos.exclude(arquivo="").order_by("-criado_em").first()
+    if not anexo:
+        raise Http404("A OPO principal não está registrada para esta solicitação.")
+
+    try:
+        arquivo = _abrir_pdf_seguro(anexo.arquivo)
+    except Http404:
+        base_opo = apoio.solicitacao.opos.order_by("-criado_em").first()
+        if not base_opo:
+            raise
+        evento_extra = "Evento extra: SIM" in (base_opo.descricao or "")
+        conteudo = _gerar_pdf_opo(
+            request,
+            apoio.solicitacao,
+            evento_extra=evento_extra,
+            unidade_executor=apoio.solicitacao.unidade,
+        )
+        base_opo.arquivo.save(
+            f"OPO_{apoio.solicitacao.protocolo}.pdf",
+            ContentFile(conteudo),
+            save=True,
+        )
+        arquivo = _abrir_pdf_seguro(base_opo.arquivo)
+        anexo = base_opo
+
+    nome = Path(anexo.arquivo.name).name or f"OPO_{apoio.solicitacao.protocolo}.pdf"
+    resposta = FileResponse(arquivo, content_type="application/pdf")
+    resposta["Content-Disposition"] = f'inline; filename="{nome}"'
+    resposta["X-Content-Type-Options"] = "nosniff"
+    return resposta
 
 
 @login_required
