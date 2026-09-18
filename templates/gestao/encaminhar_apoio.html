@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Encaminhar Solicitação de Apoio{% endblock %}
+{% block content %}
+<style>
+.caixa-encaminhar{max-width:900px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.caixa-encaminhar h1{color:#907c64;margin-bottom:20px}
+.info{background:#f8fafc;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin-bottom:24px}
+.campo{margin-bottom:18px}.campo label{display:block;font-weight:700;margin-bottom:7px}.campo select,.campo textarea{width:100%;box-sizing:border-box;padding:12px;border:1px solid #d1d5db;border-radius:9px}
+.btn{display:inline-block;border:0;padding:11px 17px;border-radius:8px;text-decoration:none;font-weight:700;cursor:pointer}.btn-primary{background:#2563eb;color:#fff}.btn-secondary{background:#6b7280;color:#fff}
+</style>
+<div class="caixa-encaminhar">
+<h1>↗ Encaminhar Solicitação de Apoio</h1>
+<div class="info">
+<strong>Protocolo:</strong> {{ apoio.solicitacao.protocolo }}<br>
+<strong>Evento:</strong> {{ apoio.solicitacao.nome_evento }}<br>
+<strong>Data:</strong> {{ apoio.solicitacao.data_evento|date:"d/m/Y" }}<br>
+<strong>Unidade de origem:</strong> {{ apoio.unidade_origem.sigla }} — {{ apoio.unidade_origem.nome }}
+</div>
+<form method="post">
+{% csrf_token %}
+<div class="campo">
+<label for="unidade_destino">Unidade destinatária</label>
+<select name="unidade_destino" id="unidade_destino" required>
+<option value="">Selecione a unidade</option>
+{% for unidade in unidades %}
+<option value="{{ unidade.id }}">{{ unidade.sigla }} — {{ unidade.nome }}{% if unidade.cpr %} — {{ unidade.cpr.sigla }}{% endif %}</option>
+{% endfor %}
+</select>
+</div>
+<div class="campo">
+<label for="motivo">Observação / orientação do CPR</label>
+<textarea name="motivo" id="motivo" rows="4" placeholder="Informe, se necessário, a orientação para a unidade destinatária..."></textarea>
+</div>
+<button type="submit" class="btn btn-primary">↗ Encaminhar para Unidade</button>
+<a href="{% url 'abrir_apoio' apoio.id %}" class="btn btn-secondary">Voltar</a>
+</form>
+</div>
+{% endblock %}
