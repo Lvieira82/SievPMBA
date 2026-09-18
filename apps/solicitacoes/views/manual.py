@@ -82,7 +82,40 @@ def _salvar_anexos_manuais(request, solicitacao):
 
         tipo = TipoDocumento.objects.filter(pk=tipo_id, ativo=True).first()
         if not tipo:
-            raise ValueError("Um dos tipos de documento selecionados é inválido.")
+            nomes_tipos = {
+                "BOMBEIRO": "Corpo de Bombeiros",
+                "VIGILANCIA_SANITARIA": "Vigilância Sanitária",
+                "MEIO_AMBIENTE": "Meio Ambiente",
+                "MINISTERIO_PUBLICO": "Ministério Público",
+                "TAC": "TAC",
+                "CREA": "CREA",
+                "CRM": "CRM",
+                "CRMV": "CRMV",
+                "CRO": "CRO",
+                "IBAMA": "IBAMA",
+                "INEMA": "INEMA",
+                "PREFEITURA": "Prefeitura",
+                "POLICIA_CIVIL": "Polícia Civil",
+                "EXERCITO_BRASILEIRO": "Exército Brasileiro",
+                "MARINHA_DO_BRASIL": "Marinha do Brasil",
+                "PRF": "PRF",
+                "DETRAN": "DETRAN",
+                "DEFESA_CIVIL": "Defesa Civil",
+                "ANAC": "ANAC",
+                "DNIT": "DNIT",
+                "DERBA_SIT": "DERBA / SIT",
+                "OUTRO_DOCUMENTO": "Outro Documento",
+            }
+            nome_tipo = nomes_tipos.get(tipo_id)
+            if not nome_tipo:
+                raise ValueError("Um dos tipos de documento selecionados é inválido.")
+            tipo, _ = TipoDocumento.objects.get_or_create(
+                nome=nome_tipo,
+                defaults={"descricao": nome_tipo, "extensoes_permitidas": "pdf", "ativo": True},
+            )
+            if not tipo.ativo:
+                tipo.ativo = True
+                tipo.save(update_fields=["ativo"])
 
         validar_pdf_upload(arquivo)
         DocumentoSolicitacao.objects.create(
