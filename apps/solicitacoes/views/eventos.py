@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from ..models import AnexoOPO, CumprimentoOPO, LogSistema, Solicitacao
+from ..models import AnexoOPO, CumprimentoOPO, LogSistema, Municipio, Solicitacao
 from ..models_acesso import AcessoInstitucional
 
 MOTIVOS_NAO={"VIATURA_PROBLEMA":"Viatura apresentou problema","DELEGACIA":"Apresentação na delegacia","OCORRENCIA":"Guarnição em Ocorrência","ENDERECO":"Endereço não encontrado","CANCELADO":"Evento Cancelado","HORARIO":"Horário alterado"}
@@ -55,28 +55,76 @@ def _eventos_offline_payload(eventos,operador=None):
 def _service_worker_script():
     return '''const CACHE="sievpm-eventos-v6";const OFFLINE="/static/pwa/eventos_offline.html";const JS="/static/pwa/eventos_offline.js?v=4";self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(c=>c.addAll([OFFLINE,JS])).then(()=>self.skipWaiting())));self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith("sievpm-eventos-")&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));self.addEventListener("fetch",event=>{const u=new URL(event.request.url);if(u.pathname==="/static/pwa/eventos_offline.html"||u.pathname==="/static/pwa/eventos_offline.js"){event.respondWith(caches.match(event.request).then(cached=>cached||fetch(event.request)));return}if(event.request.mode!=="navigate"||u.pathname!=="/eventos-do-dia/resultado/")return;event.respondWith(fetch(event.request).catch(()=>caches.match(OFFLINE)));});'''
 
-@login_required
 def eventos_dia(request):
-    if request.GET.get("sw")=="1":return HttpResponse(_service_worker_script(),content_type="application/javascript")
-    if request.method=="POST" and request.headers.get("X-Offline-Sync")=="1":return sincronizar_evento_offline(request)
-    acesso_logado=getattr(request.user,"acesso_institucional",None)
-    if not acesso_logado or not acesso_logado.ativo or not request.user.is_active:
-        messages.error(request,"Acesso institucional não autorizado.");return redirect("login_gestao")
-    if request.method=="GET":return render(request,"solicitacoes/eventos_dia.html",{"acesso_logado":acesso_logado})
-    matricula=request.POST.get("matricula","").strip() or acesso_logado.matricula;acesso=_acesso_por_matricula(matricula)
-    if not acesso:return render(request,"solicitacoes/eventos_dia.html",{"erro":"Matrícula sem acesso institucional ativo.","acesso_logado":acesso_logado})
-    if acesso.usuario_id!=request.user.id:return render(request,"solicitacoes/eventos_dia.html",{"erro":"A matrícula informada não corresponde ao usuário autenticado.","acesso_logado":acesso_logado})
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_acesso_id"]=acesso.id;request.session["eventos_matricula"]=acesso.matricula;request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
+    if request.GET.get("sw")=="1":
+        return HttpResponse(_service_worker_script(),content_type="application/javascript")
+    if request.method=="POST" and request.headers.get("X-Offline-Sync")=="1":
+        return sincronizar_evento_offline(request)
 
-@login_required
+    acesso_logado=getattr(request.user,"acesso_institucional",None) if request.user.is_authenticated else None
+
+    if not request.user.is_authenticated:
+        if request.method=="GET":
+            return render(request,"solicitacoes/eventos_dia.html",{"consulta_publica":True})
+        municipio_id=request.POST.get("municipio","").strip()
+        municipio=Municipio.objects.filter(id=municipio_id,ativo=True).first()
+        if not municipio:
+            return render(request,"solicitacoes/eventos_dia.html",{
+                "consulta_publica":True,
+                "erro":"Selecione um município válido.",
+            })
+        request.session["eventos_municipio_publico_id"]=municipio.id
+        return redirect("eventos_dia_resultado")
+
+    if not acesso_logado or not acesso_logado.ativo or not request.user.is_active:
+        messages.error(request,"Acesso institucional não autorizado.")
+        return redirect("login_gestao")
+    if request.method=="GET":
+        return render(request,"solicitacoes/eventos_dia.html",{"acesso_logado":acesso_logado})
+    matricula=request.POST.get("matricula","").strip() or acesso_logado.matricula
+    acesso=_acesso_por_matricula(matricula)
+    if not acesso:
+        return render(request,"solicitacoes/eventos_dia.html",{"erro":"Matrícula sem acesso institucional ativo.","acesso_logado":acesso_logado})
+    if acesso.usuario_id!=request.user.id:
+        return render(request,"solicitacoes/eventos_dia.html",{"erro":"A matrícula informada não corresponde ao usuário autenticado.","acesso_logado":acesso_logado})
+    hoje=timezone.localdate()
+    eventos=_eventos_do_acesso(acesso,hoje)
+    request.session["eventos_acesso_id"]=acesso.id
+    request.session["eventos_matricula"]=acesso.matricula
+    request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True))
+    return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"matricula":acesso.matricula,"acesso":acesso,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
+
 def eventos_dia_resultado(request):
+    municipio_id=request.session.get("eventos_municipio_publico_id")
+    if municipio_id and not request.user.is_authenticated:
+        municipio=Municipio.objects.filter(id=municipio_id,ativo=True).first()
+        if not municipio:
+            request.session.pop("eventos_municipio_publico_id",None)
+            return redirect("eventos_dia")
+        hoje=timezone.localdate()
+        eventos=Solicitacao.objects.filter(status="APROVADA",municipio_id=municipio.id).filter(
+            _filtro_evento_ativo(hoje)
+        ).select_related("municipio","unidade","bairro").order_by("hora_inicio","nome_evento")
+        return render(request,"solicitacoes/eventos_dia_resultado.html",{
+            "eventos":eventos,
+            "municipio_publico":municipio,
+            "data":hoje,
+            "data_eventos":hoje,
+            "publico":True,
+        })
+
+    if not request.user.is_authenticated:
+        return redirect("eventos_dia")
     acesso_id=request.session.get("eventos_acesso_id")
     if not acesso_id:return redirect("eventos_dia")
     acesso=AcessoInstitucional.objects.select_related("usuario","cpr","unidade").filter(id=acesso_id,ativo=True,usuario__is_active=True).first()
     if not acesso or acesso.usuario_id!=request.user.id:
         for chave in ("eventos_acesso_id","eventos_matricula","eventos_opos_autorizadas"):request.session.pop(chave,None)
         messages.error(request,"Acesso não autorizado.");return redirect("login_gestao")
-    hoje=timezone.localdate();eventos=_eventos_do_acesso(acesso,hoje);request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True));return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
+    hoje=timezone.localdate()
+    eventos=_eventos_do_acesso(acesso,hoje)
+    request.session["eventos_opos_autorizadas"]=list(eventos.values_list("id",flat=True))
+    return render(request,"solicitacoes/eventos_dia_resultado.html",{"eventos":eventos,"perfil":acesso,"acesso":acesso,"matricula":acesso.matricula,"unidade":acesso.unidade,"data":hoje,"data_eventos":hoje,"eventos_registrados":_eventos_registrados(eventos,request.user),"offline_eventos":_eventos_offline_payload(eventos,request.user)})
 
 @login_required
 def abrir_oficio_comandante_operador(request, id):
