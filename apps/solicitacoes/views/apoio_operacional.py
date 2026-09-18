@@ -153,16 +153,21 @@ def enviar_apoio(request, id):
 @login_required
 def apoios_recebidos(request):
     a = _acesso(request)
-    if not (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil == "UNIDADE" and a.unidade_id)):
-        messages.error(request, "A área de apoios é exclusiva dos gestores das unidades destinatárias.")
+    acesso_cpr = bool(a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil == "CPR" and a.cpr_id)
+    acesso_unidade = bool(a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil == "UNIDADE" and a.unidade_id)
+    if not (eh_desenvolvedor(request.user) or acesso_cpr or acesso_unidade):
+        messages.error(request, "A área de apoios é exclusiva das entidades destinatárias.")
         return redirect("painel_gestao")
 
     qs = ApoioEvento.objects.select_related(
         "solicitacao", "solicitacao__municipio", "solicitacao__bairro",
-        "unidade_origem", "unidade_destino"
+        "unidade_origem", "unidade_destino", "cpr_destino"
     )
     if not eh_desenvolvedor(request.user):
-        qs = qs.filter(unidade_destino_id=a.unidade_id)
+        if acesso_cpr:
+            qs = qs.filter(cpr_destino_id=a.cpr_id)
+        else:
+            qs = qs.filter(unidade_destino_id=a.unidade_id)
 
     return render(request, "gestao/apoios_recebidos.html", {"apoios": qs})
 
@@ -170,10 +175,23 @@ def apoios_recebidos(request):
 @login_required
 def abrir_apoio(request, id):
     apoio = get_object_or_404(
-        ApoioEvento.objects.select_related("solicitacao", "solicitacao__unidade", "unidade_destino", "unidade_origem"),
+        ApoioEvento.objects.select_related(
+            "solicitacao", "solicitacao__unidade", "unidade_destino",
+            "unidade_origem", "cpr_destino"
+        ),
         pk=id,
     )
-    if not (eh_desenvolvedor(request.user) or _eh_gestor_unidade_do(request, apoio.unidade_destino)):
+    a = _acesso(request)
+    acesso_cpr = bool(a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil == "CPR" and a.cpr_id)
+    acesso_unidade = bool(a and a.ativo and request.user.is_active and a.funcao in {"GESTOR", "MEMBRO"} and a.perfil == "UNIDADE" and a.unidade_id)
+
+    autorizado = eh_desenvolvedor(request.user)
+    if acesso_cpr:
+        autorizado = apoio.cpr_destino_id == a.cpr_id
+    elif acesso_unidade:
+        autorizado = apoio.unidade_destino_id == a.unidade_id
+
+    if not autorizado:
         messages.error(request, "Você não possui acesso a este apoio.")
         return redirect("apoios_recebidos")
 
@@ -185,7 +203,7 @@ def abrir_apoio(request, id):
             usuario=request.user,
             acao="APOIO RECEBIDO",
             status=apoio.solicitacao.status,
-            observacao=f"Apoio recebido pela {apoio.unidade_destino.sigla}.",
+            observacao=f"Apoio recebido por {apoio.cpr_destino or apoio.unidade_destino}.",
         )
         messages.success(request, "Apoio marcado como recebido.")
         return redirect("abrir_apoio", id=id)
