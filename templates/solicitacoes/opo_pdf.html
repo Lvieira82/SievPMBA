@@ -35,7 +35,19 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;b
     <div class="linha-info"><div class="rotulo">EVENTO:</div><div class="valor">{{ solicitacao.nome_evento }}</div></div>
     <div class="linha-info"><div class="rotulo">PROTOCOLO:</div><div class="valor"><strong>{{ solicitacao.protocolo }}</strong></div></div>
     <div class="linha-info"><div class="rotulo">LOCAL:</div><div class="valor">{{ solicitacao.local }}</div></div>
-    <div class="linha-info"><div class="rotulo">DATA:</div><div class="valor">{{ solicitacao.data_evento|date:"d/m/Y" }}</div></div>
+    <div class="linha-info"><div class="rotulo">DATA:</div><div class="valor">
+        {% if solicitacao.opo_permanente %}
+            {{ solicitacao.data_evento|date:"d/m/Y" }}
+            {% if solicitacao.opo_permanente_indeterminado %}
+                — INDETERMINADA
+            {% elif solicitacao.opo_permanente_data_fim %}
+                a {{ solicitacao.opo_permanente_data_fim|date:"d/m/Y" }}
+            {% endif %}
+            <strong>(OPO PERMANENTE)</strong>
+        {% else %}
+            {{ solicitacao.data_evento|date:"d/m/Y" }}
+        {% endif %}
+    </div></div>
     <div class="linha-info"><div class="rotulo">HORÁRIO:</div><div class="valor">{{ solicitacao.hora_inicio|time:"H:i" }} - {{ solicitacao.hora_fim|time:"H:i" }}</div></div>
     <div class="linha-info"><div class="rotulo">EFETIVO:</div><div class="valor">{{ efetivo_opo }}</div></div>
     <div class="linha-info"><div class="rotulo">UNIFORME E ARMAMENTO:</div><div class="valor">O de Dotação desta UOPM</div></div>
