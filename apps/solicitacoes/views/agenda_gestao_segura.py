@@ -117,20 +117,35 @@ def proximos_eventos_gestao_seguro(request):
 
     hoje = timezone.localdate()
     limite = hoje + timedelta(days=14)
-    eventos = (
-        Solicitacao.objects
-        .filter(
-            unidade__in=escopo_unidades(request.user),
-            status__in=["APROVADA", "CORRECAO"],
-            data_evento__gte=hoje,
-            data_evento__lte=limite,
+    acesso = getattr(request.user, "acesso_institucional", None)
+    perfil = getattr(acesso, "perfil", None)
+
+    # Regra territorial dos Eventos Futuros:
+    # - CPR: o pertencimento é definido pelo município atualmente registrado
+    #   na solicitação. A unidade que recebeu originalmente a solicitação não
+    #   mantém o evento no CPR de origem após uma transferência.
+    # - UNIDADE: permanece restrito à unidade.
+    # - COPPM: visão geral de todas as unidades.
+    eventos = Solicitacao.objects.filter(
+        status__in=["APROVADA", "CORRECAO"],
+        data_evento__gte=hoje,
+        data_evento__lte=limite,
+    )
+
+    if perfil == "CPR" and acesso.cpr_id:
+        eventos = eventos.filter(
+            municipio__unidade_responsavel__cpr_id=acesso.cpr_id
         )
+    else:
+        eventos = eventos.filter(
+            unidade__in=escopo_unidades(request.user)
+        )
+
+    eventos = (
+        eventos
         .select_related("municipio", "unidade", "unidade__cpr", "bairro")
         .order_by("data_evento", "hora_inicio")
     )
-
-    acesso = getattr(request.user, "acesso_institucional", None)
-    perfil = getattr(acesso, "perfil", None)
 
     # A visão territorial acompanha a hierarquia institucional:
     # COPPM -> CPR; CPR -> município.
