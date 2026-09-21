@@ -1,5 +1,17 @@
 {% extends 'base.html' %}
-{% block title %}Pesquisa de Avaliação{% endblock %}
+{% block title %}Pesquisa de Avaliação<script>
+(function(){
+    const campo=document.getElementById('comentario');
+    const contador=document.getElementById('contador-comentario');
+    if(!campo||!contador)return;
+    function atualizar(){
+        contador.textContent=campo.value.length;
+    }
+    campo.addEventListener('input',atualizar);
+    atualizar();
+})();
+</script>
+{% endblock %}
 {% block content %}
 <div style="max-width:720px;margin:40px auto;background:#fff;padding:32px;border-radius:16px;box-shadow:0 5px 20px rgba(0,0,0,.08)">
     <h1 style="text-align:center">Pesquisa de Avaliação</h1>
@@ -35,7 +47,8 @@
         </div>
 
         <label for="comentario"><strong>Comentário (opcional)</strong></label>
-        <textarea id="comentario" name="comentario" rows="5" style="width:100%;margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px;box-sizing:border-box">{{ comentario|default:'' }}</textarea>
+        <textarea id="comentario" name="comentario" rows="5" maxlength="150" style="width:100%;margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px;box-sizing:border-box" placeholder="Digite seu comentário (máximo de 150 caracteres)">{{ comentario|default:'' }}</textarea>
+        <div style="text-align:right;margin-top:4px;color:#6b7280;font-size:.82rem"><span id="contador-comentario">0</span>/150 caracteres</div>
 
         <button type="submit" style="display:block;margin:24px auto 0;padding:12px 28px;border:0;border-radius:8px;background:#111827;color:#fff;font-weight:bold;cursor:pointer">Enviar avaliação</button>
     </form>
