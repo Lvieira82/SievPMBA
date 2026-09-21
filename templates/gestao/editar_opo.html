@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Editar OPO{% endblock %}
+{% block content %}
+<style>
+.editar-opo-box{max-width:900px;margin:30px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.editar-opo-box h1{color:#907C64;margin-bottom:8px}
+.subtitulo{color:#6b7280;margin-bottom:24px}
+.grid-form{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.campo-full{grid-column:1/-1}
+.campo label{display:block;font-weight:700;color:#374151;margin-bottom:7px}
+.campo input,.campo select,.campo textarea{width:100%;box-sizing:border-box;padding:11px;border:1px solid #d1d5db;border-radius:8px;background:#fff}
+.campo textarea{resize:vertical}
+.erros{background:#fee2e2;color:#991b1b;padding:14px;border-radius:9px;margin-bottom:18px}
+.permanente-box{grid-column:1/-1;padding:16px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:11px}
+.permanente-linha{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.acoes{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px;padding-top:18px;border-top:1px solid #e5e7eb}
+.btn{display:inline-block;padding:11px 18px;border:0;border-radius:8px;text-decoration:none;color:#fff;font-weight:700;cursor:pointer}
+.salvar{background:#166534}.voltar{background:#6b7280}
+.ajuda{font-size:.84rem;color:#6b7280;margin-top:5px}
+@media(max-width:700px){.grid-form{grid-template-columns:1fr}.campo-full,.permanente-box{grid-column:auto}.btn{width:100%;text-align:center;box-sizing:border-box}}
+</style>
+<div class="editar-opo-box">
+<h1>✏️ Editar OPO {{ solicitacao.protocolo }}</h1>
+<p class="subtitulo">Altere os dados operacionais que mudaram após a geração. Ao salvar, o PDF da OPO será regenerado mantendo o mesmo protocolo.</p>
+
+{% if form.errors %}
+<div class="erros"><strong>Corrija os campos abaixo:</strong>{{ form.errors }}</div>
+{% endif %}
+
+<form method="post">
+{% csrf_token %}
+<div class="grid-form">
+<div class="campo campo-full"><label for="{{ form.local.id_for_label }}">Local</label>{{ form.local }}{{ form.local.errors }}</div>
+<div class="campo"><label for="{{ form.bairro.id_for_label }}">Bairro / Distrito</label>{{ form.bairro }}{{ form.bairro.errors }}</div>
+<div class="campo"><label for="{{ form.data_evento.id_for_label }}">Data do evento</label>{{ form.data_evento }}{{ form.data_evento.errors }}</div>
+<div class="campo"><label for="{{ form.hora_inicio.id_for_label }}">Horário de início</label>{{ form.hora_inicio }}{{ form.hora_inicio.errors }}</div>
+<div class="campo"><label for="{{ form.hora_fim.id_for_label }}">Horário de fim</label>{{ form.hora_fim }}{{ form.hora_fim.errors }}</div>
+<div class="campo campo-full"><label for="{{ form.observacoes.id_for_label }}">Observações</label>{{ form.observacoes }}{{ form.observacoes.errors }}</div>
+
+<div class="permanente-box">
+<strong>📌 Vigência da OPO permanente</strong>
+<div class="permanente-linha" style="margin-top:12px">
+<label>{{ form.opo_permanente }} OPO permanente</label>
+<label>{{ form.opo_permanente_indeterminado }} Indeterminado</label>
+</div>
+<div id="campo-fim" style="margin-top:12px">
+<label for="{{ form.opo_permanente_data_fim.id_for_label }}">Data de fim</label>
+{{ form.opo_permanente_data_fim }}
+{{ form.opo_permanente_data_fim.errors }}
+</div>
+<div class="ajuda">Se a operação permanente não deve mais ser recorrente, desmarque “OPO permanente”. Para encerrar definitivamente, também existe o botão “Remover OPO” no detalhe.</div>
+</div>
+</div>
+
+<div class="acoes">
+<button type="submit" class="btn salvar">💾 Salvar alterações e regenerar OPO</button>
+<a href="{% url 'detalhe_opo' solicitacao.id %}" class="btn voltar">← Cancelar</a>
+</div>
+</form>
+</div>
+<script>
+(function(){
+const permanente=document.getElementById('id_opo_permanente');
+const indeterminado=document.getElementById('id_opo_permanente_indeterminado');
+const fim=document.getElementById('campo-fim');
+function atualizar(){
+ if(!permanente||!indeterminado||!fim)return;
+ const ativo=permanente.checked;
+ indeterminado.disabled=!ativo;
+ fim.style.display=ativo&&!indeterminado.checked?'block':'none';
+ if(!ativo){indeterminado.checked=false;}
+}
+if(permanente)permanente.addEventListener('change',atualizar);
+if(indeterminado)indeterminado.addEventListener('change',atualizar);
+atualizar();
+})();
+</script>
+{% endblock %}
