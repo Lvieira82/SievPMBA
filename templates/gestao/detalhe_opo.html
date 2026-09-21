@@ -9,13 +9,13 @@
 <div class="acoes">
 <a href="{% url 'opos_geradas' %}" class="btn detalhes">📁 OPOs geradas</a>
 {% if pode_editar_remover %}
-<a href="{% url 'editar_opo' solicitacao.id %}" class="btn editar">✏️ Editar OPO</a>
+<a href="{% url 'editar_opo' solicitacao.id %}" class="btn editar" title="Alterar local, data, horário, observações ou vigência da OPO">✏️ Editar OPO</a>
 <form method="post" action="{% url 'remover_opo' solicitacao.id %}" style="display:inline" onsubmit="return confirm('Confirma a remoção desta OPO?{% if solicitacao.opo_permanente %} A OPO permanente também será encerrada e deixará de ser recorrente.{% endif %}');">
 {% csrf_token %}
-<button type="submit" class="btn remover">🗑️ Remover OPO</button>
+<button type="submit" class="btn remover" title="Remover a OPO e encerrar sua vigência">🗑️ Remover OPO</button>
 </form>
 {% endif %}
 {% if pode_apoio %}<a href="{% url 'enviar_apoio' solicitacao.id %}" class="btn apoio">🤝 Compartilhar / Apoio</a>{% endif %}
 <a href="{% url 'painel_gestao' %}" class="btn voltar">← Voltar ao Painel</a>
-</div>
+</div></div>
 </div>{% endblock %}
