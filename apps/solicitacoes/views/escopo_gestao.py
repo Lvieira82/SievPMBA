@@ -254,14 +254,14 @@ def editar_opo_seguro(request, id):
                         ContentFile(conteudo),
                         save=True,
                     )
-                    novos_arquivos_criados = [anexo.arquivo.name]
+                    novo_arquivo = anexo.arquivo.name
 
                     if nomes_arquivos_antigos:
                         transaction.on_commit(
-                            lambda nomes=nomes_arquivos_antigos: [
+                            lambda nomes=nomes_arquivos_antigos, novo=novo_arquivo: [
                                 default_storage.delete(nome)
                                 for nome in nomes
-                                if nome and nome != novos_arquivos_criados[0]
+                                if nome and nome != novo
                             ]
                         )
                     HistoricoSolicitacao.objects.create(
