@@ -66,7 +66,7 @@ from apps.solicitacoes.views.escopo_gestao import (
     documentos_solicitacao_seguro, abrir_documento_solicitacao_seguro,
     abrir_oficio_comandante_seguro, abrir_opo_gestao_seguro,
     opos_geradas_seguro, detalhe_opo_seguro, mapa_eventos_seguro,
-    gerar_opo_seguro,
+    gerar_opo_seguro, editar_opo_seguro, remover_opo_seguro,
 )
 from apps.solicitacoes.views.mapa_eventos_pdf import gerar_mapa_eventos_pdf_seguro
 from apps.solicitacoes.views.transferencia_segura import transferir_solicitacao_seguro
@@ -172,6 +172,8 @@ urlpatterns = [
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf_seguro, name="gerar_mapa_eventos_pdf"),
     path("gestao/opos-geradas/", opos_geradas_seguro, name="opos_geradas"),
     path("gestao/opo/<int:id>/detalhes/", detalhe_opo_seguro, name="detalhe_opo"),
+    path("gestao/opo/<int:id>/editar/", editar_opo_seguro, name="editar_opo"),
+    path("gestao/opo/<int:id>/remover/", remover_opo_seguro, name="remover_opo"),
     path("gestao/opo/arquivo/<int:anexo_id>/", abrir_opo_gestao_seguro, name="abrir_opo_gestao"),
     path("opo/<int:id>/", gerar_opo_seguro, name="gerar_opo"),
     path("gestao/opo/<int:id>/apoio/", enviar_apoio, name="enviar_apoio"),
