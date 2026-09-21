@@ -8,6 +8,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import (
     Solicitacao,
+    Bairro,
     MatriculaAutorizada,
     PerfilUsuario,
 )
@@ -666,7 +667,7 @@ class EditarOPOForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         municipio_id = getattr(self.instance, "municipio_id", None)
         self.fields["bairro"].queryset = (
-            __import__("apps.solicitacoes.models", fromlist=["Bairro"]).Bairro.objects.filter(
+            Bairro.objects.filter(
                 ativo=True, municipio_id=municipio_id
             ).order_by("nome")
             if municipio_id else self.fields["bairro"].queryset.none()
