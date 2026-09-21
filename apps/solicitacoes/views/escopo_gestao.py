@@ -32,7 +32,7 @@ from apps.solicitacoes.permissoes import (
     escopo_unidades,
 )
 from .geracao_opo import _gerar_pdf_opo, gerar_opo_com_evento_extra
-from .forms import EditarOPOForm
+from ..forms import EditarOPOForm
 
 
 def _abrir_pdf_seguro(arquivo_field):
