@@ -76,6 +76,12 @@ class SolicitacaoForm(forms.ModelForm):
             "municipio",
             "tipo_evento",
             "publico_estimado",
+            # Campos exclusivos do lançamento interno / geração da OPO.
+            "tipo_opo",
+            "efetivo_institucional",
+            "opo_permanente",
+            "opo_permanente_data_fim",
+            "opo_permanente_indeterminado",
         ]
 
         widgets = {
@@ -554,6 +560,12 @@ class CorrecaoSolicitacaoForm(forms.ModelForm):
             "data_assinatura",
             "criado_em",
             "opo_pdf",
+            # Campos exclusivos do lançamento interno / geração da OPO.
+            "tipo_opo",
+            "efetivo_institucional",
+            "opo_permanente",
+            "opo_permanente_data_fim",
+            "opo_permanente_indeterminado",
         ]
 
         widgets = {
