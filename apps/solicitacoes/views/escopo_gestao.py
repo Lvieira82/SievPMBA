@@ -2,6 +2,8 @@ from datetime import datetime
 from pathlib import Path
 
 from django.conf import settings
+from django.core.files.base import ContentFile
+from django.db import transaction
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import default_storage
@@ -17,7 +19,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.units import mm
 from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
-from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, DocumentoSolicitacao, Solicitacao, TipoDocumento
+from apps.solicitacoes.models import AnexoOPO, CumprimentoOPO, DocumentoSolicitacao, HistoricoSolicitacao, Solicitacao, TipoDocumento
 from apps.solicitacoes.pdf_security import validar_pdf_upload
 from apps.solicitacoes.permissoes import (
     eh_desenvolvedor,
@@ -29,7 +31,8 @@ from apps.solicitacoes.permissoes import (
     pode_ver_documentacao_solicitacao,
     escopo_unidades,
 )
-from .geracao_opo import gerar_opo_com_evento_extra
+from .geracao_opo import _gerar_pdf_opo, gerar_opo_com_evento_extra
+from .forms import EditarOPOForm
 
 
 def _abrir_pdf_seguro(arquivo_field):
@@ -168,6 +171,179 @@ def detalhe_opo_seguro(request, id):
     a = getattr(request.user, "acesso_institucional", None)
     pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))) and not CumprimentoOPO.objects.filter(opo__solicitacao=s, respondido_em__isnull=False).exists())
     return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio})
+
+
+def _pode_editar_remover_opo(request, solicitacao):
+    if eh_desenvolvedor(request.user):
+        return True
+    acesso = getattr(request.user, "acesso_institucional", None)
+    return bool(
+        acesso and acesso.ativo and request.user.is_active
+        and acesso.funcao in {"GESTOR", "MEMBRO"}
+        and acesso.perfil == "UNIDADE"
+        and acesso.unidade_id == solicitacao.unidade_id
+    )
+
+
+def _opo_principal_queryset(solicitacao):
+    return AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="")
+
+
+@login_required
+def editar_opo_seguro(request, id):
+    solicitacao = get_object_or_404(
+        Solicitacao.objects.select_related("municipio", "bairro", "unidade", "tipo_evento"),
+        pk=id,
+    )
+    if not _pode_editar_remover_opo(request, solicitacao):
+        messages.error(request, "Somente Gestor ou Membro da Unidade responsável pode editar esta OPO.")
+        return redirect("painel_gestao")
+
+    if CumprimentoOPO.objects.filter(opo__solicitacao=solicitacao, respondido_em__isnull=False).exists():
+        messages.error(request, "Esta OPO já possui atendimento registrado e não pode mais ser editada.")
+        return redirect("detalhe_opo", id=id)
+
+    if solicitacao.apoios.exists():
+        messages.error(request, "Esta OPO já foi compartilhada para apoio e não pode ser editada. Faça os ajustes antes de compartilhar.")
+        return redirect("detalhe_opo", id=id)
+
+    if request.method == "POST":
+        form = EditarOPOForm(request.POST, instance=solicitacao)
+        if form.is_valid():
+            try:
+                with transaction.atomic():
+                    antigos = list(_opo_principal_queryset(solicitacao).values_list("id", "arquivo"))
+                    evento_extra = any(
+                        "EVENTO EXTRA: SIM" in (descricao or "").upper()
+                        for descricao in AnexoOPO.objects.filter(
+                            solicitacao=solicitacao
+                        ).values_list("descricao", flat=True)
+                    )
+                    obj = form.save(commit=False)
+                    obj.save(update_fields=[
+                        "local", "bairro", "data_evento", "hora_inicio", "hora_fim",
+                        "observacoes", "opo_permanente", "opo_permanente_data_fim",
+                        "opo_permanente_indeterminado", "atualizado_em",
+                    ])
+
+                    for anexo in list(_opo_principal_queryset(obj)):
+                        if anexo.arquivo:
+                            anexo.arquivo.delete(save=False)
+                        anexo.delete()
+
+                    conteudo = _gerar_pdf_opo(
+                        request,
+                        obj,
+                        evento_extra=evento_extra,
+                        unidade_executor=(
+                            getattr(getattr(request.user, "acesso_institucional", None), "unidade", None)
+                            or obj.unidade
+                        ),
+                    )
+                    anexo = AnexoOPO(
+                        solicitacao=obj,
+                        descricao=(
+                            "OPO atualizada pelo SiEv — Evento extra: "
+                            f"{'SIM' if evento_extra else 'NÃO'}"
+                        ),
+                    )
+                    anexo.arquivo.save(
+                        f"OPO_{obj.protocolo}.pdf",
+                        ContentFile(conteudo),
+                        save=True,
+                    )
+                    HistoricoSolicitacao.objects.create(
+                        solicitacao=obj,
+                        usuario=request.user,
+                        acao="OPO EDITADA",
+                        status=obj.status,
+                        observacao=(
+                            "OPO editada após a geração. "
+                            "Local, data/horários, observações e/ou vigência foram atualizados. "
+                            f"Arquivos anteriores substituídos: {len(antigos)}."
+                        ),
+                    )
+                messages.success(request, f"OPO {obj.protocolo} atualizada e regenerada com sucesso.")
+                return redirect("detalhe_opo", id=obj.id)
+            except Exception as exc:
+                messages.error(request, f"Não foi possível atualizar a OPO: {exc}")
+    else:
+        form = EditarOPOForm(instance=solicitacao)
+
+    return render(
+        request,
+        "gestao/editar_opo.html",
+        {"form": form, "solicitacao": solicitacao},
+    )
+
+
+@login_required
+def remover_opo_seguro(request, id):
+    if request.method != "POST":
+        messages.error(request, "A remoção da OPO deve ser confirmada pelo botão Remover OPO.")
+        return redirect("detalhe_opo", id=id)
+
+    solicitacao = get_object_or_404(Solicitacao, pk=id)
+    if not _pode_editar_remover_opo(request, solicitacao):
+        messages.error(request, "Somente Gestor ou Membro da Unidade responsável pode remover esta OPO.")
+        return redirect("painel_gestao")
+
+    if CumprimentoOPO.objects.filter(opo__solicitacao=solicitacao, respondido_em__isnull=False).exists():
+        messages.error(request, "Esta OPO já possui atendimento registrado e não pode ser removida.")
+        return redirect("detalhe_opo", id=id)
+
+    if solicitacao.apoios.exists():
+        messages.error(request, "Esta OPO já foi compartilhada para apoio e não pode ser removida.")
+        return redirect("detalhe_opo", id=id)
+
+    try:
+        with transaction.atomic():
+            quantidade = 0
+            for anexo in list(_opo_principal_queryset(solicitacao)):
+                if anexo.arquivo:
+                    anexo.arquivo.delete(save=False)
+                anexo.delete()
+                quantidade += 1
+
+            era_permanente = solicitacao.opo_permanente
+            if era_permanente:
+                solicitacao.opo_permanente = False
+                solicitacao.opo_permanente_data_fim = None
+                solicitacao.opo_permanente_indeterminado = False
+                solicitacao.save(update_fields=[
+                    "opo_permanente",
+                    "opo_permanente_data_fim",
+                    "opo_permanente_indeterminado",
+                    "atualizado_em",
+                ])
+
+            HistoricoSolicitacao.objects.create(
+                solicitacao=solicitacao,
+                usuario=request.user,
+                acao="OPO REMOVIDA",
+                status=solicitacao.status,
+                observacao=(
+                    f"{quantidade} OPO(s) removida(s). "
+                    + (
+                        "A OPO permanente foi extinta e não permanece recorrente."
+                        if era_permanente
+                        else "O protocolo foi preservado."
+                    )
+                ),
+            )
+        messages.success(
+            request,
+            f"OPO {solicitacao.protocolo} removida. "
+            + (
+                "A recorrência da OPO permanente também foi encerrada."
+                if era_permanente
+                else "O protocolo permanece preservado."
+            )
+        )
+    except Exception as exc:
+        messages.error(request, f"Não foi possível remover a OPO: {exc}")
+
+    return redirect("opos_geradas")
 
 
 @login_required
