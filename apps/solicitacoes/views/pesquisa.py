@@ -40,6 +40,15 @@ def responder_pesquisa(request, token):
 
         comentario = (request.POST.get("comentario") or "").strip()
 
+        if len(comentario) > 150:
+            return render(request, "pesquisa/responder.html", {
+                "solicitacao": solicitacao,
+                "erro": "O comentário pode ter no máximo 150 caracteres.",
+                "nota_sistema": nota_sistema,
+                "nota_atendimento": nota_atendimento,
+                "comentario": comentario[:150],
+            })
+
         if nota_sistema not in range(1, 6) or nota_atendimento not in range(1, 6):
             return render(request, "pesquisa/responder.html", {
                 "solicitacao": solicitacao,
