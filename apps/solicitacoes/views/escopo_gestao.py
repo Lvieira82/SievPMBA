@@ -149,7 +149,7 @@ def opos_geradas_seguro(request):
     grupos = {}
     for a in anexos:
         if a.solicitacao.protocolo not in grupos:
-            grupos[a.solicitacao.protocolo] = {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": [], "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento"))}
+            grupos[a.solicitacao.protocolo] = {"codigo": a.solicitacao.protocolo, "solicitacao": a.solicitacao, "arquivos": [], "documentos": list(DocumentoSolicitacao.objects.filter(solicitacao=a.solicitacao).select_related("tipo_documento")), "ultima_edicao": HistoricoSolicitacao.objects.filter(solicitacao=a.solicitacao, acao="OPO EDITADA").order_by("-criado_em").first()}
         grupos[a.solicitacao.protocolo]["arquivos"].append(a)
     pode_apoio_base = eh_desenvolvedor(request.user) or eh_gestor(request.user)
     for protocolo in grupos.values():
