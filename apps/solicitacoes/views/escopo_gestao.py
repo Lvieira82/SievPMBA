@@ -214,6 +214,7 @@ def editar_opo_seguro(request, id):
             try:
                 with transaction.atomic():
                     antigos = list(_opo_principal_queryset(solicitacao).values_list("id", "arquivo"))
+                    nomes_arquivos_antigos = [nome for _, nome in antigos if nome]
                     evento_extra = any(
                         "EVENTO EXTRA: SIM" in (descricao or "").upper()
                         for descricao in AnexoOPO.objects.filter(
@@ -227,11 +228,6 @@ def editar_opo_seguro(request, id):
                         "opo_permanente_indeterminado", "atualizado_em",
                     ])
 
-                    for anexo in list(_opo_principal_queryset(obj)):
-                        if anexo.arquivo:
-                            anexo.arquivo.delete(save=False)
-                        anexo.delete()
-
                     conteudo = _gerar_pdf_opo(
                         request,
                         obj,
@@ -241,6 +237,11 @@ def editar_opo_seguro(request, id):
                             or obj.unidade
                         ),
                     )
+
+                    antigos_queryset = list(_opo_principal_queryset(obj))
+                    for anexo_antigo in antigos_queryset:
+                        anexo_antigo.delete()
+
                     anexo = AnexoOPO(
                         solicitacao=obj,
                         descricao=(
@@ -253,6 +254,16 @@ def editar_opo_seguro(request, id):
                         ContentFile(conteudo),
                         save=True,
                     )
+                    novos_arquivos_criados = [anexo.arquivo.name]
+
+                    if nomes_arquivos_antigos:
+                        transaction.on_commit(
+                            lambda nomes=nomes_arquivos_antigos: [
+                                default_storage.delete(nome)
+                                for nome in nomes
+                                if nome and nome != novos_arquivos_criados[0]
+                            ]
+                        )
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
                         usuario=request.user,
@@ -299,12 +310,20 @@ def remover_opo_seguro(request, id):
 
     try:
         with transaction.atomic():
-            quantidade = 0
-            for anexo in list(_opo_principal_queryset(solicitacao)):
-                if anexo.arquivo:
-                    anexo.arquivo.delete(save=False)
-                anexo.delete()
-                quantidade += 1
+            arquivos_remover = [
+                anexo.arquivo.name
+                for anexo in _opo_principal_queryset(solicitacao)
+                if anexo.arquivo and anexo.arquivo.name
+            ]
+            quantidade = _opo_principal_queryset(solicitacao).count()
+            _opo_principal_queryset(solicitacao).delete()
+            if arquivos_remover:
+                transaction.on_commit(
+                    lambda nomes=arquivos_remover: [
+                        default_storage.delete(nome)
+                        for nome in nomes
+                    ]
+                )
 
             era_permanente = solicitacao.opo_permanente
             if era_permanente:
