@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Detalhes da OPO{% endblock %}
 {% block content %}
-<style>.opo-box{max-width:1000px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}.opo-box h1{color:#907C64}.acoes{margin-top:25px;padding-top:20px;border-top:1px solid #e5e7eb}.btn{display:inline-block;padding:11px 17px;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;margin:4px}.apoio{background:#0f766e}.detalhes{background:#2563eb}.editar{background:#b45309}.remover{background:#b91c1c}.voltar{background:#6b7280}.arquivos{margin-top:25px;background:#f8fafc;padding:18px;border-radius:12px}.arquivo{padding:8px 0}.arquivo a{color:#2563eb;font-weight:700}</style>
+<style>.opo-box{max-width:1000px;margin:35px auto;padding:30px;background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}.opo-box h1{color:#907C64}.acoes{margin-top:25px;padding-top:20px;border-top:1px solid #e5e7eb}.btn{display:inline-block;padding:11px 17px;border-radius:8px;color:#fff;text-decoration:none;font-weight:700;margin:4px}.apoio{background:#0f766e}.detalhes{background:#2563eb}.editar{background:#b45309}.remover{background:#b91c1c}.btn.bloqueado{background:#9ca3af!important;color:#fff;cursor:not-allowed;opacity:.78}.aviso-acao{margin:10px 0 0;padding:10px 12px;border-radius:8px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:13px;font-weight:600}.voltar{background:#6b7280}.arquivos{margin-top:25px;background:#f8fafc;padding:18px;border-radius:12px}.arquivo{padding:8px 0}.arquivo a{color:#2563eb;font-weight:700}</style>
 <div class="opo-box">
 <h1>📄 OPO {{ solicitacao.protocolo }}</h1>
 <p><strong>Evento:</strong> {{ solicitacao.nome_evento }}</p><p><strong>Município:</strong> {{ solicitacao.municipio.nome }}</p><p><strong>Bairro/Distrito:</strong> {{ solicitacao.bairro.nome|default:'Não informado' }}</p><p><strong>Unidade responsável:</strong> {{ solicitacao.unidade.nome|default:'Não definida' }}</p><p><strong>Data:</strong> {{ solicitacao.data_evento|date:'d/m/Y' }} — {{ solicitacao.hora_inicio|time:'H:i' }} às {{ solicitacao.hora_fim|time:'H:i' }}</p>
@@ -9,11 +9,17 @@
 <div class="acoes">
 <a href="{% url 'opos_geradas' %}" class="btn detalhes">📁 OPOs geradas</a>
 {% if pode_editar_remover %}
+{% if bloqueado_por_apoio %}
+<span class="btn editar bloqueado" title="Esta OPO já foi compartilhada para apoio e precisa manter a versão enviada">✏️ Editar OPO</span>
+<span class="btn remover bloqueado" title="Esta OPO já foi compartilhada para apoio e não pode ser removida nesta etapa">🗑️ Remover OPO</span>
+<div class="aviso-acao">ℹ️ Esta OPO já foi compartilhada para apoio. A edição e a remoção ficam bloqueadas para não alterar ou extinguir uma operação que já foi encaminhada.</div>
+{% else %}
 <a href="{% url 'editar_opo' solicitacao.id %}" class="btn editar" title="Alterar local, data, horário, observações ou vigência da OPO">✏️ Editar OPO</a>
 <form method="post" action="{% url 'remover_opo' solicitacao.id %}" style="display:inline" onsubmit="return confirm('Confirma a remoção desta OPO?{% if solicitacao.opo_permanente %} A OPO permanente também será encerrada e deixará de ser recorrente.{% endif %}');">
 {% csrf_token %}
 <button type="submit" class="btn remover" title="Remover a OPO e encerrar sua vigência">🗑️ Remover OPO</button>
 </form>
+{% endif %}
 {% endif %}
 {% if pode_apoio %}<a href="{% url 'enviar_apoio' solicitacao.id %}" class="btn apoio">🤝 Compartilhar / Apoio</a>{% endif %}
 <a href="{% url 'painel_gestao' %}" class="btn voltar">← Voltar ao Painel</a>
