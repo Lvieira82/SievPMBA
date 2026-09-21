@@ -623,3 +623,73 @@ class CorrecaoSolicitacaoForm(forms.ModelForm):
             self.fields["nome_evento"].widget.attrs.update({
                 "oninput": "this.value = this.value.toUpperCase();"
             })
+
+
+class EditarOPOForm(forms.ModelForm):
+    """Edição operacional de uma OPO já gerada, sem alterar sua origem."""
+
+    opo_permanente_data_fim = forms.DateField(
+        required=False,
+        label="Data de fim da OPO permanente",
+        widget=forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+    )
+    opo_permanente_indeterminado = forms.BooleanField(
+        required=False,
+        label="Indeterminado",
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
+    )
+
+    class Meta:
+        model = Solicitacao
+        fields = [
+            "local",
+            "bairro",
+            "data_evento",
+            "hora_inicio",
+            "hora_fim",
+            "observacoes",
+            "opo_permanente",
+            "opo_permanente_data_fim",
+            "opo_permanente_indeterminado",
+        ]
+        widgets = {
+            "local": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "bairro": forms.Select(attrs={"class": "form-select"}),
+            "data_evento": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "hora_inicio": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "hora_fim": forms.TimeInput(attrs={"type": "time", "class": "form-control"}),
+            "observacoes": forms.Textarea(attrs={"class": "form-control", "rows": 4}),
+            "opo_permanente": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        municipio_id = getattr(self.instance, "municipio_id", None)
+        self.fields["bairro"].queryset = (
+            __import__("apps.solicitacoes.models", fromlist=["Bairro"]).Bairro.objects.filter(
+                ativo=True, municipio_id=municipio_id
+            ).order_by("nome")
+            if municipio_id else self.fields["bairro"].queryset.none()
+        )
+        if self.instance and self.instance.pk:
+            self.fields["opo_permanente"].initial = self.instance.opo_permanente
+            self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
+            self.fields["opo_permanente_indeterminado"].initial = self.instance.opo_permanente_indeterminado
+
+    def clean(self):
+        cleaned = super().clean()
+        inicio = cleaned.get("data_evento")
+        fim = cleaned.get("opo_permanente_data_fim")
+        permanente = cleaned.get("opo_permanente", False)
+        indeterminado = cleaned.get("opo_permanente_indeterminado", False)
+        if permanente:
+            if indeterminado:
+                cleaned["opo_permanente_data_fim"] = None
+            elif not fim:
+                self.add_error("opo_permanente_data_fim", "Informe a data de fim ou marque Indeterminado.")
+            elif inicio and fim < inicio:
+                self.add_error("opo_permanente_data_fim", "A data de fim não pode ser anterior à data de início.")
+        else:
+            cleaned["opo_permanente_data_fim"] = None
+            cleaned["opo_permanente_indeterminado"] = False
+        return cleaned
