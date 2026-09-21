@@ -170,7 +170,8 @@ def detalhe_opo_seguro(request, id):
     documentos = DocumentoSolicitacao.objects.filter(solicitacao=s).select_related("tipo_documento")
     a = getattr(request.user, "acesso_institucional", None)
     pode_apoio = bool(anexos.exists() and (eh_desenvolvedor(request.user) or (a and a.ativo and request.user.is_active and a.funcao == "GESTOR" and a.perfil in {"COPPM", "CPR", "UNIDADE"} and (a.perfil in {"COPPM", "CPR"} or a.unidade_id == s.unidade_id))) and not CumprimentoOPO.objects.filter(opo__solicitacao=s, respondido_em__isnull=False).exists())
-    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio})
+    pode_editar_remover = _pode_editar_remover_opo(request, s) and not CumprimentoOPO.objects.filter(opo__solicitacao=s, respondido_em__isnull=False).exists() and not s.apoios.exists()
+    return render(request, "gestao/detalhe_opo.html", {"solicitacao": s, "anexos": anexos, "documentos": documentos, "pode_apoio": pode_apoio, "pode_editar_remover": pode_editar_remover})
 
 
 def _pode_editar_remover_opo(request, solicitacao):
