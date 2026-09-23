@@ -173,6 +173,30 @@ textarea{min-height:120px;}
     const indeterminado = document.getElementById('id_opo_permanente_indeterminado');
     const card = document.getElementById('opo-permanente-card');
     const target = document.getElementById('opo-permanente-fields');
+    const municipio = document.getElementById('id_municipio');
+    const unidadeResponsavel = document.getElementById('id_unidade');
+    function filtrarMunicipiosPorUnidade(){
+        if(!municipio || !unidadeResponsavel) return;
+        const unidadeId = unidadeResponsavel.value;
+        let selecionadoVisivel = false;
+        Array.from(municipio.options).forEach(function(option){
+            if(!option.value){
+                option.hidden = false;
+                return;
+            }
+            const pertence = option.dataset.unidadeId === unidadeId;
+            option.hidden = !pertence;
+            if(option.value === municipio.value && pertence) selecionadoVisivel = true;
+        });
+        if(!selecionadoVisivel && municipio.value){
+            municipio.value = '';
+            municipio.dispatchEvent(new Event('change', {bubbles:true}));
+        }
+    }
+    if(unidadeResponsavel){
+        unidadeResponsavel.addEventListener('change', filtrarMunicipiosPorUnidade);
+        filtrarMunicipiosPorUnidade();
+    }
 
     if(!tipoOpo || !efetivoInstitucional || !permanenteInput || !dataEvento || !dataFim || !indeterminado || !card || !target) return;
 
