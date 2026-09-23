@@ -195,7 +195,17 @@ textarea{min-height:120px;}
                 return;
             }
             const unidadeDaCidade = option.dataset.unidadeId || "";
-            const pertence = unidadeDaCidade === unidadeId;
+            let pertence = unidadeDaCidade === unidadeId;
+
+            // A cidade sede da própria unidade também permanece disponível.
+            if(!pertence){
+                const textoUnidade = (unidadeResponsavel.options[unidadeResponsavel.selectedIndex]?.text || "").trim();
+                const partes = textoUnidade.split("/");
+                const sede = partes.length > 1 ? partes[partes.length - 1].trim() : "";
+                const nomeCidade = (option.textContent || "").trim();
+                pertence = !!sede && nomeCidade.localeCompare(sede, "pt-BR", {sensitivity:"base"}) === 0;
+            }
+
             option.hidden = !pertence;
             if(option.value === municipio.value && pertence) selecionadoVisivel = true;
         });
