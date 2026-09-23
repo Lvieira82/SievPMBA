@@ -155,7 +155,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             required=False,
             label="Efetivo",
             choices=opcoes_matriculas,
-            widget=forms.SelectMultiple(attrs={"class": "matriculas-institucionais", "size": "1"}),
+            widget=forms.SelectMultiple(attrs={"class": "matriculas-institucionais", "style": "display:none;"}),
             help_text="Selecione um policial e use + Adicionar outro policial para incluir quantos forem necessários.",
         )
 
