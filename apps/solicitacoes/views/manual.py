@@ -1,6 +1,8 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
+from django.core.mail import send_mail
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.utils import timezone
@@ -61,6 +63,35 @@ def _preparar_formulario(form, municipio_id=None):
         form.fields["tipo_evento"].widget.attrs.update({"class": "form-select"})
 
     _preparar_bairros(form, municipio_id)
+
+
+def _enviar_email_recebimento_interno_festivo(solicitacao):
+    """Envia o mesmo e-mail de recebimento da solicitação externa, somente para OPO Festiva."""
+    if solicitacao.tipo_opo != "FESTIVO":
+        return
+    if not solicitacao.email:
+        raise ValueError("A solicitação não possui e-mail para confirmação.")
+
+    mensagem = f"""Olá, {solicitacao.solicitante}!
+
+Sua solicitação foi recebida com sucesso.
+
+PROTOCOLO: {solicitacao.protocolo}
+EVENTO: {solicitacao.nome_evento}
+DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
+STATUS: {solicitacao.get_status_display()}
+
+Guarde este protocolo para futuras consultas.
+
+PMBA - Uma força a serviço do cidadão.
+"""
+    send_mail(
+        "Solicitação de Evento Recebida",
+        mensagem,
+        settings.DEFAULT_FROM_EMAIL,
+        [solicitacao.email],
+        fail_silently=False,
+    )
 
 
 def _salvar_anexos_manuais(request, solicitacao):
@@ -207,6 +238,10 @@ def lancamento_manual(request):
 
                     oficio_origem = _salvar_oficio_origem(request, obj)
                     quantidade_anexos = _salvar_anexos_manuais(request, obj)
+
+                    # Festivo segue o mesmo e-mail de recebimento da solicitação externa.
+                    # Institucional permanece fora deste fluxo.
+                    _enviar_email_recebimento_interno_festivo(obj)
 
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
