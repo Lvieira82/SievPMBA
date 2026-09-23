@@ -109,16 +109,7 @@ textarea{min-height:120px;}
 </div>
 {% endif %}
 
-<form method="post" enctype="multipart/form-data" id="form-lancamento-manual">
-    {% csrf_token %}
-    <input type="hidden" name="protocolo_origem" value="{{ protocolo_origem }}">
 
-    <div class="opo-permanente-card" id="opo-permanente-card">
-        <h3>📌 OPO permanente</h3>
-        <p>Use esta opção somente para operações especiais que precisam permanecer ativas por vários dias, mantendo um único protocolo.</p>
-        <div id="opo-permanente-fields"></div>
-    </div>
-</form>
 
 <form method="get">
     <div class="busca-card">
@@ -136,6 +127,12 @@ textarea{min-height:120px;}
 <form method="post" enctype="multipart/form-data" id="form-dados-manual">
     {% csrf_token %}
     <input type="hidden" name="protocolo_origem" value="{{ protocolo_origem }}">
+
+    <div class="opo-permanente-card" id="opo-permanente-card">
+        <h3>📌 Tipo de OPO e vigência</h3>
+        <p>Defina primeiro o tipo da OPO. <strong>Institucional</strong> habilita o cadastro do efetivo por matrícula. A opção permanente controla a vigência da OPO.</p>
+        <div id="opo-permanente-fields"></div>
+    </div>
 
     {{ form.as_p }}
 
