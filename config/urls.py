@@ -38,6 +38,7 @@ from apps.solicitacoes.views.cadastro_territorio import (
     ativar_bairro, desativar_bairro, excluir_bairro,
     ativar_unidade, desativar_unidade, excluir_unidade,
 )
+from apps.solicitacoes.views.operacional import buscar_matricula_institucional
 from apps.solicitacoes.views.compat import (
     alterar_status, importar_matriculas_painel, importar_municipios, lancamento_manual,
     minhas_solicitacoes, verificar_autenticidade,
@@ -167,6 +168,7 @@ urlpatterns = [
     path("documento/<int:id>/<str:tipo>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao"),
     path("documento/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_solicitacao_direto"),
     path("documentos/arquivo/<int:id>/", abrir_documento_solicitacao_seguro, name="abrir_documento_arquivo"),
+    path("gestao/api/matriculas/<int:unidade_id>/buscar/", buscar_matricula_institucional, name="buscar_matricula_institucional"),
     path("gestao/lancamento-manual/", lancamento_manual, name="lancamento_manual"),
     path("gestao/mapa-eventos/", mapa_eventos_seguro, name="mapa_eventos"),
     path("gestao/mapa-eventos/pdf/", gerar_mapa_eventos_pdf_seguro, name="gerar_mapa_eventos_pdf"),
