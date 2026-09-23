@@ -5,6 +5,18 @@ históricos importados por compat.py sem duplicar a implementação.
 """
 
 from django import forms
+
+
+class MunicipioPorUnidadeSelect(forms.Select):
+    """Select que expõe a unidade responsável de cada município para o filtro dinâmico."""
+    def create_option(self, name, value, label, selected, index, subindex=None, attrs=None):
+        option = super().create_option(name, value, label, selected, index, subindex, attrs)
+        instance = getattr(value, "instance", None)
+        if instance is not None:
+            option["attrs"]["data-unidade-id"] = str(instance.unidade_responsavel_id or "")
+        return option
+
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect
@@ -38,7 +50,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             queryset=Municipio.objects.filter(ativo=True).order_by("nome"),
             required=True,
             label="Município",
-            widget=forms.Select(attrs={"class": "form-select"}),
+            widget=MunicipioPorUnidadeSelect(attrs={"class": "form-select", "data-filtro-unidade": "1"}),
         )
         self.fields["bairro"] = forms.ModelChoiceField(
             queryset=Bairro.objects.none(),
@@ -123,6 +135,26 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        # O município deve pertencer à unidade responsável selecionada.
+        unidade_selecionada = None
+        if self.is_bound:
+            unidade_selecionada = self.data.get(self.add_prefix("unidade"))
+        elif perfil and perfil.unidade_id:
+            unidade_selecionada = perfil.unidade_id
+        elif self.instance and self.instance.pk:
+            unidade_selecionada = self.instance.unidade_id
+
+        if unidade_selecionada:
+            try:
+                unidade_id = int(unidade_selecionada)
+            except (TypeError, ValueError):
+                unidade_id = None
+            if unidade_id:
+                self.fields["municipio"].queryset = Municipio.objects.filter(
+                    ativo=True,
+                    unidade_responsavel_id=unidade_id,
+                ).order_by("nome")
+
         if self.instance and self.instance.pk:
             self.fields["municipio"].initial = self.instance.municipio_id
             self.fields["bairro"].initial = self.instance.bairro_id
@@ -133,6 +165,13 @@ class GestaoManualForm(SolicitacaoManualForm):
             self.fields["opo_permanente"].initial = self.instance.opo_permanente
             self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
             self.fields["opo_permanente_indeterminado"].initial = self.instance.opo_permanente_indeterminado
+
+    def clean_municipio(self):
+        municipio = self.cleaned_data.get("municipio")
+        unidade = self.cleaned_data.get("unidade")
+        if municipio and unidade and municipio.unidade_responsavel_id != unidade.id:
+            raise forms.ValidationError("O município selecionado não pertence à unidade responsável.")
+        return municipio
 
     def clean_bairro(self):
         bairro = self.cleaned_data.get("bairro")
