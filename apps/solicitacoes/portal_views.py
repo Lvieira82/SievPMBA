@@ -265,14 +265,14 @@ def _enviar_email_recebimento(solicitacao):
         raise ValueError("A solicitação não possui e-mail para confirmação.")
     mensagem = f"""Olá, {solicitacao.solicitante}!
 
-Sua solicitação foi recebida com sucesso.
+Seu evento foi informado com sucesso!
 
 PROTOCOLO: {solicitacao.protocolo}
 EVENTO: {solicitacao.nome_evento}
 DATA: {solicitacao.data_evento.strftime('%d/%m/%Y')}
 STATUS: {solicitacao.get_status_display()}
 
-Guarde este protocolo para futuras consultas.
+ATENÇÃO ESTE EMAIL É APENAS INFORMATIVO, NÃO GARANTE EMPREGO DO POLICIAMENTO.
 
 PMBA - Uma força a serviço do cidadão.
 """
