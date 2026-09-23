@@ -45,7 +45,9 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=No
     ).decode("utf-8")
 
     if solicitacao.origem == "MANUAL" and solicitacao.tipo_opo == "INSTITUCIONAL":
-        efetivo = solicitacao.efetivo_institucional
+        # OPO Institucional usa exclusivamente o efetivo informado por matrícula
+        # no Lançamento Interno. Nunca aplica o efetivo padrão/festivo.
+        efetivo = (solicitacao.efetivo_institucional or "").strip()
     else:
         efetivo = (
             "Efetivo extraordinário escalado."
