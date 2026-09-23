@@ -230,6 +230,9 @@ def lancamento_manual(request):
                     obj.bairro = form.cleaned_data.get("bairro")
                     obj.tipo_evento = form.cleaned_data["tipo_evento"]
                     obj.unidade = form.cleaned_data["unidade"]
+                    obj.tipo_opo = form.cleaned_data["tipo_opo"]
+                    if form.cleaned_data["tipo_opo"] == "INSTITUCIONAL":
+                        obj.efetivo_institucional = form.cleaned_data.get("efetivo_institucional", "")
                     obj.origem = "MANUAL"
                     obj.status = "APROVADA"
                     obj.aprovado_por = request.user.get_full_name() or request.user.username
