@@ -19,6 +19,7 @@ class MunicipioPorUnidadeSelect(forms.Select):
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils import timezone
 
@@ -150,9 +151,19 @@ class GestaoManualForm(SolicitacaoManualForm):
             except (TypeError, ValueError):
                 unidade_id = None
             if unidade_id:
+                unidade_obj = Unidade.objects.filter(pk=unidade_id, ativo=True).first()
+                sede_nome = ""
+                if unidade_obj:
+                    texto_unidade = (unidade_obj.nome or unidade_obj.sigla or "").strip()
+                    if "/" in texto_unidade:
+                        sede_nome = texto_unidade.rsplit("/", 1)[-1].strip()
+
+                filtro = Q(unidade_responsavel_id=unidade_id)
+                if sede_nome:
+                    filtro |= Q(nome__iexact=sede_nome)
+
                 self.fields["municipio"].queryset = Municipio.objects.filter(
-                    ativo=True,
-                    unidade_responsavel_id=unidade_id,
+                    Q(ativo=True) & filtro,
                 ).order_by("nome")
 
         if self.instance and self.instance.pk:
@@ -169,8 +180,15 @@ class GestaoManualForm(SolicitacaoManualForm):
     def clean_municipio(self):
         municipio = self.cleaned_data.get("municipio")
         unidade = self.cleaned_data.get("unidade")
-        if municipio and unidade and municipio.unidade_responsavel_id != unidade.id:
-            raise forms.ValidationError("O município selecionado não pertence à unidade responsável.")
+        if municipio and unidade:
+            pertence_unidade = municipio.unidade_responsavel_id == unidade.id
+            sede_nome = ""
+            texto_unidade = (unidade.nome or unidade.sigla or "").strip()
+            if "/" in texto_unidade:
+                sede_nome = texto_unidade.rsplit("/", 1)[-1].strip()
+            eh_sede = bool(sede_nome and municipio.nome.strip().casefold() == sede_nome.casefold())
+            if not pertence_unidade and not eh_sede:
+                raise forms.ValidationError("O município selecionado não pertence à unidade responsável nem corresponde à cidade sede da unidade.")
         return municipio
 
     def clean_bairro(self):
