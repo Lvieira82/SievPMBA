@@ -49,7 +49,7 @@ body{margin:0;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#000;b
         {% endif %}
     </div></div>
     <div class="linha-info"><div class="rotulo">HORÁRIO:</div><div class="valor">{{ solicitacao.hora_inicio|time:"H:i" }} - {{ solicitacao.hora_fim|time:"H:i" }}</div></div>
-    <div class="linha-info"><div class="rotulo">EFETIVO:</div><div class="valor">{{ efetivo_opo }}</div></div>
+    <div class="linha-info"><div class="rotulo">EFETIVO:</div><div class="valor">{{ efetivo_opo|linebreaksbr }}</div></div>
     <div class="linha-info"><div class="rotulo">UNIFORME E ARMAMENTO:</div><div class="valor">O de Dotação desta UOPM</div></div>
     {% if solicitacao.tipo_opo == "INSTITUCIONAL" and solicitacao.origem == "MANUAL" %}
     <div class="linha-info"><div class="rotulo">SOLICITANTE:</div><div class="valor">{{ solicitacao.solicitante }}</div></div>
