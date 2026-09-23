@@ -25,8 +25,9 @@ from django.shortcuts import redirect
 from django.utils import timezone
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
-from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, MatriculaAutorizada, Municipio, Solicitacao, TipoEvento, Unidade
+from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, Solicitacao, TipoEvento, Unidade
 from apps.solicitacoes.permissoes import escopo_unidades
+from apps.solicitacoes.models_acesso import AcessoInstitucional
 
 
 class GestaoManualForm(SolicitacaoManualForm):
@@ -144,12 +145,14 @@ class GestaoManualForm(SolicitacaoManualForm):
                 unidade_id_matriculas = None
             if unidade_id_matriculas:
                 opcoes_matriculas = [
-                    (str(m.matricula), f"{m.matricula} — {m.posto} {m.nome}".strip())
-                    for m in MatriculaAutorizada.objects.filter(
+                    (str(a.matricula), f"{a.matricula} — {a.usuario.get_full_name() or a.usuario.username}".strip())
+                    for a in AcessoInstitucional.objects.select_related("usuario").filter(
                         unidade_id=unidade_id_matriculas,
                         ativo=True,
-                    ).order_by("nome")
+                        usuario__is_active=True,
+                    ).order_by("usuario__first_name", "matricula")
                 ]
+
 
         self.fields["matriculas_institucionais"] = forms.MultipleChoiceField(
             required=False,
@@ -246,17 +249,18 @@ class GestaoManualForm(SolicitacaoManualForm):
             if not matriculas:
                 self.add_error("matriculas_institucionais", "Selecione pelo menos um policial para o efetivo.")
             else:
-                matriculas_qs = MatriculaAutorizada.objects.filter(
+                matriculas_qs = AcessoInstitucional.objects.select_related("usuario").filter(
                     matricula__in=matriculas,
                     ativo=True,
                     unidade=cleaned_data.get("unidade"),
+                    usuario__is_active=True,
                 )
                 encontrados = {str(item.matricula): item for item in matriculas_qs}
                 if len(encontrados) != len(set(matriculas)):
                     self.add_error("matriculas_institucionais", "Uma ou mais matrículas não pertencem à unidade responsável.")
                 else:
                     linhas = [
-                        f"{encontrados[m].matricula} — {encontrados[m].posto} {encontrados[m].nome}".strip()
+                        f"{encontrados[m].matricula} — {encontrados[m].usuario.get_full_name() or encontrados[m].usuario.username}".strip()
                         for m in matriculas
                     ]
                     cleaned_data["efetivo_institucional"] = "\n".join(linhas)
@@ -297,20 +301,21 @@ def buscar_matricula_institucional(request, unidade_id):
     if not termo:
         return JsonResponse({"ok": True, "resultados": []})
 
-    registros = MatriculaAutorizada.objects.filter(
+    registros = AcessoInstitucional.objects.select_related("usuario").filter(
         unidade_id=unidade_id,
         ativo=True,
+        usuario__is_active=True,
         matricula__istartswith=termo,
-    ).order_by("matricula")[:10]
+    ).order_by("usuario__first_name", "matricula")[:10]
 
     return JsonResponse({
         "ok": True,
         "resultados": [
             {
                 "matricula": item.matricula,
-                "nome": item.nome,
-                "posto": item.posto,
-                "label": f"{item.matricula} — {item.posto} {item.nome}".strip(),
+                "nome": item.usuario.get_full_name() or item.usuario.username,
+                "posto": "",
+                "label": f"{item.matricula} — {item.usuario.get_full_name() or item.usuario.username}".strip(),
             }
             for item in registros
         ],
