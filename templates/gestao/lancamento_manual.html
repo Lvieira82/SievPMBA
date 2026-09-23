@@ -163,6 +163,7 @@ textarea{min-height:120px;}
 
     const tipoOpo = document.getElementById('id_tipo_opo');
     const efetivoInstitucional = document.getElementById('id_efetivo_institucional');
+    const matriculasInstitucionais = document.getElementById('id_matriculas_institucionais');
     const solicitante = document.getElementById('id_solicitante');
     const cpf = document.getElementById('id_cpf');
     const email = document.getElementById('id_email');
@@ -223,6 +224,7 @@ textarea{min-height:120px;}
 
     const pTipoOpo = tipoOpo.closest('p');
     const pEfetivoInstitucional = efetivoInstitucional.closest('p');
+    const pMatriculasInstitucionais = matriculasInstitucionais ? matriculasInstitucionais.closest('p') : null;
     const pSolicitante = solicitante ? solicitante.closest('p') : null;
     const pCpf = cpf ? cpf.closest('p') : null;
     const pEmail = email ? email.closest('p') : null;
@@ -261,6 +263,81 @@ textarea{min-height:120px;}
     }
 
     if(pEfetivoInstitucional) pEfetivoInstitucional.classList.add('opo-field');
+    if(pMatriculasInstitucionais) pMatriculasInstitucionais.classList.add('opo-field');
+
+    // O efetivo institucional é escolhido por matrícula e pode receber vários policiais.
+    let painelEfetivo = null;
+    function montarPainelEfetivo(){
+        if(!pMatriculasInstitucionais || painelEfetivo) return;
+        painelEfetivo = document.createElement('div');
+        painelEfetivo.id = 'painel-efetivo-institucional';
+        painelEfetivo.style.cssText = 'margin-top:8px;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#f8fafc;';
+        pMatriculasInstitucionais.parentNode.insertBefore(painelEfetivo, pMatriculasInstitucionais);
+        pMatriculasInstitucionais.style.display = 'none';
+
+        const opcoes = Array.from(matriculasInstitucionais.options)
+            .filter(o => o.value)
+            .map(o => ({value:o.value, label:o.textContent.trim()}));
+
+        function sincronizar(){
+            const valores = Array.from(painelEfetivo.querySelectorAll('.matricula-institucional-select'))
+                .map(s => s.value).filter(Boolean);
+            Array.from(matriculasInstitucionais.options).forEach(o => {
+                o.selected = valores.includes(o.value);
+            });
+            efetivoInstitucional.value = valores.map(v => {
+                const op = opcoes.find(o => o.value === v);
+                return op ? op.label : v;
+            }).join('\n');
+        }
+
+        function adicionarLinha(valor=''){
+            const linha=document.createElement('div');
+            linha.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:8px;';
+            const select=document.createElement('select');
+            select.className='form-control matricula-institucional-select';
+            select.style.flex='1';
+            select.innerHTML='<option value="">Selecione o policial...</option>'+opcoes.map(o => '<option value="'+o.value+'">'+o.label+'</option>').join('');
+            select.value=valor;
+            select.addEventListener('change',sincronizar);
+            const remover=document.createElement('button');
+            remover.type='button';
+            remover.textContent='−';
+            remover.title='Remover policial';
+            remover.style.cssText='width:38px;height:38px;border:0;border-radius:6px;background:#b91c1c;color:#fff;font-weight:800;cursor:pointer;';
+            remover.addEventListener('click',function(){linha.remove();sincronizar();});
+            linha.appendChild(select);
+            linha.appendChild(remover);
+            painelEfetivo.insertBefore(linha,botaoAdicionar);
+            sincronizar();
+        }
+
+        const botaoAdicionar=document.createElement('button');
+        botaoAdicionar.type='button';
+        botaoAdicionar.textContent='+ Adicionar outro policial';
+        botaoAdicionar.style.cssText='border:1px solid #2563eb;background:#fff;color:#2563eb;border-radius:6px;padding:7px 11px;font-weight:700;cursor:pointer;';
+        botaoAdicionar.addEventListener('click',function(){adicionarLinha();});
+        painelEfetivo.appendChild(botaoAdicionar);
+
+        const atuais=Array.from(matriculasInstitucionais.selectedOptions).map(o=>o.value);
+        if(atuais.length) atuais.forEach(v=>adicionarLinha(v));
+        else adicionarLinha();
+    }
+
+    function atualizarEfetivoInstitucional(){
+        const institucional = tipoOpo.value === 'INSTITUCIONAL';
+        if(institucional){
+            montarPainelEfetivo();
+            if(painelEfetivo) painelEfetivo.style.display='block';
+            if(pSolicitante && pSolicitante.parentNode) pSolicitante.parentNode.insertBefore(painelEfetivo, pSolicitante.nextSibling);
+            pEfetivoInstitucional.style.display='none';
+        }else{
+            if(painelEfetivo) painelEfetivo.style.display='none';
+            pEfetivoInstitucional.style.display='none';
+        }
+    }
+    tipoOpo.addEventListener('change', atualizarEfetivoInstitucional);
+    atualizarEfetivoInstitucional();
     if(pDataEvento) pDataEvento.classList.add('opo-field');
     if(pDataFim) pDataFim.classList.add('opo-field');
     if(pIndeterminado) pIndeterminado.classList.add('opo-field','opo-indeterminado');
