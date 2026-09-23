@@ -178,13 +178,24 @@ textarea{min-height:120px;}
     function filtrarMunicipiosPorUnidade(){
         if(!municipio || !unidadeResponsavel) return;
         const unidadeId = unidadeResponsavel.value;
+
+        // Sem unidade escolhida, não restringir a lista: todas as cidades permanecem disponíveis.
+        // A filtragem só começa depois que a unidade responsável for selecionada.
+        if(!unidadeId){
+            Array.from(municipio.options).forEach(function(option){
+                option.hidden = false;
+            });
+            return;
+        }
+
         let selecionadoVisivel = false;
         Array.from(municipio.options).forEach(function(option){
             if(!option.value){
                 option.hidden = false;
                 return;
             }
-            const pertence = option.dataset.unidadeId === unidadeId;
+            const unidadeDaCidade = option.dataset.unidadeId || "";
+            const pertence = unidadeDaCidade === unidadeId;
             option.hidden = !pertence;
             if(option.value === municipio.value && pertence) selecionadoVisivel = true;
         });
