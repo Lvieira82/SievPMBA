@@ -5,6 +5,7 @@ históricos importados por compat.py sem duplicar a implementação.
 """
 
 from django import forms
+from django.http import JsonResponse
 
 
 class MunicipioPorUnidadeSelect(forms.Select):
@@ -25,6 +26,7 @@ from django.utils import timezone
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
 from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, MatriculaAutorizada, Municipio, Solicitacao, TipoEvento, Unidade
+from apps.solicitacoes.permissoes import escopo_unidades
 
 
 class GestaoManualForm(SolicitacaoManualForm):
@@ -280,6 +282,39 @@ class GestaoManualForm(SolicitacaoManualForm):
             cleaned_data["opo_permanente_indeterminado"] = False
 
         return cleaned_data
+
+
+@login_required
+def buscar_matricula_institucional(request, unidade_id):
+    """Consulta a matrícula diretamente no cadastro ativo da unidade selecionada."""
+    if request.method != "GET":
+        return JsonResponse({"ok": False, "erro": "Método não permitido."}, status=405)
+
+    if unidade_id not in set(escopo_unidades(request.user).values_list("id", flat=True)):
+        return JsonResponse({"ok": False, "erro": "Unidade fora do seu escopo."}, status=403)
+
+    termo = (request.GET.get("matricula") or "").strip()
+    if not termo:
+        return JsonResponse({"ok": True, "resultados": []})
+
+    registros = MatriculaAutorizada.objects.filter(
+        unidade_id=unidade_id,
+        ativo=True,
+        matricula__istartswith=termo,
+    ).order_by("matricula")[:10]
+
+    return JsonResponse({
+        "ok": True,
+        "resultados": [
+            {
+                "matricula": item.matricula,
+                "nome": item.nome,
+                "posto": item.posto,
+                "label": f"{item.matricula} — {item.posto} {item.nome}".strip(),
+            }
+            for item in registros
+        ],
+    })
 
 
 def _delegar(nome, modulo, request, *args, **kwargs):
