@@ -21,7 +21,7 @@ from apps.solicitacoes.models_acesso import AcessoInstitucional, CodigoNovoNaveg
 
 COOKIE_DISPOSITIVO = "siev_dispositivo"
 EXPIRACAO_DISPOSITIVO = 60 * 60 * 24 * 365
-EXPIRACAO_CODIGO_MINUTOS = 10
+EXPIRACAO_CODIGO_MINUTOS = 15
 MAX_TENTATIVAS_CODIGO = 5
 
 
@@ -151,7 +151,7 @@ def login_gestao(request):
         request.session["siev_usuario_pendente"] = usuario.pk
         request.session["siev_codigo_pendente"] = codigo.pk
         request.session["siev_next"] = next_url
-        request.session.set_expiry(10 * 60)
+        request.session.set_expiry(EXPIRACAO_CODIGO_MINUTOS * 60)
         return redirect("verificar_novo_navegador")
 
     return render(request, "gestao/login.html", {"next": request.GET.get("next", "")})
