@@ -24,7 +24,7 @@ from django.shortcuts import redirect
 from django.utils import timezone
 
 from apps.solicitacoes.forms import SolicitacaoManualForm
-from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, Solicitacao, TipoEvento, Unidade
+from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, MatriculaAutorizada, Municipio, Solicitacao, TipoEvento, Unidade
 
 
 class GestaoManualForm(SolicitacaoManualForm):
@@ -70,15 +70,12 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        # O efetivo institucional é montado a partir das matrículas cadastradas
+        # e vinculadas à unidade responsável.
         self.fields["efetivo_institucional"] = forms.CharField(
             required=False,
-            label="Efetivo",
             max_length=250,
-            widget=forms.TextInput(attrs={
-                "class": "form-control",
-                "placeholder": "Informe o efetivo da OPO institucional",
-            }),
-            help_text="Informe o efetivo que deverá constar na OPO institucional.",
+            widget=forms.HiddenInput(),
         )
 
         tipo_opo_inicial = (
@@ -129,6 +126,37 @@ class GestaoManualForm(SolicitacaoManualForm):
         else:
             unidades = Unidade.objects.filter(ativo=True).order_by("nome")
 
+        unidade_para_matriculas = None
+        if self.is_bound:
+            unidade_para_matriculas = self.data.get(self.add_prefix("unidade"))
+        elif perfil and perfil.unidade_id:
+            unidade_para_matriculas = perfil.unidade_id
+        elif self.instance and self.instance.pk:
+            unidade_para_matriculas = self.instance.unidade_id
+
+        opcoes_matriculas = []
+        if unidade_para_matriculas:
+            try:
+                unidade_id_matriculas = int(unidade_para_matriculas)
+            except (TypeError, ValueError):
+                unidade_id_matriculas = None
+            if unidade_id_matriculas:
+                opcoes_matriculas = [
+                    (str(m.matricula), f"{m.matricula} — {m.posto} {m.nome}".strip())
+                    for m in MatriculaAutorizada.objects.filter(
+                        unidade_id=unidade_id_matriculas,
+                        ativo=True,
+                    ).order_by("nome")
+                ]
+
+        self.fields["matriculas_institucionais"] = forms.MultipleChoiceField(
+            required=False,
+            label="Efetivo",
+            choices=opcoes_matriculas,
+            widget=forms.SelectMultiple(attrs={"class": "matriculas-institucionais", "size": "1"}),
+            help_text="Selecione um policial e use + Adicionar outro policial para incluir quantos forem necessários.",
+        )
+
         self.fields["unidade"] = forms.ModelChoiceField(
             queryset=unidades,
             required=True,
@@ -172,6 +200,10 @@ class GestaoManualForm(SolicitacaoManualForm):
             self.fields["tipo_evento"].initial = self.instance.tipo_evento_id
             self.fields["unidade"].initial = self.instance.unidade_id
             self.fields["tipo_opo"].initial = self.instance.tipo_opo
+            matriculas_atuais = [item.strip() for item in (self.instance.efetivo_institucional or "").split("\n") if item.strip()]
+            self.fields["matriculas_institucionais"].initial = [
+                item.split(" — ", 1)[0].strip() for item in matriculas_atuais
+            ]
             self.fields["efetivo_institucional"].initial = self.instance.efetivo_institucional
             self.fields["opo_permanente"].initial = self.instance.opo_permanente
             self.fields["opo_permanente_data_fim"].initial = self.instance.opo_permanente_data_fim
@@ -206,6 +238,26 @@ class GestaoManualForm(SolicitacaoManualForm):
         data_inicio = cleaned_data.get("data_evento")
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
+
+        matriculas = cleaned_data.get("matriculas_institucionais") or []
+        if tipo_opo == "INSTITUCIONAL":
+            if not matriculas:
+                self.add_error("matriculas_institucionais", "Selecione pelo menos um policial para o efetivo.")
+            else:
+                matriculas_qs = MatriculaAutorizada.objects.filter(
+                    matricula__in=matriculas,
+                    ativo=True,
+                    unidade=cleaned_data.get("unidade"),
+                )
+                encontrados = {str(item.matricula): item for item in matriculas_qs}
+                if len(encontrados) != len(set(matriculas)):
+                    self.add_error("matriculas_institucionais", "Uma ou mais matrículas não pertencem à unidade responsável.")
+                else:
+                    linhas = [
+                        f"{encontrados[m].matricula} — {encontrados[m].posto} {encontrados[m].nome}".strip()
+                        for m in matriculas
+                    ]
+                    cleaned_data["efetivo_institucional"] = "\n".join(linhas)
 
         if tipo_opo == "INSTITUCIONAL" and not efetivo_institucional:
             self.add_error(
