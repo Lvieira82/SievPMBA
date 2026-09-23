@@ -258,12 +258,7 @@ class GestaoManualForm(SolicitacaoManualForm):
                         for m in matriculas
                     ]
                     cleaned_data["efetivo_institucional"] = "\n".join(linhas)
-
-        if tipo_opo == "INSTITUCIONAL" and not efetivo_institucional:
-            self.add_error(
-                "efetivo_institucional",
-                "Informe o efetivo da OPO institucional.",
-            )
+                    efetivo_institucional = cleaned_data["efetivo_institucional"]
 
         if permanente:
             if not data_inicio:
