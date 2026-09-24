@@ -166,16 +166,26 @@ def painel_pesquisas(request):
             base = base.filter(solicitacao__data_evento__lte=datetime.strptime(fim, "%Y-%m-%d").date())
         except ValueError:
             fim = ""
-    if unidade_id:
-        try:
-            base = base.filter(solicitacao__unidade_id=int(unidade_id))
-        except (TypeError, ValueError):
-            unidade_id = ""
     if cpr_id:
         try:
-            base = base.filter(solicitacao__unidade__cpr_id=int(cpr_id))
+            cpr_id_int = int(cpr_id)
+            base = base.filter(solicitacao__unidade__cpr_id=cpr_id_int)
         except (TypeError, ValueError):
             cpr_id = ""
+
+    unidades = Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla")
+    if cpr_id:
+        unidades = unidades.filter(cpr_id=int(cpr_id))
+
+    if unidade_id:
+        try:
+            unidade_id_int = int(unidade_id)
+            if unidades.filter(id=unidade_id_int).exists():
+                base = base.filter(solicitacao__unidade_id=unidade_id_int)
+            else:
+                unidade_id = ""
+        except (TypeError, ValueError):
+            unidade_id = ""
 
     envios = list(base.filter(acao=MARCADOR_ENVIO).order_by("-criado_em"))
     respostas = list(base.filter(acao=MARCADOR_RESPOSTA).order_by("-criado_em"))
@@ -259,8 +269,9 @@ def painel_pesquisas(request):
         "distribuicao_atendimento": distribuicao_atendimento,
         "comentarios": comentarios[:30],
         "registros": registros,
-        "unidades": Unidade.objects.filter(ativo=True).select_related("cpr").order_by("sigla"),
+        "unidades": unidades,
         "cprs": sorted({u.cpr for u in Unidade.objects.filter(ativo=True).select_related("cpr") if u.cpr}, key=lambda x: x.sigla),
+        "ranking_unidade_top3": ranking_unidade[:3],
         "ranking_cpr": ranking_cpr,
         "ranking_unidade": ranking_unidade,
         "inicio": inicio,
