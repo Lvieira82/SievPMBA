@@ -320,7 +320,29 @@ def analise_unidades(request):
             registro["tempo_registros"] += item["tempo_registros"]
             registro["tempo_total_horas"] += item["tempo_total_horas"]
 
+        nomes_cpr = {
+            "CPR-L": "Comando de Policiamento da Região Leste",
+            "CPRMS": "Comando de Policiamento da Região Metropolitana de Salvador",
+            "CPE": "Comando de Policiamento Especializado",
+            "CPR-MO": "Comando de Policiamento da Região Meio Oeste",
+            "CPR-CN": "Comando de Policiamento da Região Centro-Norte",
+            "CPR-CH": "Comando de Policiamento da Região da Chapada",
+            "CPR-R": "Comando de Policiamento da Região do Recôncavo",
+            "CPR-S": "Comando de Policiamento da Região Sul",
+            "CPR-NE": "Comando de Policiamento da Região Nordeste",
+            "CPR-MRC": "Comando de Policiamento da Região do Médio Rio de Contas",
+            "CPR-SO": "Comando de Policiamento da Região Sudoeste",
+            "CPR-N": "Comando de Policiamento da Região Norte",
+            "CPR-O": "Comando de Policiamento da Região Oeste",
+            "CPR-ES": "Comando de Policiamento da Região do Extremo Sul",
+            "CPR-LN": "Comando de Policiamento da Região do Litoral Norte",
+        }
+
         for item in por_cpr.values():
+            item["nome_exibicao"] = nomes_cpr.get(
+                item["cpr"].sigla,
+                item["cpr"].nome,
+            )
             item["respondidas"] = item["cumpridas"] + item["justificadas"]
             item["percentual"] = (
                 round(item["cumpridas"] * 100 / item["opo_total"], 1)
