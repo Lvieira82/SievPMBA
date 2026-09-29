@@ -17,10 +17,8 @@
 <div><a class="btn" href="{% url 'painel_gestao' %}">← Voltar ao Painel</a></div></div>
 <script>
 (function(){
-function siglaCurta(texto){var valor=(texto||'').split('/')[0].trim();return valor.replace(/[^A-Za-z0-9]/g,'');}
-document.querySelectorAll('.media-label').forEach(function(el){var texto=el.textContent.trim();if(texto.indexOf('/')!==-1||/[ªº]/.test(texto))el.textContent=siglaCurta(texto);});
 document.querySelectorAll('.tempo-exibicao').forEach(function(el){var minutos=Math.round(parseFloat(el.dataset.minutos||'0'));if(!Number.isFinite(minutos))return;var dias=Math.floor(minutos/1440),horas=Math.floor((minutos%1440)/60),mins=minutos%60,partes=[];if(dias)partes.push(dias+'d');if(horas)partes.push(horas+'h');if(mins)partes.push(mins+'min');el.textContent=(el.classList.contains('media-legenda-geral')?'Média geral: ':'')+(partes.length?partes.join(' '):'0min');});
-document.querySelectorAll('table.tabela tbody tr').forEach(function(row){var cells=row.querySelectorAll('td');if(cells.length!==5)return;var minutos=parseFloat(cells[1].dataset.tempoMinutos||'');if(!Number.isFinite(minutos))return;var nome=cells[0].querySelector('strong');if(nome)nome.textContent=siglaCurta(nome.textContent);minutos=Math.round(minutos);var dias=Math.floor(minutos/1440),horas=Math.floor((minutos%1440)/60),mins=minutos%60;cells[1].textContent=mins?mins+' min':'—';cells[2].textContent=horas?horas+' h':'—';cells[3].textContent=dias?String(dias).padStart(2,'0')+' dia(s)':'—';});
+document.querySelectorAll('table.tabela tbody tr').forEach(function(row){var cells=row.querySelectorAll('td');if(cells.length!==5)return;var minutos=parseFloat(cells[1].dataset.tempoMinutos||'');if(!Number.isFinite(minutos))return;minutos=Math.round(minutos);var dias=Math.floor(minutos/1440),horas=Math.floor((minutos%1440)/60),mins=minutos%60;cells[1].textContent=mins?mins+' min':'—';cells[2].textContent=horas?horas+' h':'—';cells[3].textContent=dias?String(dias).padStart(2,'0')+' dia(s)':'—';});
 })();
 </script>
 {% endblock %}
