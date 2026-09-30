@@ -540,9 +540,19 @@ textarea{min-height:120px;}
         }
         if(pEfetivoInstitucional) pEfetivoInstitucional.style.display = institucional ? '' : 'none';
 
-        // Institucional: ocultar CPF, e-mail e telefone somente neste fluxo.
+        // Institucional: CPF, e-mail e telefone não fazem parte do lançamento.
+        // Retiramos também o atributo HTML "required" para impedir que o navegador
+        // bloqueie o envio de campos ocultos e vazios.
         [pCpf, pEmail, pTelefone].forEach(function(p){
             if(p) p.style.display = institucional ? 'none' : '';
+        });
+        [cpf, email, telefone].forEach(function(campo){
+            if(!campo) return;
+            campo.required = !institucional;
+            if(institucional){
+                campo.removeAttribute('required');
+                campo.value = '';
+            }
         });
         if(!institucional) efetivoInstitucional.value = '';
 
