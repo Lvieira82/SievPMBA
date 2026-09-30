@@ -249,7 +249,8 @@ def lancamento_manual(request):
                         transaction.on_commit(
                             lambda solicitacao_id=obj.id: _enviar_email_recebimento_interno_festivo(
                                 Solicitacao.objects.get(pk=solicitacao_id)
-                            )
+                            ),
+                            robust=True,
                         )
 
                     HistoricoSolicitacao.objects.create(
