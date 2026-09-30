@@ -399,6 +399,19 @@ class SolicitacaoManualForm(SolicitacaoForm):
         return self.cleaned_data.get("telefone", "")
 
 
+    def clean_oficio_comandante(self):
+        """
+        No lançamento interno, o ofício é opcional.
+        Se um arquivo for informado, ele continua sendo validado normalmente.
+        """
+        arquivo = self.cleaned_data.get("oficio_comandante")
+        if not arquivo:
+            return None
+
+        validar_pdf(arquivo)
+        return arquivo
+
+
     def clean(self):
 
         # IMPORTANTE:
