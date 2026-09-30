@@ -96,11 +96,13 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
-        if tipo_opo_inicial == "INSTITUCIONAL":
-            for campo in ("cpf", "email", "telefone"):
-                if campo in self.fields:
-                    self.fields[campo].required = False
-                    self.fields[campo].initial = ""
+        # No lançamento interno, CPF, e-mail e telefone nunca são obrigatórios.
+        # No fluxo INSTITUCIONAL eles também permanecem vazios, pois não fazem parte
+        # dos dados necessários para a geração da OPO.
+        for campo in ("cpf", "email", "telefone"):
+            if campo in self.fields:
+                self.fields[campo].required = False
+                self.fields[campo].initial = ""
 
         self.fields["opo_permanente"] = forms.BooleanField(
             required=False,
