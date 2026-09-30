@@ -178,9 +178,9 @@ def sincronizar_evento_offline(request):
     try:evento_id=int(request.POST.get("evento_id"))
     except (TypeError,ValueError):return JsonResponse({"ok":False,"erro":"Evento inválido."},status=400)
     solicitacao=Solicitacao.objects.select_related("unidade","municipio","bairro").filter(
-        _filtro_evento_ativo(timezone.localdate()),
         id=evento_id,
         status="APROVADA",
+        data_evento__lte=timezone.localdate(),
         unidade_id=acesso.unidade_id,
     ).first()
     if not solicitacao:return JsonResponse({"ok":False,"erro":"Evento não autorizado para este operador."},status=403)
