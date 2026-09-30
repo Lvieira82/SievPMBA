@@ -242,9 +242,15 @@ def lancamento_manual(request):
                     oficio_origem = _salvar_oficio_origem(request, obj)
                     quantidade_anexos = _salvar_anexos_manuais(request, obj)
 
-                    # Festivo segue o mesmo e-mail de recebimento da solicitação externa.
-                    # Institucional permanece fora deste fluxo.
-                    _enviar_email_recebimento_interno_festivo(obj)
+                    # O e-mail é uma notificação secundária e não pode impedir
+                    # o salvamento do lançamento interno. Ele é enviado somente
+                    # depois que a transação for confirmada.
+                    if obj.tipo_opo == "FESTIVO" and obj.email:
+                        transaction.on_commit(
+                            lambda solicitacao_id=obj.id: _enviar_email_recebimento_interno_festivo(
+                                Solicitacao.objects.get(pk=solicitacao_id)
+                            )
+                        )
 
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
