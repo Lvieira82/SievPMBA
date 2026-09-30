@@ -1,6 +1,6 @@
 from io import BytesIO
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageDraw, ImageFont
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -39,9 +39,34 @@ def _comprimir_imagem_80_porcento(imagem):
             else: atual=atual.resize((nova_largura,nova_altura),Image.Resampling.LANCZOS)
     return melhor
 
-def _salvar_comprovacao_no_protocolo(solicitacao,imagem):
+def _aplicar_marca_fotografica(imagem, latitude, longitude, momento):
+    """Imprime data, hora e coordenadas GPS no rodapé da foto, sem alterar a captura."""
+    imagem.seek(0)
+    origem=ImageOps.exif_transpose(Image.open(imagem)).convert("RGB")
+    largura,altura=origem.size
+    altura_rodape=max(86, int(altura*0.10))
+    marca=Image.new("RGB",(largura,altura+altura_rodape),"black")
+    marca.paste(origem,(0,0))
+    desenho=ImageDraw.Draw(marca)
+    try:
+        fonte=ImageFont.truetype("DejaVuSans.ttf",max(16,int(altura_rodape*0.28)))
+        fonte_menor=ImageFont.truetype("DejaVuSans.ttf",max(13,int(altura_rodape*0.20)))
+    except (OSError,IOError):
+        fonte=ImageFont.load_default()
+        fonte_menor=ImageFont.load_default()
+    data_hora=timezone.localtime(momento).strftime("%d/%m/%Y  %H:%M:%S")
+    gps=f"GPS: {float(latitude):.7f}, {float(longitude):.7f}"
+    y_data=max(8,int(altura_rodape*0.16))
+    y_gps=max(8,int(altura_rodape*0.56))
+    desenho.text((24,altura+y_data),f"DATA/HORA: {data_hora}",fill="white",font=fonte)
+    texto_bbox=desenho.textbbox((0,0),gps,font=fonte_menor)
+    desenho.text((largura-(texto_bbox[2]-texto_bbox[0])-24,altura+y_gps),gps,fill="white",font=fonte_menor)
+    return marca
+
+def _salvar_comprovacao_no_protocolo(solicitacao,imagem,latitude,longitude,momento):
     nome=f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}.jpg"; caminho=str(_pasta_protocolo(solicitacao.protocolo or "SEM_PROTOCOLO")/nome)
-    return default_storage.save(caminho,ContentFile(_comprimir_imagem_80_porcento(imagem)))
+    marcada=_aplicar_marca_fotografica(imagem,latitude,longitude,momento)
+    return default_storage.save(caminho,ContentFile(_comprimir_imagem_80_porcento(marcada)))
 def _nome_justificativa(operador,respondido_em):
     identificador=getattr(operador,"username","operador") or "operador"; seguro="".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in identificador)
     return f"justificativa_opo_{seguro}_{timezone.localtime(respondido_em):%Y%m%d_%H%M%S_%f}.txt"
@@ -134,7 +159,7 @@ def cumprimento_opo(request,solicitacao_id):
                     else:
                         if not (-90<=latitude_float<=90 and -180<=longitude_float<=180): messages.error(request,"As coordenadas GPS recebidas são inválidas.")
                         else:
-                            try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
+                            try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem,f"{latitude_float:.7f}",f"{longitude_float:.7f}",timezone.now())
                             except Exception: messages.error(request,"Não foi possível processar a foto capturada. Tente novamente.")
                             else:
                                 if registro.imagem:
