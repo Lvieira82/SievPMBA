@@ -111,9 +111,6 @@ def _salvar_anexos_manuais(request, solicitacao):
         if not tipo_id:
             raise ValueError("Selecione o tipo de cada documento complementar.")
 
-        # O formulário manual usa códigos textuais para manter todas as opções
-        # disponíveis no mesmo padrão do formulário externo. Só tentamos consultar
-        # por PK quando o valor recebido é realmente numérico.
         tipo = None
         if tipo_id.isdigit():
             tipo = TipoDocumento.objects.filter(pk=int(tipo_id), ativo=True).first()
@@ -171,10 +168,6 @@ def _salvar_anexos_manuais(request, solicitacao):
 
 
 def _salvar_oficio_origem(request, solicitacao):
-    # O formulário manual possui o campo específico "oficio_origem" e também
-    # mantém o campo herdado "oficio_comandante". Aceitamos os dois nomes para
-    # garantir que o PDF efetivamente anexado seja gravado em DocumentoSolicitacao
-    # e, portanto, seja recuperado pela aba Documentação/OPOs Geradas.
     oficio = request.FILES.get("oficio_origem") or request.FILES.get("oficio_comandante")
     if not oficio:
         return False
@@ -237,14 +230,13 @@ def lancamento_manual(request):
                     obj.status = "APROVADA"
                     obj.aprovado_por = request.user.get_full_name() or request.user.username
                     obj.data_aprovacao = timezone.now()
+
+                    # Primeiro salva a solicitação. É neste save que o modelo gera
+                    # o protocolo. O e-mail só é agendado depois que o protocolo existe.
                     obj.save()
 
                     oficio_origem = _salvar_oficio_origem(request, obj)
                     quantidade_anexos = _salvar_anexos_manuais(request, obj)
-
-                    # Festivo segue o mesmo e-mail de recebimento da solicitação externa.
-                    # Institucional permanece fora deste fluxo.
-                    _enviar_email_recebimento_interno_festivo(obj)
 
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
@@ -287,6 +279,17 @@ def lancamento_manual(request):
                             f"Tipo de evento: {obj.tipo_evento.nome}."
                         ),
                     )
+
+                    # O protocolo já foi gerado e toda a operação já foi validada.
+                    # O envio do e-mail acontece somente após o COMMIT, para que
+                    # uma falha de e-mail nunca desfaça a solicitação nem a OPO.
+                    if obj.tipo_opo == "FESTIVO" and obj.email:
+                        transaction.on_commit(
+                            lambda solicitacao_id=obj.id: _enviar_email_recebimento_interno_festivo(
+                                Solicitacao.objects.get(pk=solicitacao_id)
+                            ),
+                            robust=True,
+                        )
 
                 if quantidade_anexos or oficio_origem:
                     partes = []
