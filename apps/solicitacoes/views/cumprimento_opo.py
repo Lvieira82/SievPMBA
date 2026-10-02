@@ -97,7 +97,12 @@ def _atendimento_ja_registrado(registro):
 def cumprimento_opo(request,solicitacao_id):
     if request.method=="GET" and request.GET.get("imagem_id"):
         cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=request.GET.get("imagem_id")); solicitacao=cumprimento.opo.solicitacao
-        if eh_operador(request.user) or not pode_ver_solicitacao(request.user,solicitacao): messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
+        # A página de OPOs geradas é exclusiva da gestão, mas o acesso à foto
+        # também precisa funcionar para o desenvolvedor/superusuário. A regra
+        # anterior chamava pode_ver_solicitacao(), que deliberadamente retorna
+        # False para desenvolvedor, causando uma imagem quebrada/redirecionada.
+        if eh_operador(request.user) or (not request.user.is_superuser and not pode_ver_solicitacao(request.user,solicitacao)):
+            messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
         if not cumprimento.imagem: raise Http404("A foto do cumprimento não está disponível.")
         nome=getattr(cumprimento.imagem,"name","") or ""
         if not nome: raise Http404("A foto do cumprimento não possui nome de arquivo.")
