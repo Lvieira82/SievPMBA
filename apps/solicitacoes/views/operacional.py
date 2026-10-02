@@ -88,7 +88,10 @@ class GestaoManualForm(SolicitacaoManualForm):
             initial="FESTIVO",
             label="Tipo de OPO",
             choices=Solicitacao.TIPO_OPO_CHOICES,
-            widget=forms.Select(attrs={"class": "tipo-opo-toggle"}),
+            widget=forms.Select(attrs={
+                "class": "tipo-opo-toggle",
+                "onchange": "setTimeout(function(){['id_cpf','id_email','id_telefone'].forEach(function(id){var e=document.getElementById(id);if(e&&e.parentElement)e.parentElement.style.display='';});},0);",
+            }),
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
@@ -131,11 +134,6 @@ class GestaoManualForm(SolicitacaoManualForm):
                 "autocomplete": "off",
             }),
         )
-
-        if tipo_opo_inicial == "INSTITUCIONAL":
-            # Os campos continuam presentes e obrigatórios também para Institucional.
-            # O valor existente, se houver, é preservado.
-            pass
 
         self.fields["opo_permanente"] = forms.BooleanField(
             required=False,
@@ -291,8 +289,6 @@ class GestaoManualForm(SolicitacaoManualForm):
 
         matriculas = cleaned_data.get("matriculas_institucionais") or []
         if tipo_opo == "INSTITUCIONAL":
-            # Matrícula é opcional: zero, uma ou várias são aceitas.
-            # Quando informadas, continuam sendo validadas contra a unidade responsável.
             if matriculas:
                 matriculas_qs = AcessoInstitucional.objects.select_related("usuario").filter(
                     matricula__in=matriculas,
