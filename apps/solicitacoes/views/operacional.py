@@ -24,7 +24,7 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils import timezone
 
-from apps.solicitacoes.forms import SolicitacaoManualForm
+from apps.solicitacoes.forms import SolicitacaoManualForm, SolicitacaoForm
 from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, Solicitacao, TipoEvento, Unidade
 from apps.solicitacoes.permissoes import escopo_unidades
 from apps.solicitacoes.models_acesso import AcessoInstitucional
@@ -46,8 +46,6 @@ class GestaoManualForm(SolicitacaoManualForm):
         super().__init__(*args, **kwargs)
         self.perfil_gestor = perfil
 
-        # No lançamento manual, o Ofício ao Comandante não é utilizado.
-        # O documento anexado neste fluxo é o Ofício de origem.
         self.fields.pop("oficio_comandante", None)
 
         self.fields["municipio"] = forms.ModelChoiceField(
@@ -73,8 +71,6 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
-        # O efetivo institucional é montado a partir das matrículas cadastradas
-        # e vinculadas à unidade responsável.
         self.fields["efetivo_institucional"] = forms.CharField(
             required=False,
             max_length=250,
@@ -96,10 +92,17 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
+        # No lançamento interno estes três campos nunca podem bloquear o POST
+        # no navegador. A obrigatoriedade é aplicada condicionalmente no clean():
+        # FESTIVO exige os dados; INSTITUCIONAL não exige.
+        for campo in ("cpf", "email", "telefone"):
+            if campo in self.fields:
+                self.fields[campo].required = False
+                self.fields[campo].widget.attrs.pop("required", None)
+
         if tipo_opo_inicial == "INSTITUCIONAL":
             for campo in ("cpf", "email", "telefone"):
                 if campo in self.fields:
-                    self.fields[campo].required = False
                     self.fields[campo].initial = ""
 
         self.fields["opo_permanente"] = forms.BooleanField(
@@ -153,13 +156,12 @@ class GestaoManualForm(SolicitacaoManualForm):
                     ).order_by("usuario__first_name", "matricula")
                 ]
 
-
         self.fields["matriculas_institucionais"] = forms.MultipleChoiceField(
             required=False,
             label="Efetivo",
             choices=opcoes_matriculas,
             widget=forms.SelectMultiple(attrs={"class": "matriculas-institucionais", "style": "display:none;"}),
-            help_text="Selecione um policial e use + Adicionar outro policial para incluir quantos forem necessários.",
+            help_text="Matrícula é opcional. Informe uma ou várias somente quando desejar identificar o efetivo institucional.",
         )
 
         self.fields["unidade"] = forms.ModelChoiceField(
@@ -169,7 +171,6 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
-        # O município deve pertencer à unidade responsável selecionada.
         unidade_selecionada = None
         if self.is_bound:
             unidade_selecionada = self.data.get(self.add_prefix("unidade"))
@@ -239,16 +240,49 @@ class GestaoManualForm(SolicitacaoManualForm):
         cleaned_data = super().clean()
         permanente = cleaned_data.get("opo_permanente", False)
         tipo_opo = cleaned_data.get("tipo_opo", "FESTIVO")
-        efetivo_institucional = (cleaned_data.get("efetivo_institucional") or "").strip()
         data_inicio = cleaned_data.get("data_evento")
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
 
+        # FESTIVO mantém a regra anterior: CPF, e-mail e telefone são obrigatórios
+        # e CPF/telefone continuam com a mesma validação usada no formulário externo.
+        if tipo_opo == "FESTIVO":
+            cpf = (cleaned_data.get("cpf") or "").strip()
+            email = (cleaned_data.get("email") or "").strip()
+            telefone = (cleaned_data.get("telefone") or "").strip()
+
+            if not cpf:
+                self.add_error("cpf", "Informe o CPF para uma OPO Festiva.")
+            else:
+                try:
+                    cleaned_data["cpf"] = SolicitacaoForm.clean_cpf(self)
+                except forms.ValidationError as exc:
+                    self.add_error("cpf", exc)
+
+            if not email:
+                self.add_error("email", "Informe o e-mail para uma OPO Festiva.")
+            else:
+                cleaned_data["email"] = email
+
+            if not telefone:
+                self.add_error("telefone", "Informe o telefone para uma OPO Festiva.")
+            else:
+                try:
+                    cleaned_data["telefone"] = SolicitacaoForm.clean_telefone(self)
+                except forms.ValidationError as exc:
+                    self.add_error("telefone", exc)
+        else:
+            # Institucional: estes dados pertencem ao solicitante externo e não são
+            # utilizados. Mantemos vazios sem bloquear a geração da OPO.
+            cleaned_data["cpf"] = ""
+            cleaned_data["email"] = ""
+            cleaned_data["telefone"] = ""
+
         matriculas = cleaned_data.get("matriculas_institucionais") or []
         if tipo_opo == "INSTITUCIONAL":
-            if not matriculas:
-                self.add_error("matriculas_institucionais", "Selecione pelo menos um policial para o efetivo.")
-            else:
+            # Matrícula é opcional: zero, uma ou várias são aceitas.
+            # Quando informadas, continuam sendo validadas contra a unidade responsável.
+            if matriculas:
                 matriculas_qs = AcessoInstitucional.objects.select_related("usuario").filter(
                     matricula__in=matriculas,
                     ativo=True,
@@ -264,7 +298,8 @@ class GestaoManualForm(SolicitacaoManualForm):
                         for m in matriculas
                     ]
                     cleaned_data["efetivo_institucional"] = "\n".join(linhas)
-                    efetivo_institucional = cleaned_data["efetivo_institucional"]
+            else:
+                cleaned_data["efetivo_institucional"] = ""
 
         if permanente:
             if not data_inicio:
