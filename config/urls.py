@@ -46,7 +46,7 @@ from apps.solicitacoes.views.compat import (
 from apps.solicitacoes.views.public_opo import abrir_opo_publica, detalhe_opo_publica, validar_matricula_opo_publica
 from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
-from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado, sincronizar_evento_offline
+from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
 from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador, abrir_oficio_comandante_operador
 from apps.solicitacoes.views.agenda_gestao_segura import agenda_gestao_segura, proximos_eventos_gestao_seguro
@@ -103,8 +103,6 @@ urlpatterns = [
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
     path("eventos-do-dia/resultado/", eventos_dia_resultado, name="eventos_dia_resultado"),
-    # Compatibilidade com versões anteriores do PWA que já possuem registros pendentes.
-    path("eventos-do-dia/sincronizar/", sincronizar_evento_offline, name="sincronizar_evento_offline"),
     path("eventos-do-dia/cumprimento/<int:solicitacao_id>/", cumprimento_opo, name="cumprimento_opo"),
     path("eventos-do-dia/opo/arquivo/<int:anexo_id>/", abrir_opo_operador, name="abrir_opo_operador"),
     path("eventos-do-dia/oficio-comandante/<int:solicitacao_id>/", abrir_oficio_comandante_operador, name="abrir_oficio_comandante_operador"),
