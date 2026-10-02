@@ -24,7 +24,7 @@ from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils import timezone
 
-from apps.solicitacoes.forms import SolicitacaoManualForm, SolicitacaoForm
+from apps.solicitacoes.forms import SolicitacaoManualForm
 from apps.solicitacoes.models import Bairro, HistoricoSolicitacao, Municipio, Solicitacao, TipoEvento, Unidade
 from apps.solicitacoes.permissoes import escopo_unidades
 from apps.solicitacoes.models_acesso import AcessoInstitucional
@@ -92,18 +92,50 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
-        # No lançamento interno estes três campos nunca podem bloquear o POST
-        # no navegador. A obrigatoriedade é aplicada condicionalmente no clean():
-        # FESTIVO exige os dados; INSTITUCIONAL não exige.
-        for campo in ("cpf", "email", "telefone"):
-            if campo in self.fields:
-                self.fields[campo].required = False
-                self.fields[campo].widget.attrs.pop("required", None)
+        # Os três campos permanecem sempre visíveis e obrigatórios no lançamento interno.
+        # A obrigatoriedade é apenas de preenchimento: não é feita validação de conteúdo.
+        # O formato visual é aplicado por máscara no próprio input.
+        self.fields["cpf"] = forms.CharField(
+            required=True,
+            label="CPF",
+            max_length=14,
+            widget=forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "000.000.000-00",
+                "maxlength": "14",
+                "inputmode": "numeric",
+                "autocomplete": "off",
+                "oninput": "this.value=this.value.replace(/\\D/g,'').slice(0,11).replace(/(\\d{3})(\\d)/,'$1.$2').replace(/(\\d{3})(\\d)/,'$1.$2').replace(/(\\d{3})(\\d{1,2})$/,'$1-$2');",
+            }),
+        )
+        self.fields["telefone"] = forms.CharField(
+            required=True,
+            label="Telefone",
+            max_length=15,
+            widget=forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "(99) 99999-9999",
+                "maxlength": "15",
+                "inputmode": "tel",
+                "autocomplete": "off",
+                "oninput": "this.value=this.value.replace(/\\D/g,'').slice(0,11).replace(/(\\d{2})(\\d)/,'($1) $2').replace(/(\\d{5})(\\d)/,'$1-$2');",
+            }),
+        )
+        self.fields["email"] = forms.CharField(
+            required=True,
+            label="E-mail",
+            max_length=254,
+            widget=forms.TextInput(attrs={
+                "class": "form-control",
+                "placeholder": "seuemail@exemplo.com",
+                "autocomplete": "off",
+            }),
+        )
 
         if tipo_opo_inicial == "INSTITUCIONAL":
-            for campo in ("cpf", "email", "telefone"):
-                if campo in self.fields:
-                    self.fields[campo].initial = ""
+            # Os campos continuam presentes e obrigatórios também para Institucional.
+            # O valor existente, se houver, é preservado.
+            pass
 
         self.fields["opo_permanente"] = forms.BooleanField(
             required=False,
@@ -244,39 +276,18 @@ class GestaoManualForm(SolicitacaoManualForm):
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
 
-        # FESTIVO mantém a regra anterior: CPF, e-mail e telefone são obrigatórios
-        # e CPF/telefone continuam com a mesma validação usada no formulário externo.
-        if tipo_opo == "FESTIVO":
-            cpf = (cleaned_data.get("cpf") or "").strip()
-            email = (cleaned_data.get("email") or "").strip()
-            telefone = (cleaned_data.get("telefone") or "").strip()
-
-            if not cpf:
-                self.add_error("cpf", "Informe o CPF para uma OPO Festiva.")
+        # CPF, e-mail e telefone são obrigatórios apenas quanto ao preenchimento.
+        # Nenhum dos três passa por validação de conteúdo neste lançamento interno.
+        for campo, mensagem in (
+            ("cpf", "Informe o CPF."),
+            ("email", "Informe o e-mail."),
+            ("telefone", "Informe o telefone."),
+        ):
+            valor = (cleaned_data.get(campo) or "").strip()
+            if not valor:
+                self.add_error(campo, mensagem)
             else:
-                try:
-                    cleaned_data["cpf"] = SolicitacaoForm.clean_cpf(self)
-                except forms.ValidationError as exc:
-                    self.add_error("cpf", exc)
-
-            if not email:
-                self.add_error("email", "Informe o e-mail para uma OPO Festiva.")
-            else:
-                cleaned_data["email"] = email
-
-            if not telefone:
-                self.add_error("telefone", "Informe o telefone para uma OPO Festiva.")
-            else:
-                try:
-                    cleaned_data["telefone"] = SolicitacaoForm.clean_telefone(self)
-                except forms.ValidationError as exc:
-                    self.add_error("telefone", exc)
-        else:
-            # Institucional: estes dados pertencem ao solicitante externo e não são
-            # utilizados. Mantemos vazios sem bloquear a geração da OPO.
-            cleaned_data["cpf"] = ""
-            cleaned_data["email"] = ""
-            cleaned_data["telefone"] = ""
+                cleaned_data[campo] = valor
 
         matriculas = cleaned_data.get("matriculas_institucionais") or []
         if tipo_opo == "INSTITUCIONAL":
