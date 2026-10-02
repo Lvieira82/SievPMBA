@@ -215,6 +215,7 @@ def lancamento_manual(request):
         _preparar_formulario(form, request.POST.get("municipio"))
 
         if form.is_valid():
+            email_festivo = False
             try:
                 with transaction.atomic():
                     obj = form.save(commit=False)
@@ -231,8 +232,7 @@ def lancamento_manual(request):
                     obj.aprovado_por = request.user.get_full_name() or request.user.username
                     obj.data_aprovacao = timezone.now()
 
-                    # Primeiro salva a solicitação. É neste save que o modelo gera
-                    # o protocolo. O e-mail só é agendado depois que o protocolo existe.
+                    # Primeiro salva a solicitação. O modelo gera o protocolo neste ponto.
                     obj.save()
 
                     oficio_origem = _salvar_oficio_origem(request, obj)
@@ -280,16 +280,17 @@ def lancamento_manual(request):
                         ),
                     )
 
-                    # O protocolo já foi gerado e toda a operação já foi validada.
-                    # O envio do e-mail acontece somente após o COMMIT, para que
-                    # uma falha de e-mail nunca desfaça a solicitação nem a OPO.
-                    if obj.tipo_opo == "FESTIVO" and obj.email:
-                        transaction.on_commit(
-                            lambda solicitacao_id=obj.id: _enviar_email_recebimento_interno_festivo(
-                                Solicitacao.objects.get(pk=solicitacao_id)
-                            ),
-                            robust=True,
-                        )
+                    # O e-mail é enviado somente para FESTIVO e somente depois
+                    # de toda a operação de salvamento/OPO estar concluída.
+                    email_festivo = obj.tipo_opo == "FESTIVO" and bool(obj.email)
+
+                # O COMMIT já aconteceu. Portanto, mesmo que o SMTP falhe,
+                # a solicitação, o protocolo e a OPO permanecem gravados.
+                if email_festivo:
+                    try:
+                        _enviar_email_recebimento_interno_festivo(obj)
+                    except Exception as exc_email:
+                        print("ERRO AO ENVIAR E-MAIL FESTIVO:", repr(exc_email))
 
                 if quantidade_anexos or oficio_origem:
                     partes = []
