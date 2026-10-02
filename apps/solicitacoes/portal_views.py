@@ -153,11 +153,14 @@ def nova_solicitacao(request):
                         with transaction.atomic():
                             solicitacao.save()
                             _salvar_documentos(request, solicitacao)
-                            _enviar_email_recebimento(solicitacao)
+                            transaction.on_commit(
+                                lambda solicitacao_id=solicitacao.id: _enviar_email_recebimento(
+                                    Solicitacao.objects.get(pk=solicitacao_id)
+                                ),
+                                robust=True,
+                            )
                     except Exception:
-                        if solicitacao.pk:
-                            solicitacao.delete()
-                        form.add_error(None, "A solicitação não foi concluída porque não foi possível enviar o e-mail de confirmação. Tente novamente.")
+                        form.add_error(None, "Não foi possível concluir o registro da solicitação. Tente novamente.")
                     else:
                         _registrar_tempo_aceite_envio(request, solicitacao)
                         return render(request, "solicitacoes/sucesso.html", {"protocolo": solicitacao.protocolo})
