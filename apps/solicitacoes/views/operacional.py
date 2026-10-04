@@ -85,7 +85,7 @@ class GestaoManualForm(SolicitacaoManualForm):
 
         self.fields["tipo_opo"] = forms.ChoiceField(
             required=False,
-            initial="FESTIVO",
+            initial=tipo_opo_inicial,
             label="Tipo de OPO",
             choices=Solicitacao.TIPO_OPO_CHOICES,
             widget=forms.Select(attrs={
@@ -95,11 +95,11 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
-        # Os três campos permanecem sempre visíveis e obrigatórios no lançamento interno.
-        # A obrigatoriedade é apenas de preenchimento: não é feita validação de conteúdo.
-        # O formato visual é aplicado por máscara no próprio input.
+        # No lançamento interno Festivo, os dados de contato continuam disponíveis.
+        # No Institucional, não são obrigatórios e podem permanecer vazios, conforme
+        # a regra específica desse tipo de OPO.
         self.fields["cpf"] = forms.CharField(
-            required=True,
+            required=False,
             label="CPF",
             max_length=14,
             widget=forms.TextInput(attrs={
@@ -112,7 +112,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             }),
         )
         self.fields["telefone"] = forms.CharField(
-            required=True,
+            required=False,
             label="Telefone",
             max_length=15,
             widget=forms.TextInput(attrs={
@@ -125,7 +125,7 @@ class GestaoManualForm(SolicitacaoManualForm):
             }),
         )
         self.fields["email"] = forms.CharField(
-            required=True,
+            required=False,
             label="E-mail",
             max_length=254,
             widget=forms.TextInput(attrs={
@@ -274,18 +274,23 @@ class GestaoManualForm(SolicitacaoManualForm):
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
 
-        # CPF, e-mail e telefone são obrigatórios apenas quanto ao preenchimento.
-        # Nenhum dos três passa por validação de conteúdo neste lançamento interno.
-        for campo, mensagem in (
-            ("cpf", "Informe o CPF."),
-            ("email", "Informe o e-mail."),
-            ("telefone", "Informe o telefone."),
-        ):
-            valor = (cleaned_data.get(campo) or "").strip()
-            if not valor:
-                self.add_error(campo, mensagem)
-            else:
-                cleaned_data[campo] = valor
+        # Festivo pode utilizar os dados de contato para o recebimento da confirmação.
+        # Institucional não exige CPF, e-mail ou telefone.
+        if tipo_opo == "FESTIVO":
+            for campo, mensagem in (
+                ("cpf", "Informe o CPF."),
+                ("email", "Informe o e-mail."),
+                ("telefone", "Informe o telefone."),
+            ):
+                valor = (cleaned_data.get(campo) or "").strip()
+                if not valor:
+                    self.add_error(campo, mensagem)
+                else:
+                    cleaned_data[campo] = valor
+        else:
+            cleaned_data["cpf"] = ""
+            cleaned_data["email"] = ""
+            cleaned_data["telefone"] = ""
 
         matriculas = cleaned_data.get("matriculas_institucionais") or []
         if tipo_opo == "INSTITUCIONAL":
@@ -339,144 +344,30 @@ def buscar_matricula_institucional(request, unidade_id):
     if unidade_id not in set(escopo_unidades(request.user).values_list("id", flat=True)):
         return JsonResponse({"ok": False, "erro": "Unidade fora do seu escopo."}, status=403)
 
-    termo = (request.GET.get("matricula") or "").strip()
-    if not termo:
+    termo = (request.GET.get("termo") or "").strip()
+    if len(termo) < 2:
         return JsonResponse({"ok": True, "resultados": []})
 
-    registros = AcessoInstitucional.objects.select_related("usuario").filter(
+    acessos = AcessoInstitucional.objects.select_related("usuario").filter(
         unidade_id=unidade_id,
         ativo=True,
         usuario__is_active=True,
-        matricula__istartswith=termo,
-    ).order_by("usuario__first_name", "matricula")[:10]
+    ).filter(
+        Q(matricula__icontains=termo)
+        | Q(usuario__first_name__icontains=termo)
+        | Q(usuario__last_name__icontains=termo)
+        | Q(usuario__username__icontains=termo)
+    ).order_by("usuario__first_name", "matricula")[:20]
 
     return JsonResponse({
         "ok": True,
         "resultados": [
             {
-                "matricula": item.matricula,
+                "matricula": str(item.matricula),
                 "nome": item.usuario.get_full_name() or item.usuario.username,
                 "posto": "",
-                "label": f"{item.matricula} — {item.usuario.get_full_name() or item.usuario.username}".strip(),
+                "label": f"{item.matricula} — {item.usuario.get_full_name() or item.usuario.username}",
             }
-            for item in registros
+            for item in acessos
         ],
     })
-
-
-def _delegar(nome, modulo, request, *args, **kwargs):
-    func = getattr(__import__(modulo, fromlist=[nome]), nome)
-    return func(request, *args, **kwargs)
-
-
-def lancamento_manual(request, *args, **kwargs):
-    from .manual import lancamento_manual as view
-    return view(request, *args, **kwargs)
-
-
-def documentos_solicitacao(request, id, *args, **kwargs):
-    from .escopo_gestao import documentos_solicitacao_seguro
-    return documentos_solicitacao_seguro(request, id, *args, **kwargs)
-
-
-def abrir_documento_solicitacao(request, id, tipo="arquivo", *args, **kwargs):
-    from .escopo_gestao import abrir_documento_solicitacao_seguro
-    return abrir_documento_solicitacao_seguro(request, id, tipo=tipo, *args, **kwargs)
-
-
-def opos_geradas(request, *args, **kwargs):
-    from .escopo_gestao import opos_geradas_seguro
-    return opos_geradas_seguro(request, *args, **kwargs)
-
-
-def detalhe_opo(request, id, *args, **kwargs):
-    from .escopo_gestao import detalhe_opo_seguro
-    return detalhe_opo_seguro(request, id, *args, **kwargs)
-
-
-def gerar_opo(request, id, *args, **kwargs):
-    from .escopo_gestao import gerar_opo_seguro
-    return gerar_opo_seguro(request, id, *args, **kwargs)
-
-
-def mapa_eventos(request, *args, **kwargs):
-    from .escopo_gestao import mapa_eventos_seguro
-    return mapa_eventos_seguro(request, *args, **kwargs)
-
-
-def gerar_mapa_eventos_pdf(request, *args, **kwargs):
-    from .mapa_eventos_pdf import gerar_mapa_eventos_pdf_seguro
-    return gerar_mapa_eventos_pdf_seguro(request, *args, **kwargs)
-
-
-def validar_matricula_opo_publica(request, id, *args, **kwargs):
-    from .public_opo import validar_matricula_opo_publica as view
-    return view(request, id, *args, **kwargs)
-
-
-def detalhe_opo_publica(request, id, *args, **kwargs):
-    from .public_opo import detalhe_opo_publica as view
-    return view(request, id, *args, **kwargs)
-
-
-def importar_matriculas_painel(request, *args, **kwargs):
-    """Compatibilidade: a administração atual não usa mais esta rota antiga."""
-    return redirect("painel_gestao")
-
-
-@login_required
-def importar_municipios(request, *args, **kwargs):
-    """Compatibilidade: cadastro de municípios foi retirado do painel."""
-    return redirect("painel_gestao")
-
-
-@login_required
-def verificar_autenticidade(request, protocolo, *args, **kwargs):
-    """Compatibilidade para QR/links antigos; encaminha para a consulta pública."""
-    return redirect(f"/consultar/?protocolo={protocolo}")
-
-
-@login_required
-def alterar_status(request, id, status, *args, **kwargs):
-    """Compatibilidade com a rota histórica de alteração de status."""
-    solicitacao = Solicitacao.objects.filter(pk=id).first()
-    permitidos = {"PENDENTE", "EM_ANALISE", "CORRECAO", "APROVADA", "REJEITADA", "CONCLUIDA"}
-    if not solicitacao:
-        messages.error(request, "Solicitação não encontrada.")
-        return redirect("painel_gestao")
-    if status not in permitidos:
-        messages.error(request, "Status inválido.")
-        return redirect("painel_gestao")
-
-    solicitacao.status = status
-    if status in {"APROVADA", "REJEITADA", "CONCLUIDA"}:
-        solicitacao.data_aprovacao = timezone.now()
-    solicitacao.save(update_fields=["status", "data_aprovacao", "atualizado_em"])
-
-    HistoricoSolicitacao.objects.create(
-        solicitacao=solicitacao,
-        usuario=request.user,
-        acao=f"STATUS: {status}",
-        observacao="Alteração realizada pela rota de compatibilidade.",
-    )
-    messages.success(request, "Status atualizado.")
-    return redirect("painel_gestao")
-
-
-__all__ = [
-    "GestaoManualForm",
-    "lancamento_manual",
-    "documentos_solicitacao",
-    "abrir_documento_solicitacao",
-    "opos_geradas",
-    "detalhe_opo",
-    "gerar_opo",
-    "mapa_eventos",
-    "gerar_mapa_eventos_pdf",
-    "validar_matricula_opo_publica",
-    "detalhe_opo_publica",
-    "importar_matriculas_painel",
-    "importar_municipios",
-    "verificar_autenticidade",
-    "alterar_status",
-]
