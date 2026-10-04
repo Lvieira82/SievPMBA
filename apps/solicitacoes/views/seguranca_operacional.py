@@ -13,7 +13,7 @@ from apps.solicitacoes.permissoes import (
     pode_ver_solicitacao,
     escopo_unidades,
 )
-from .operacional import lancamento_manual as manual_original
+from .manual import lancamento_manual as manual_original
 
 
 @login_required
@@ -100,14 +100,26 @@ def solicitar_correcao_segura(request, id):
         detalhes=motivo,
     )
 
-    # O link é individual e leva diretamente o solicitante para o protocolo.
     link = request.build_absolute_uri(
         reverse("corrigir_solicitacao", kwargs={"protocolo": s.protocolo})
     )
 
     destinatario = s.email or (s.usuario.email if s.usuario else "")
     if destinatario:
-        mensagem = f"""Olá, {s.solicitante}!\n\nSua solicitação {s.protocolo} precisa de correção antes de continuar a análise.\n\nMotivo informado pela gestão:\n{motivo}\n\nAcesse o link abaixo para abrir sua solicitação e realizar as correções:\n{link}\n\nApós enviar as alterações, a solicitação retornará para análise.\n\nPMBA - Sistema de Informações de Eventos (SiEv).\n"""
+        mensagem = f"""Olá, {s.solicitante}!
+
+Sua solicitação {s.protocolo} precisa de correção antes de continuar a análise.
+
+Motivo informado pela gestão:
+{motivo}
+
+Acesse o link abaixo para abrir sua solicitação e realizar as correções:
+{link}
+
+Após enviar as alterações, a solicitação retornará para análise.
+
+PMBA - Sistema de Informações de Eventos (SiEv).
+"""
         try:
             send_mail(
                 subject=f"Correção necessária - Protocolo {s.protocolo}",
