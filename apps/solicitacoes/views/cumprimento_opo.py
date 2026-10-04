@@ -1,6 +1,6 @@
 from io import BytesIO
 from pathlib import Path
-from PIL import Image, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -21,6 +21,58 @@ def _operador_autorizado(request,solicitacao):
 def _opo_principal(solicitacao): return AnexoOPO.objects.filter(solicitacao=solicitacao).exclude(arquivo="").order_by("-criado_em").first()
 def _pasta_protocolo(protocolo): return Path("protocolos")/protocolo
 
+def _fonte_marca_foto(tamanho):
+    """Obtém uma fonte disponível no ambiente, com fallback para a fonte padrão do Pillow."""
+    candidatos=[
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
+    ]
+    for caminho in candidatos:
+        if Path(caminho).is_file():
+            try: return ImageFont.truetype(caminho,size=tamanho)
+            except OSError: pass
+    return ImageFont.load_default()
+
+def _gravar_dados_na_foto(imagem, respondido_em, latitude, longitude):
+    """Grava permanentemente data, hora e coordenadas no canto inferior esquerdo."""
+    imagem.seek(0)
+    origem=ImageOps.exif_transpose(Image.open(imagem))
+    if origem.mode not in ("RGB","RGBA"):
+        origem=origem.convert("RGBA")
+    elif origem.mode=="RGB":
+        origem=origem.convert("RGBA")
+
+    largura, altura=origem.size
+    tamanho_fonte=max(18,min(44,int(largura*0.035)))
+    fonte=_fonte_marca_foto(tamanho_fonte)
+    linhas=[
+        timezone.localtime(respondido_em).strftime("%d/%m/%y %H:%M"),
+        f"latitude={latitude}",
+        f"longitude={longitude}",
+    ]
+    margem=max(18,int(largura*0.025))
+    espaco=max(6,int(tamanho_fonte*0.18))
+    desenho=ImageDraw.Draw(origem,"RGBA")
+    caixas=[desenho.textbbox((0,0),texto,font=fonte) for texto in linhas]
+    alturas_texto=[caixa[3]-caixa[1] for caixa in caixas]
+    larguras_texto=[caixa[2]-caixa[0] for caixa in caixas]
+    altura_bloco=sum(alturas_texto)+espaco*(len(linhas)-1)+margem*2
+    largura_bloco=max(larguras_texto)+margem*2
+    x=margem
+    y=max(margem,altura-altura_bloco-margem)
+    desenho.rounded_rectangle(
+        (x,y,x+largura_bloco,y+altura_bloco),
+        radius=max(8,int(tamanho_fonte*0.3)),
+        fill=(0,0,0,175),
+    )
+    cursor_y=y+margem
+    for texto,altura_texto in zip(linhas,alturas_texto):
+        desenho.text((x+margem,cursor_y),texto,font=fonte,fill=(255,255,255,255),stroke_width=max(1,int(tamanho_fonte*0.03)),stroke_fill=(0,0,0,220))
+        cursor_y+=altura_texto+espaco
+    saida=BytesIO()
+    origem.convert("RGB").save(saida,format="JPEG",quality=92,optimize=True,progressive=True)
+    return saida.getvalue()
+
 def _comprimir_imagem_80_porcento(imagem):
     original_size=max(int(getattr(imagem,"size",0) or 0),1); imagem.seek(0); origem=ImageOps.exif_transpose(Image.open(imagem))
     if origem.mode in ("RGBA","LA","P"):
@@ -39,9 +91,10 @@ def _comprimir_imagem_80_porcento(imagem):
             else: atual=atual.resize((nova_largura,nova_altura),Image.Resampling.LANCZOS)
     return melhor
 
-def _salvar_comprovacao_no_protocolo(solicitacao,imagem):
-    nome=f"comprovacao_opo_{timezone.localtime():%Y%m%d_%H%M%S_%f}.jpg"; caminho=str(_pasta_protocolo(solicitacao.protocolo or "SEM_PROTOCOLO")/nome)
-    return default_storage.save(caminho,ContentFile(_comprimir_imagem_80_porcento(imagem)))
+def _salvar_comprovacao_no_protocolo(solicitacao,imagem,respondido_em,latitude,longitude):
+    nome=f"comprovacao_opo_{timezone.localtime(respondido_em):%Y%m%d_%H%M%S_%f}.jpg"; caminho=str(_pasta_protocolo(solicitacao.protocolo or "SEM_PROTOCOLO")/nome)
+    imagem_marcada=ContentFile(_gravar_dados_na_foto(imagem,respondido_em,latitude,longitude),name=nome)
+    return default_storage.save(caminho,ContentFile(_comprimir_imagem_80_porcento(imagem_marcada),name=nome))
 def _nome_justificativa(operador,respondido_em):
     identificador=getattr(operador,"username","operador") or "operador"; seguro="".join(ch if ch.isalnum() or ch in "-_" else "_" for ch in identificador)
     return f"justificativa_opo_{seguro}_{timezone.localtime(respondido_em):%Y%m%d_%H%M%S_%f}.txt"
@@ -97,10 +150,6 @@ def _atendimento_ja_registrado(registro):
 def cumprimento_opo(request,solicitacao_id):
     if request.method=="GET" and request.GET.get("imagem_id"):
         cumprimento=get_object_or_404(CumprimentoOPO.objects.select_related("opo","opo__solicitacao"),pk=request.GET.get("imagem_id")); solicitacao=cumprimento.opo.solicitacao
-        # A página de OPOs geradas é exclusiva da gestão, mas o acesso à foto
-        # também precisa funcionar para o desenvolvedor/superusuário. A regra
-        # anterior chamava pode_ver_solicitacao(), que deliberadamente retorna
-        # False para desenvolvedor, causando uma imagem quebrada/redirecionada.
         if eh_operador(request.user) or (not request.user.is_superuser and not pode_ver_solicitacao(request.user,solicitacao)):
             messages.error(request,"Você não possui acesso à foto deste cumprimento."); return redirect("painel_gestao")
         if not cumprimento.imagem: raise Http404("A foto do cumprimento não está disponível.")
@@ -134,18 +183,19 @@ def cumprimento_opo(request,solicitacao_id):
                 elif imagem.size>_MAX_IMAGEM: messages.error(request,"A imagem deve ter no máximo 5 MB.")
                 elif not latitude or not longitude: messages.error(request,"Não foi possível obter a localização GPS. Autorize a localização do dispositivo e tente novamente.")
                 else:
-                    try: latitude_float=float(latitude); longitude_float=float(longitude); 
+                    try: latitude_float=float(latitude); longitude_float=float(longitude)
                     except (TypeError,ValueError): messages.error(request,"As coordenadas GPS recebidas são inválidas.")
                     else:
                         if not (-90<=latitude_float<=90 and -180<=longitude_float<=180): messages.error(request,"As coordenadas GPS recebidas são inválidas.")
                         else:
-                            try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
+                            respondido_em=timezone.now()
+                            try: caminho_imagem=_salvar_comprovacao_no_protocolo(solicitacao,imagem,respondido_em,f"{latitude_float:.7f}",f"{longitude_float:.7f}")
                             except Exception: messages.error(request,"Não foi possível processar a foto capturada. Tente novamente.")
                             else:
                                 if registro.imagem:
                                     try: registro.imagem.delete(save=False)
                                     except Exception: pass
-                                registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=timezone.now(); registro.save()
+                                registro.cumprida=True; registro.imagem.name=caminho_imagem; registro.justificativa=""; registro.respondido_em=respondido_em; registro.save()
                                 _organizar_documentacao_opo(solicitacao,opo=opo,caminho_imagem=caminho_imagem,latitude=f"{latitude_float:.7f}",longitude=f"{longitude_float:.7f}",precisao=precisao,operador=request.user)
                                 LogSistema.objects.create(usuario=request.user,solicitacao=solicitacao,acao="CUMPRIMENTO OPO",detalhes=f"OPO cumprida. Coordenadas GPS: latitude={latitude_float:.7f}, longitude={longitude_float:.7f}.")
                                 messages.success(request,"Cumprimento registrado como SIM, com foto e localização GPS."); return redirect("eventos_dia")
@@ -203,8 +253,6 @@ def abrir_oficio_comandante_operador(request, solicitacao_id):
         if nome:
             nomes.append(nome)
 
-    # Compatibilidade com instalações antigas que armazenavam o ofício diretamente
-    # em protocolos/<protocolo>/oficio_comandante.pdf.
     if protocolo:
         nomes.append(f"protocolos/{protocolo}/oficio_comandante.pdf")
 
