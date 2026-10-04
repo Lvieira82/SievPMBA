@@ -200,7 +200,7 @@ def sincronizar_evento_offline(request):
         except (TypeError,ValueError):return JsonResponse({"ok":False,"erro":"Coordenadas GPS inválidas."},status=400)
         try:
             from .cumprimento_opo import _organizar_documentacao_opo, _salvar_comprovacao_no_protocolo
-            caminho=_salvar_comprovacao_no_protocolo(solicitacao,imagem)
+            caminho=_salvar_comprovacao_no_protocolo(solicitacao,imagem,timezone.now(),lat,lon)
         except Exception:return JsonResponse({"ok":False,"erro":"Não foi possível salvar a foto."},status=500)
         if registro.imagem:
             try:registro.imagem.delete(save=False)
