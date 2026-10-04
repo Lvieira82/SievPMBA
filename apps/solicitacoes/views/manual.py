@@ -66,7 +66,7 @@ def _preparar_formulario(form, municipio_id=None):
 
 
 def _enviar_email_recebimento_interno_festivo(solicitacao):
-    """Envia o mesmo e-mail de recebimento da solicitação externa, somente para OPO Festiva."""
+    """Envia o e-mail de recebimento somente para OPO Festiva."""
     if solicitacao.tipo_opo != "FESTIVO":
         return
     if not solicitacao.email:
@@ -111,9 +111,6 @@ def _salvar_anexos_manuais(request, solicitacao):
         if not tipo_id:
             raise ValueError("Selecione o tipo de cada documento complementar.")
 
-        # O formulário manual usa códigos textuais para manter todas as opções
-        # disponíveis no mesmo padrão do formulário externo. Só tentamos consultar
-        # por PK quando o valor recebido é realmente numérico.
         tipo = None
         if tipo_id.isdigit():
             tipo = TipoDocumento.objects.filter(pk=int(tipo_id), ativo=True).first()
@@ -171,10 +168,6 @@ def _salvar_anexos_manuais(request, solicitacao):
 
 
 def _salvar_oficio_origem(request, solicitacao):
-    # O formulário manual possui o campo específico "oficio_origem" e também
-    # mantém o campo herdado "oficio_comandante". Aceitamos os dois nomes para
-    # garantir que o PDF efetivamente anexado seja gravado em DocumentoSolicitacao
-    # e, portanto, seja recuperado pela aba Documentação/OPOs Geradas.
     oficio = request.FILES.get("oficio_origem") or request.FILES.get("oficio_comandante")
     if not oficio:
         return False
@@ -242,17 +235,6 @@ def lancamento_manual(request):
                     oficio_origem = _salvar_oficio_origem(request, obj)
                     quantidade_anexos = _salvar_anexos_manuais(request, obj)
 
-                    # O e-mail é uma notificação secundária e não pode impedir
-                    # o salvamento do lançamento interno. Ele é enviado somente
-                    # depois que a transação for confirmada.
-                    if obj.tipo_opo == "FESTIVO" and obj.email:
-                        transaction.on_commit(
-                            lambda solicitacao_id=obj.id: _enviar_email_recebimento_interno_festivo(
-                                Solicitacao.objects.get(pk=solicitacao_id)
-                            ),
-                            robust=True,
-                        )
-
                     HistoricoSolicitacao.objects.create(
                         solicitacao=obj,
                         usuario=request.user,
@@ -295,6 +277,18 @@ def lancamento_manual(request):
                         ),
                     )
 
+                # A transação acima já foi confirmada. Portanto, qualquer falha
+                # de SMTP não pode desfazer o protocolo, a OPO ou os anexos.
+                email_enviado = False
+                erro_email = None
+                if obj.tipo_opo == "FESTIVO" and obj.email:
+                    try:
+                        _enviar_email_recebimento_interno_festivo(obj)
+                        email_enviado = True
+                    except Exception as exc_email:
+                        erro_email = repr(exc_email)
+                        print("ERRO AO ENVIAR E-MAIL DO LANÇAMENTO FESTIVO:", erro_email)
+
                 if quantidade_anexos or oficio_origem:
                     partes = []
                     if oficio_origem:
@@ -310,6 +304,14 @@ def lancamento_manual(request):
                         request,
                         f"lançamento interno salvo e OPO {obj.protocolo} gerada imediatamente.",
                     )
+
+                if email_enviado:
+                    messages.success(request, "E-mail de recebimento do lançamento Festivo enviado com sucesso.")
+                elif obj.tipo_opo == "FESTIVO" and not obj.email:
+                    messages.warning(request, "O lançamento Festivo foi salvo, mas não possui e-mail para envio da confirmação.")
+                elif erro_email:
+                    messages.warning(request, "O lançamento Festivo foi salvo, mas o e-mail não pôde ser enviado. O protocolo e a OPO permanecem registrados.")
+
                 return redirect("detalhe_opo", id=obj.id)
             except Exception as exc:
                 print("ERRO NO lançamento interno:", repr(exc))
@@ -317,6 +319,13 @@ def lancamento_manual(request):
                     request,
                     f"Não foi possível concluir o lançamento interno: {exc}",
                 )
+        else:
+            print("ERROS DE VALIDAÇÃO DO LANÇAMENTO INTERNO:", form.errors.as_json())
+            campos_com_erro = ", ".join(form.errors.keys())
+            messages.error(
+                request,
+                f"O lançamento não foi enviado porque existem campos inválidos ou obrigatórios: {campos_com_erro}.",
+            )
     else:
         form = GestaoManualForm(instance=original, perfil=perfil)
         _preparar_formulario(form, original.municipio_id if original else None)
