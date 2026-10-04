@@ -95,9 +95,6 @@ class GestaoManualForm(SolicitacaoManualForm):
             help_text="Selecione Institucional somente para o lançamento interno de operações institucionais.",
         )
 
-        # No lançamento interno Festivo, os dados de contato continuam disponíveis.
-        # No Institucional, não são obrigatórios e podem permanecer vazios, conforme
-        # a regra específica desse tipo de OPO.
         self.fields["cpf"] = forms.CharField(
             required=False,
             label="CPF",
@@ -201,6 +198,13 @@ class GestaoManualForm(SolicitacaoManualForm):
             widget=forms.Select(attrs={"class": "form-select"}),
         )
 
+        # No lançamento interno de membro da unidade, a unidade do perfil é a
+        # unidade responsável padrão. Isso evita que um campo obrigatório,
+        # tecnicamente necessário ao modelo, impeça o ciclo do formulário sem
+        # que o usuário tenha que informá-lo novamente.
+        if not self.is_bound and perfil and perfil.unidade_id:
+            self.fields["unidade"].initial = perfil.unidade_id
+
         unidade_selecionada = None
         if self.is_bound:
             unidade_selecionada = self.data.get(self.add_prefix("unidade"))
@@ -274,8 +278,6 @@ class GestaoManualForm(SolicitacaoManualForm):
         data_fim = cleaned_data.get("opo_permanente_data_fim")
         indeterminado = cleaned_data.get("opo_permanente_indeterminado", False)
 
-        # Festivo pode utilizar os dados de contato para o recebimento da confirmação.
-        # Institucional não exige CPF, e-mail ou telefone.
         if tipo_opo == "FESTIVO":
             for campo, mensagem in (
                 ("cpf", "Informe o CPF."),
