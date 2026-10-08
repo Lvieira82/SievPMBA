@@ -196,3 +196,120 @@ def analisar_datas_oficio_rapido(arquivo_pdf, data_evento):
         "texto_extraido": texto,
     }
 
+def extrair_texto_pdf_rapido(arquivo_pdf):
+    """
+    Extrai texto do PDF sem OCR em páginas digitais.
+    Em páginas escaneadas, executa uma única passagem de OCR por página.
+    """
+    arquivo_pdf.seek(0)
+    conteudo = arquivo_pdf.read()
+    partes = []
+    try:
+        with fitz.open(stream=conteudo, filetype="pdf") as documento:
+            for numero, pagina in enumerate(documento, start=1):
+                digital = _normalizar(pagina.get_text("text"))
+                if len(digital) >= MINIMO_TEXTO_DIGITAL:
+                    partes.append(digital)
+                    continue
+                try:
+                    ocr = _ocr_pagina(pagina)
+                except Exception as erro:
+                    print(
+                        f"LEITOR DATAS - ERRO OCR PAGINA {numero}:",
+                        repr(erro),
+                    )
+                    ocr = ""
+                if ocr:
+                    partes.append(ocr)
+                elif digital:
+                    partes.append(digital)
+    finally:
+        arquivo_pdf.seek(0)
+    return "\n".join(partes)
+
+
+def compactar_pdf_upload(arquivo, nome=None):
+    """
+    Compacta o PDF antes do armazenamento, preservando a camada de texto.
+    A compactação com perda só é aplicada quando há ganho relevante.
+    """
+    if not arquivo:
+        return arquivo
+
+    arquivo.seek(0)
+    original = arquivo.read()
+    original_size = len(original)
+
+    # PDFs pequenos não precisam passar por regravação.
+    if original_size < 150 * 1024:
+        arquivo.seek(0)
+        return arquivo
+
+    try:
+        doc = fitz.open(stream=original, filetype="pdf")
+        try:
+            saida = io.BytesIO()
+            doc.save(
+                saida,
+                garbage=3,
+                deflate=True,
+                deflate_images=True,
+                deflate_fonts=True,
+                use_objstms=1,
+            )
+            compactado = saida.getvalue()
+
+            # Só reduz imagens quando a compactação estrutural não foi suficiente.
+            if (
+                len(compactado) > original_size * 0.70
+                and hasattr(doc, "rewrite_images")
+            ):
+                doc.rewrite_images(
+                    dpi_threshold=180,
+                    dpi_target=140,
+                    quality=70,
+                    lossy=True,
+                    lossless=True,
+                    bitonal=True,
+                    color=True,
+                    gray=True,
+                )
+                saida2 = io.BytesIO()
+                doc.save(
+                    saida2,
+                    garbage=3,
+                    deflate=True,
+                    deflate_images=True,
+                    deflate_fonts=True,
+                    use_objstms=1,
+                )
+                compactado2 = saida2.getvalue()
+                if len(compactado2) < len(compactado):
+                    compactado = compactado2
+        finally:
+            doc.close()
+
+        if len(compactado) >= original_size:
+            arquivo.seek(0)
+            return arquivo
+
+        nome_final = nome or getattr(arquivo, "name", "documento.pdf")
+        resultado = ContentFile(compactado, name=nome_final)
+        print(
+            "PDF COMPACTADO:",
+            original_size,
+            "->",
+            len(compactado),
+            "bytes",
+        )
+        return resultado
+    except Exception as erro:
+        print(
+            "PDF COMPACTACAO - FALHA, mantendo original:",
+            repr(erro),
+        )
+        arquivo.seek(0)
+        return arquivo
+    finally:
+        arquivo.seek(0)
+
