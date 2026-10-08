@@ -21,7 +21,7 @@ MESES = {
 MESES_RE = "|".join(sorted(MESES, key=len, reverse=True))
 
 _UNIDADES = {
-    "zero": 0, "um": 1, "uma": 1, "dois": 2, "duas": 2,
+    "zero": 0, "um": 1, "uma": 1, "primeiro": 1, "primeira": 1, "dois": 2, "duas": 2,
     "três": 3, "tres": 3, "quatro": 4, "cinco": 5, "seis": 6,
     "sete": 7, "oito": 8, "nove": 9, "dez": 10, "onze": 11,
     "doze": 12, "treze": 13, "quatorze": 14, "catorze": 14,
@@ -206,6 +206,39 @@ def _extrair(texto, ano_referencia=None):
         r"seiscentos|seiscentas|setecentos|setecentas|oitocentos|oitocentas|"
         r"novecentos|novecentas|mil)"
     )
+
+    # 6. Formas mistas por extenso:
+    # "sete de janeiro de 2026"
+    # "07 de janeiro de dois mil e vinte e seis"
+    padrao_extenso_dia_ano_numerico = re.compile(
+        rf"(?P<dia_extenso>{palavras_numero}(?:\s+e\s+{palavras_numero}){{0,3}})"
+        rf"\s+de\s+(?P<mes>{MESES_RE})"
+        rf"\s+(?:do\s+ano\s+)?de\s+(?P<ano>\d{{2,4}})",
+        re.I,
+    )
+    for match in padrao_extenso_dia_ano_numerico.finditer(texto):
+        dia = _numero_por_extenso(match.group("dia_extenso"))
+        if dia is not None:
+            _adicionar(
+                resultado, dia, MESES[match.group("mes").lower()],
+                match.group("ano"), match.group(0)
+            )
+            spans_explicitos.append(match.span())
+
+    padrao_numerico_dia_ano_extenso = re.compile(
+        rf"(?P<dia>\d{{1,2}})\s+de\s+(?P<mes>{MESES_RE})"
+        rf"\s+(?:do\s+ano\s+)?de\s+(?P<ano_extenso>{palavras_numero}"
+        rf"(?:\s+e\s+{palavras_numero}){{0,8}})",
+        re.I,
+    )
+    for match in padrao_numerico_dia_ano_extenso.finditer(texto):
+        ano = _numero_por_extenso(match.group("ano_extenso"))
+        if ano is not None:
+            _adicionar(
+                resultado, match.group("dia"), MESES[match.group("mes").lower()],
+                ano, match.group(0)
+            )
+            spans_explicitos.append(match.span())
 
     # 6. Data completa por extenso:
     # "sete de janeiro de dois mil e vinte e seis".
