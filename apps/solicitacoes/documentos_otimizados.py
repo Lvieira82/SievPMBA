@@ -67,19 +67,32 @@ def _remover_data_de_emissao(texto):
 
     linhas = texto.splitlines()
     padrao_emissao = re.compile(
-        rf"^\s*[^\n,]+,\s*"
-        rf"(?:0?[1-9]|[12]\\d|3[01])\s+de\s+"
-        rf"(?:{MESES_RE})"
-        rf"\s+(?:de\s+)?(?:\d{{2,4}})\s*\.?\s*$",
+        rf"(?:0?[1-9]|[12]\d|3[01])\s+de\s+"
+        rf"(?:{MESES_RE})\s+(?:de\s+)?(?:\d{{2,4}})",
         re.I,
     )
     linhas_filtradas = []
     removida = False
-    for linha in linhas:
-        if not removida and padrao_emissao.match(linha):
+
+    for indice, linha in enumerate(linhas):
+        # A data de emissão normalmente aparece no início do Ofício,
+        # antes do corpo: "Salvador, 03 de setembro de 2026.".
+        # Removemos somente essa ocorrência inicial, nunca datas do corpo.
+        if (
+            not removida
+            and indice < 5
+            and "," in linha
+            and padrao_emissao.search(linha)
+        ):
             removida = True
+            linha = padrao_emissao.sub("", linha, count=1)
+            linha = re.sub(r"^[,\s]+|[,\s]+$", "", linha)
+            if linha.strip():
+                linhas_filtradas.append(linha)
             continue
+
         linhas_filtradas.append(linha)
+
     return "\n".join(linhas_filtradas)
 
 
