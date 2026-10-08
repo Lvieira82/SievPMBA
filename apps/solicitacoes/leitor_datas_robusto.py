@@ -135,9 +135,14 @@ def _extrair(texto, ano_referencia=None):
         spans_explicitos.append(match.span())
 
     # 2. Listas/ranges numéricos: inclusive "de 07 a 09/01".
+    # O contexto "de/dia/dias" é exigido para evitar que o parser
+    # comece no meio de uma data/lista, por exemplo:
+    # "26, 08/10/2026" -> não pode virar 08/01/2026.
     padrao_lista_numerica = re.compile(
+        r"\b(?:de\s+|dia\s+|dias\s+|nos\s+dias\s+)"
         r"(?P<dias>\d{1,2}(?:\s*(?:,|e|a|-)\s*\d{1,2})*)"
         r"\s*(?P<sep>[/\-.])\s*(?P<mes>0?[1-9]|1[0-2])"
+        r"(?!\d)"
         r"(?:\s*(?P=sep)\s*(?P<ano>\d{2,4}))?",
         re.I,
     )
@@ -186,16 +191,25 @@ def _extrair(texto, ano_referencia=None):
         spans_explicitos.append(match.span())
 
     # 5. "dia 25" / "dias 25 e 26" com mês.
+    # Se o texto continuar com "de 2027", o ano explícito deve prevalecer;
+    # caso contrário, mantém-se a regra de usar o ano corrente.
     padrao_dias_sem_mes = re.compile(
         r"\b(?:dia|dias|nos dias)\s+"
         r"(?P<dias>\d{1,2}(?:\s*(?:,|e|a|-)\s*\d{1,2})*)"
-        rf"\s+(?:de\s+)?(?P<mes>{MESES_RE})\b",
+        rf"\s+(?:de\s+)?(?P<mes>{MESES_RE})\b"
+        rf"(?:\s+(?:do\s+ano\s+)?de\s+(?P<ano>\d{{2,4}}))?",
         re.I,
     )
     for match in padrao_dias_sem_mes.finditer(texto):
         mes = MESES[match.group("mes").lower()]
         for dia in _expandir_dias(match.group("dias")):
-            _adicionar(resultado, dia, mes, None, match.group(0))
+            _adicionar(
+                resultado,
+                dia,
+                mes,
+                match.group("ano"),
+                match.group(0),
+            )
 
     palavras_numero = (
         r"(?:zero|um|uma|dois|duas|três|tres|quatro|cinco|seis|sete|oito|nove|"
