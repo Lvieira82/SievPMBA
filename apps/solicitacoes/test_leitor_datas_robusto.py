@@ -41,6 +41,20 @@ class LeitorDatasRobustoTests(SimpleTestCase):
             "O evento será em sete de janeiro de dois mil e vinte e seis."
         ) == {date(2026, 1, 7)}
 
+    def test_formas_mistas_por_extenso(self):
+        assert self.datas("O evento será em sete de janeiro de 2026.") == {
+            date(2026, 1, 7)
+        }
+        assert self.datas(
+            "O evento será em 07 de janeiro de dois mil e vinte e seis."
+        ) == {date(2026, 1, 7)}
+
+    def test_primeiro_de_janeiro(self):
+        ano = date.today().year
+        assert self.datas("O evento será em primeiro de janeiro.") == {
+            date(ano, 1, 1)
+        }
+
     def test_ano_explicito_de_quatro_digitos_prevalece(self):
         assert self.datas("O evento ocorrerá em 07/01/2027.") == {
             date(2027, 1, 7)
