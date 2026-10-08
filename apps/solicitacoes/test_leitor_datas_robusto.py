@@ -67,3 +67,24 @@ class LeitorDatasRobustoTests(SimpleTestCase):
             date(ano, 1, 8),
             date(ano, 1, 9),
         }
+
+
+    def test_oficio_real_nao_confunde_mes_10_com_mes_01(self):
+        texto = (
+            "Salvador, 03 de setembro de 2026.\n"
+            "festejos na nossa comunidade, nos dias 25 de setembro de 2026, 08/10/2026.\n"
+            "Dias 28/10 e 29/09 o evento será pela tarde. Dia 30-10, faremos um café da manhã.\n"
+            "em outro momento faremos uma novena dias 13,14, 24 e 26 de janeiro de 2027."
+        )
+        assert self.datas(texto) == {
+            date(2026, 9, 3),
+            date(2026, 9, 25),
+            date(2026, 10, 8),
+            date(2026, 10, 28),
+            date(2026, 9, 29),
+            date(2026, 10, 30),
+            date(2027, 1, 13),
+            date(2027, 1, 14),
+            date(2027, 1, 24),
+            date(2027, 1, 26),
+        }
