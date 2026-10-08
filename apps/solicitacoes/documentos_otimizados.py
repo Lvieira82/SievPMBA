@@ -63,16 +63,23 @@ def extrair_primeira_pagina_rapida(arquivo_pdf):
 
 def analisar_datas_oficio_rapido(arquivo_pdf, data_evento):
     """
-    Valida a data do oficio com estrategia em duas etapas:
+    Valida a data do ofício em duas etapas, priorizando a camada de texto
+    digital do PDF.
 
-    1. texto digital da primeira pagina;
-    2. OCR somente se a data esperada nao puder ser confirmada.
-
-    Isso evita renderizar/OCRizar paginas que nao participam da validacao.
+    Regra importante:
+      - texto digital existente é a fonte principal das datas;
+      - OCR é usado para confirmar a data esperada quando necessário;
+      - resultados de OCR não são misturados automaticamente ao texto digital,
+        evitando que erros de reconhecimento (ex.: 08/10 lido como 08/01)
+        contaminem a lista de datas apresentada ao usuário;
+      - em PDF essencialmente escaneado, o OCR passa a ser a fonte principal.
     """
     arquivo_pdf.seek(0)
     conteudo = arquivo_pdf.read()
     texto = ""
+    datas = []
+    texto_digital = ""
+
     try:
         with fitz.open(stream=conteudo, filetype="pdf") as documento:
             if not documento:
@@ -85,35 +92,70 @@ def analisar_datas_oficio_rapido(arquivo_pdf, data_evento):
                 }
 
             pagina = documento[0]
-            texto = _normalizar(pagina.get_text("text"))
-            datas = encontrar_todas_datas(
-                texto,
+            texto_digital = _normalizar(pagina.get_text("text"))
+            texto = texto_digital
+            datas_digitais = encontrar_todas_datas(
+                texto_digital,
                 ano_referencia=getattr(data_evento, "year", None),
             )
 
-            data_alvo_encontrada = any(item["data"] == data_evento for item in datas)
+            data_alvo_encontrada = any(
+                item["data"] == data_evento for item in datas_digitais
+            )
 
-            # OCR somente quando o texto digital nao confirma a data.
-            if not data_alvo_encontrada:
+            # Se o texto digital já contém a data correta, não executa OCR.
+            if data_alvo_encontrada:
+                datas = datas_digitais
+
+            else:
                 try:
                     texto_ocr = _ocr_pagina(pagina)
                 except Exception as erro:
-                    print("LEITOR DATAS - OCR indisponivel/falhou:", repr(erro))
+                    print(
+                        "LEITOR DATAS - OCR indisponível/falhou:",
+                        repr(erro),
+                    )
                     texto_ocr = ""
 
+                datas_ocr = encontrar_todas_datas(
+                    texto_ocr,
+                    ano_referencia=getattr(data_evento, "year", None),
+                ) if texto_ocr else []
+
                 if texto_ocr:
-                    texto = f"{texto}\n{texto_ocr}" if texto else texto_ocr
-                    datas = encontrar_todas_datas(
-                        texto,
-                        ano_referencia=getattr(data_evento, "year", None),
+                    texto = (
+                        f"{texto_digital}\n{texto_ocr}"
+                        if texto_digital else texto_ocr
                     )
+
+                if not texto_digital:
+                    # PDF escaneado: OCR é a fonte disponível.
+                    datas = datas_ocr
+                elif any(item["data"] == data_evento for item in datas_ocr):
+                    # PDF digital + OCR complementar: só acrescenta a data
+                    # esperada, evitando falsos positivos do OCR.
+                    datas = list(datas_digitais)
+                    if not any(item["data"] == data_evento for item in datas):
+                        datas.append({
+                            "texto": next(
+                                item["texto"]
+                                for item in datas_ocr
+                                if item["data"] == data_evento
+                            ),
+                            "data": data_evento,
+                        })
+                else:
+                    # Texto digital continua sendo a fonte confiável para a
+                    # lista de datas quando o OCR não confirmou a esperada.
+                    datas = datas_digitais
+
     finally:
         arquivo_pdf.seek(0)
 
     datas_normalizadas = {item["data"] for item in datas}
     return {
         "valido": data_evento in datas_normalizadas,
-        "datas": datas,
+        "datas": sorted(datas, key=lambda item: item["data"]),
         "datas_normalizadas": sorted(datas_normalizadas),
         "multiplas_datas": len(datas_normalizadas) >= 2,
         "texto_extraido": texto,
