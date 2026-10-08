@@ -95,7 +95,7 @@ def diagnostico_deploy(request):
 
     return JsonResponse({
         "render_git_commit": os.environ.get("RENDER_GIT_COMMIT", "nao_informado"),
-        "codigo_esperado": "966618c32266a5c1dd97c1a737f49b5848ee5f6f",
+        "codigo_esperado": "cbecee7feee6fd01f3355a2059a41b80070c6e6e",
         "arquivo_datas_commit": "b466a1d47818a7367032a1c30261f20409958297",
     })
 
