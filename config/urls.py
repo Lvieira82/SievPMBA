@@ -88,7 +88,20 @@ def listar_pendentes_opo_seguro(request):
     return aprovacoes(request)
 
 
+
+def diagnostico_deploy(request):
+    """Retorna somente a identificação técnica da versão em execução no Render."""
+    from django.http import JsonResponse
+
+    return JsonResponse({
+        "render_git_commit": os.environ.get("RENDER_GIT_COMMIT", "nao_informado"),
+        "codigo_esperado": "966618c32266a5c1dd97c1a737f49b5848ee5f6f",
+        "arquivo_datas_commit": "b466a1d47818a7367032a1c30261f20409958297",
+    })
+
+
 urlpatterns = [
+    path("diagnostico/deploy/", diagnostico_deploy, name="diagnostico_deploy"),
     path("admin/", admin.site.urls),
     path("", portal, name="portal"),
     path("portal/entrar/", selecionar_unidade, name="selecionar_unidade"),
