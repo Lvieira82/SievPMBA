@@ -7,7 +7,7 @@ import pytesseract
 from django.core.files.base import ContentFile
 from PIL import Image, ImageOps
 
-from .leitor_datas_robusto import encontrar_todas_datas
+from .leitor_datas_robusto import MESES_RE, encontrar_todas_datas
 
 
 OCR_DPI = 220
@@ -69,7 +69,7 @@ def _remover_data_de_emissao(texto):
     padrao_emissao = re.compile(
         rf"^\s*[^\n,]+,\s*"
         rf"(?:0?[1-9]|[12]\\d|3[01])\s+de\s+"
-        rf"(?:{__import__('apps.solicitacoes.leitor_datas_robusto', fromlist=['MESES_RE']).MESES_RE})"
+        rf"(?:{MESES_RE})"
         rf"\s+(?:de\s+)?(?:\d{{2,4}})\s*\.?\s*$",
         re.I,
     )
