@@ -9,6 +9,8 @@ WORKDIR /opt/render/project/src
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tesseract-ocr \
     tesseract-ocr-por \
+    && tesseract --version \
+    && tesseract --list-langs | grep -qx por \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia primeiro o requirements para aproveitar o cache
