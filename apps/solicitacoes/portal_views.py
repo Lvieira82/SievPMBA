@@ -99,22 +99,21 @@ def documentos_opm_por_bairro(request):
 
     unidade = None
     if bairro:
-        # Resolve diretamente a área territorial, evitando depender de
-        # validações de formulário para uma simples consulta de documentos.
-        area = AreaResponsabilidade.objects.filter(
-            bairro=bairro, ativo=True, unidade__ativo=True
-        ).select_related("unidade").first()
-        if area:
-            unidade = area.unidade
-
-    if not unidade and bairro:
+        # Usa exatamente o mesmo resolvedor territorial da submissão da
+        # solicitação (bairro -> unidade), para que os documentos exigidos
+        # sejam os da OPM que efetivamente receberá o protocolo.
         try:
             unidade = validar_direcionamento(municipio, bairro)
         except Exception:
             unidade = None
 
     if not unidade and not bairro:
-        unidade = municipio.unidade_responsavel
+        # Só usa a unidade padrão quando ainda não há bairro selecionado
+        # e o município não exige direcionamento por múltiplas unidades.
+        try:
+            unidade = validar_direcionamento(municipio, None)
+        except Exception:
+            unidade = None
 
     if not unidade:
         return JsonResponse({"unidade": "", "documentos": []})
