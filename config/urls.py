@@ -78,6 +78,7 @@ from apps.solicitacoes.views.apoio_operacional import (
 from apps.solicitacoes.views.pesquisa import responder_pesquisa
 from apps.solicitacoes.views.pesquisas_painel import painel_pesquisas
 from apps.solicitacoes.permissoes import pode_gerar_opo
+from apps.solicitacoes.views.configuracoes_opm import configuracoes_opm
 
 
 @login_required
@@ -126,6 +127,7 @@ urlpatterns = [
     path("gestao/primeiro-acesso/senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
     path("logout/", logout_gestao_seguro, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
+    path("gestao/configuracoes-opm/", configuracoes_opm, name="configuracoes_opm"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
     path("gestao/administracao/unidade-membro/", administracao_unidade_membro, name="administracao_unidade_membro"),
