@@ -18,13 +18,24 @@ def configuracoes_opm(request):
     acesso = acesso_do_usuario(request.user)
     desenvolvedor = eh_desenvolvedor(request.user)
 
+    pode_editar = bool(
+        acesso
+        and acesso.ativo
+        and request.user.is_active
+        and acesso.perfil == "UNIDADE"
+        and acesso.funcao == "GESTOR"
+        and acesso.unidade_id
+    )
+
     if not desenvolvedor:
         if not acesso or not acesso.ativo or not request.user.is_active or acesso.perfil != "UNIDADE" or acesso.funcao not in {"GESTOR", "MEMBRO"} or not acesso.unidade_id:
-            messages.error(request, "Apenas o gestor ou membro autorizado da OPM pode configurar seus documentos.")
+            messages.error(request, "Apenas usuários autorizados da OPM podem consultar estas configurações.")
             return redirect("painel_gestao")
         unidades = Unidade.objects.filter(pk=acesso.unidade_id, ativo=True)
         unidade_id = acesso.unidade_id
     else:
+        # O desenvolvedor pode consultar unidades para suporte, mas não alterar
+        # as exigências: a alteração é exclusiva do policial com função GESTOR.
         unidades = Unidade.objects.filter(ativo=True).order_by("sigla")
         unidade_id = request.POST.get("unidade") or request.GET.get("unidade")
 
@@ -80,6 +91,10 @@ def configuracoes_opm(request):
     ).filter(nome__icontains="Comandante").first()
 
     if request.method == "POST":
+        if not pode_editar:
+            messages.error(request, "Somente o policial com função Gestor da OPM pode alterar estas configurações.")
+            return redirect(f"{request.path}?unidade={unidade.pk}")
+
         ids_recebidos = set(request.POST.getlist("documentos"))
         ids_validos = {str(tipo.pk) for tipo in tipos_opcionais}
         if not ids_recebidos.issubset(ids_validos):
@@ -117,4 +132,5 @@ def configuracoes_opm(request):
         "tipos_documento": tipos_opcionais,
         "oficio": oficio,
         "eh_desenvolvedor": desenvolvedor,
+        "pode_editar": pode_editar,
     })
