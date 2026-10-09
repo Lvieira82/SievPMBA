@@ -12,7 +12,7 @@ from django.shortcuts import redirect, render
 from django.utils import timezone
 
 from .forms import SolicitacaoForm
-from .models import Solicitacao, DocumentoSolicitacao, TipoDocumento, Municipio, Bairro, Unidade
+from .models import Solicitacao, DocumentoSolicitacao, TipoDocumento, Municipio, Bairro, Unidade, ConfiguracaoUnidade
 from .leitor_multidatas import detectar_datas_oficio
 from .pdf_security import validar_pdf_upload
 from .territorio import bairros_do_municipio, municipio_tem_multiplas_unidades, validar_direcionamento
@@ -71,7 +71,7 @@ def _limpar_sessao(request):
     request.session.modified = True
 
 
-def _guardar_arquivos_temporarios(request):
+def _guardar_arquivos_temporarios(request, unidade=None):
     pasta = f"temp_multiplas/{uuid.uuid4().hex}"
     arquivos = []
     try:
@@ -103,6 +103,32 @@ def _guardar_arquivos_temporarios(request):
                 "tipo": tipos[indice] if indice < len(tipos) else "",
                 "descricao": descricoes[indice] if indice < len(descricoes) else "",
             })
+        # Anexa também cada documento obrigatório configurado para a OPM.
+        if unidade:
+            configuracoes = ConfiguracaoUnidade.objects.filter(
+                unidade=unidade, ativo=True, obrigatorio=True,
+                tipo_documento__isnull=False, tipo_documento__ativo=True,
+            ).select_related("tipo_documento")
+            for configuracao in configuracoes:
+                tipo = configuracao.tipo_documento
+                if "ofício" in tipo.nome.casefold() and "comandante" in tipo.nome.casefold():
+                    continue
+                campo = f"documento_opm_{tipo.pk}"
+                arquivo = request.FILES.get(campo)
+                if not arquivo:
+                    raise ValueError(f"O documento obrigatório \"{tipo.nome}\" não foi anexado.")
+                validar_pdf_upload(arquivo)
+                caminho = default_storage.save(
+                    f"{pasta}/opm_{tipo.pk}.pdf",
+                    ContentFile(arquivo.read()),
+                )
+                arquivo.seek(0)
+                arquivos.append({
+                    "campo": "documento_opm",
+                    "caminho": caminho,
+                    "tipo_id": tipo.pk,
+                    "descricao": tipo.nome,
+                })
     except Exception:
         _limpar_arquivos_temporarios(arquivos)
         raise
@@ -176,6 +202,18 @@ def _criar_solicitacao(dados, data_evento, hora_inicio, hora_fim, usuario, arqui
                 documento.arquivo.save("oficio_comandante.pdf", File(arquivo), save=True)
                 continue
 
+            if campo == "documento_opm":
+                tipo = TipoDocumento.objects.filter(pk=item.get("tipo_id"), ativo=True).first()
+                if not tipo:
+                    continue
+                documento = DocumentoSolicitacao(
+                    solicitacao=solicitacao,
+                    tipo_documento=tipo,
+                    descricao=item.get("descricao", tipo.nome),
+                )
+                documento.arquivo.save(f"documento_opm_{tipo.pk}.pdf", File(arquivo), save=True)
+                continue
+
             if campo != "documentos":
                 continue
 
@@ -233,16 +271,54 @@ def _enviar_email_recebimento(solicitacoes):
     )
 
 
+def _documentos_opm(unidade):
+    if not unidade:
+        return []
+    return list(
+        ConfiguracaoUnidade.objects.filter(
+            unidade=unidade, ativo=True, obrigatorio=True,
+            tipo_documento__isnull=False, tipo_documento__ativo=True,
+        ).exclude(
+            tipo_documento__nome__icontains="Ofício ao Comandante"
+        ).select_related("tipo_documento").order_by("tipo_documento__nome")
+    )
+
+
+def _adicionar_campos_documentos_opm(form, municipio):
+    if "bairro" not in form.fields:
+        return None
+    bairro_id = form.data.get("bairro") if form.is_bound else form.initial.get("bairro")
+    bairro = Bairro.objects.filter(pk=bairro_id, municipio=municipio, ativo=True).first() if bairro_id else None
+    try:
+        unidade = validar_direcionamento(municipio, bairro)
+    except Exception:
+        unidade = None
+    unidade = unidade or municipio.unidade_responsavel
+    for item in _documentos_opm(unidade):
+        tipo = item.tipo_documento
+        form.fields[f"documento_opm_{tipo.pk}"] = forms.FileField(
+            label=f"{tipo.nome} (PDF) *",
+            required=True,
+            validators=[validar_pdf_upload],
+            widget=forms.FileInput(attrs={"class": "form-control", "accept": ".pdf,application/pdf"}),
+        )
+    return unidade
+
+
 def _render_form(request, form, municipio):
     multiplas = municipio_tem_multiplas_unidades(municipio)
     if "bairro" in form.fields:
         form.fields["bairro"].queryset = bairros_do_municipio(municipio)
         form.fields["bairro"].required = multiplas
+    unidade = _adicionar_campos_documentos_opm(form, municipio)
     return render(request, TEMPLATE_FORMULARIO, {
         "form": form,
         "municipio": municipio,
         "multiplas_unidades": multiplas,
         "bairros": bairros_do_municipio(municipio),
+        "documentos_opm": _documentos_opm(unidade),
+        "unidade_documentos": unidade,
+        "url_documentos_opm": "/api/documentos-opm/",
     })
 
 
@@ -259,6 +335,7 @@ def nova_solicitacao(request):
     if "origem" in form.fields:
         form.fields.pop("origem")
     _configurar_form_territorial(form, municipio)
+    unidade_documentos = _adicionar_campos_documentos_opm(form, municipio)
 
     if not form.is_valid():
         return _render_form(request, form, municipio)
@@ -273,9 +350,12 @@ def nova_solicitacao(request):
     if municipio_tem_multiplas_unidades(municipio) and not unidade:
         form.add_error("bairro", "O bairro selecionado ainda não possui uma unidade responsável cadastrada.")
         return _render_form(request, form, municipio)
+    unidade = unidade or municipio.unidade_responsavel
+    # O conjunto de documentos é sempre recalculado no servidor para a OPM escolhida.
+    _adicionar_campos_documentos_opm(form, municipio)
 
     try:
-        arquivos = _guardar_arquivos_temporarios(request)
+        arquivos = _guardar_arquivos_temporarios(request, unidade)
         dados = _dados_para_sessao(form.cleaned_data, municipio, unidade)
     except Exception as erro:
         form.add_error(None, f"Não foi possível guardar temporariamente a solicitação: {erro}")
