@@ -52,7 +52,7 @@ document.addEventListener("click",function(event){if(event.target.id==="btnAdici
  const municipio=area.dataset.municipio;
  const api=area.dataset.api||"/api/documentos-opm/";
  function carregarDocumentos(){
-   const bairro=document.getElementById("id_bairro");
+   const bairro=document.getElementById("id_bairro")||document.querySelector('select[name="bairro"]')||document.querySelector('[name="bairro"]');
    const bairroId=bairro?bairro.value:"";
    fetch(api+"?municipio="+encodeURIComponent(municipio)+"&bairro="+encodeURIComponent(bairroId),{credentials:"same-origin",cache:"no-store"})
     .then(r=>{if(!r.ok)throw new Error("Falha ao consultar documentos");return r.json();})
@@ -77,9 +77,9 @@ document.addEventListener("click",function(event){if(event.target.id==="btnAdici
       }
     }).catch(()=>{area.innerHTML='<div class="erro-campo">Não foi possível carregar os documentos obrigatórios. Atualize a página e tente novamente.</div>';});
  }
- const bairro=document.getElementById("id_bairro");
- if(bairro)bairro.addEventListener("change",carregarDocumentos);
- if(bairro && bairro.value)carregarDocumentos();
+ const bairro=document.getElementById("id_bairro")||document.querySelector('select[name="bairro"]')||document.querySelector('[name="bairro"]');
+ if(bairro){bairro.addEventListener("change",carregarDocumentos);}
+ carregarDocumentos();
 })();
 document.addEventListener("change",function(event){if(event.target.classList.contains("tipo-documento")){const item=event.target.closest(".documento-item");if(!item)return;const descricao=item.querySelector(".descricao-outro");if(!descricao)return;descricao.style.display=event.target.value==="OUTRO"||event.target.value==="Outro"?"block":"none";}});
 </script>
