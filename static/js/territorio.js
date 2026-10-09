@@ -33,66 +33,57 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 function montarDirecionamentoTerritorial(form, dados) {
-    const existente = document.getElementById("id_bairro");
+    // Reaproveita o campo Bairro do formulário. Não cria um segundo seletor:
+    // este é o campo submetido pelo Django e usado para carregar documentos da OPM.
+    const existente = document.getElementById("id_bairro")
+        || form.querySelector('select[name="bairro"]');
 
-    // Remove o campo original, se o template já o renderizar.
-    if (existente) {
-        existente.closest(".mb-3, .form-group, .field-wrapper")?.remove();
+    // Atualiza o município visível, se já existir no template; caso contrário,
+    // apenas adiciona o campo informativo, sem criar outro campo de bairro.
+    let bloco = form.querySelector(".siev-territorio");
+    if (!bloco) {
+        bloco = document.createElement("div");
+        bloco.className = "mb-3 siev-territorio";
+        const titulo = document.createElement("label");
+        titulo.className = "form-label fw-bold";
+        titulo.textContent = "Município";
+        const municipio = document.createElement("input");
+        municipio.type = "text";
+        municipio.className = "form-control";
+        municipio.value = dados.municipio || "";
+        municipio.readOnly = true;
+        bloco.append(titulo, municipio);
+        form.prepend(bloco);
+    } else {
+        const campoMunicipio = bloco.querySelector("input");
+        if (campoMunicipio) campoMunicipio.value = dados.municipio || "";
     }
 
-    const bloco = document.createElement("div");
-    bloco.className = "mb-3 siev-territorio";
-
-    const titulo = document.createElement("label");
-    titulo.className = "form-label fw-bold";
-    titulo.textContent = "Município";
-
-    const municipio = document.createElement("input");
-    municipio.type = "text";
-    municipio.className = "form-control";
-    municipio.value = dados.municipio || "";
-    municipio.readOnly = true;
-
-    bloco.appendChild(titulo);
-    bloco.appendChild(municipio);
-
-    if (!dados.multiplas_unidades) {
-        form.prepend(bloco);
+    if (!existente) {
+        console.warn("SiEv: campo oficial de bairro não encontrado no formulário.");
         return;
     }
 
-    const label = document.createElement("label");
-    label.className = "form-label fw-bold mt-3";
-    label.setAttribute("for", "id_bairro");
-    label.textContent = "Bairro";
-
-    const select = document.createElement("select");
-    select.id = "id_bairro";
-    select.name = "bairro";
-    select.className = "form-select";
-    select.required = true;
-
+    // Remove opções antigas e preenche o mesmo campo com bairros válidos.
+    const valorAnterior = existente.value;
+    existente.replaceChildren();
     const vazio = document.createElement("option");
     vazio.value = "";
     vazio.textContent = "Selecione o bairro...";
-    select.appendChild(vazio);
+    existente.appendChild(vazio);
 
     (dados.bairros || []).forEach(bairro => {
         const option = document.createElement("option");
-        option.value = bairro.id;
-
-        const unidades = (bairro.unidades || [])
-            .map(item => item.nome)
-            .join(" / ");
-
-        option.textContent = unidades
-            ? `${bairro.nome} — ${unidades}`
-            : bairro.nome;
-
-        select.appendChild(option);
+        option.value = String(bairro.id);
+        const unidades = (bairro.unidades || []).map(item => item.nome).join(" / ");
+        option.textContent = unidades ? `${bairro.nome} — ${unidades}` : bairro.nome;
+        existente.appendChild(option);
     });
 
-    bloco.appendChild(label);
-    bloco.appendChild(select);
-    form.prepend(bloco);
+    existente.required = Boolean(dados.multiplas_unidades);
+    if (valorAnterior && Array.from(existente.options).some(option => option.value === valorAnterior)) {
+        existente.value = valorAnterior;
+    } else {
+        existente.value = "";
+    }
 }
