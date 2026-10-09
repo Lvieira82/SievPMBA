@@ -86,39 +86,55 @@ def lista_bairros(request, municipio_id):
     return lista_bairros_api(request, municipio_id)
 
 def documentos_opm_por_bairro(request):
-    """Retorna os documentos obrigatórios da OPM responsável pelo bairro."""
+    """Retorna os documentos obrigatórios configurados para a OPM do bairro."""
     bairro_id = request.GET.get("bairro")
     municipio_id = request.GET.get("municipio")
     municipio = Municipio.objects.filter(pk=municipio_id, ativo=True).first()
     if not municipio:
-        return JsonResponse({"documentos": []}, status=400)
+        return JsonResponse({"documentos": [], "erro": "Município inválido."}, status=400)
 
-    bairro = Bairro.objects.filter(pk=bairro_id, municipio=municipio, ativo=True).first() if bairro_id else None
-    try:
-        unidade = validar_direcionamento(municipio, bairro)
-    except Exception:
-        unidade = None
+    bairro = Bairro.objects.filter(
+        pk=bairro_id, municipio=municipio, ativo=True
+    ).first() if bairro_id else None
 
-    if not unidade:
+    unidade = None
+    if bairro:
+        # Resolve diretamente a área territorial, evitando depender de
+        # validações de formulário para uma simples consulta de documentos.
+        area = AreaResponsabilidade.objects.filter(
+            bairro=bairro, ativo=True, unidade__ativo=True
+        ).select_related("unidade").first()
+        if area:
+            unidade = area.unidade
+
+    if not unidade and bairro:
+        try:
+            unidade = validar_direcionamento(municipio, bairro)
+        except Exception:
+            unidade = None
+
+    if not unidade and not bairro:
         unidade = municipio.unidade_responsavel
 
     if not unidade:
-        return JsonResponse({"documentos": []})
+        return JsonResponse({"unidade": "", "documentos": []})
 
     documentos = ConfiguracaoUnidade.objects.filter(
-        unidade=unidade, ativo=True, obrigatorio=True,
-        tipo_documento__isnull=False, tipo_documento__ativo=True,
+        unidade_id=unidade.pk,
+        ativo=True,
+        obrigatorio=True,
+        tipo_documento__isnull=False,
+        tipo_documento__ativo=True,
     ).select_related("tipo_documento").order_by("tipo_documento__nome")
 
-    return JsonResponse({
-        "unidade": unidade.sigla,
-        "documentos": [
-            {"id": item.tipo_documento_id, "nome": item.tipo_documento.nome}
-            for item in documentos
-            if "ofício" not in item.tipo_documento.nome.casefold()
-            or "comandante" not in item.tipo_documento.nome.casefold()
-        ],
-    })
+    lista = []
+    for item in documentos:
+        nome = (item.tipo_documento.nome or "").strip()
+        if "ofício" in nome.casefold() and "comandante" in nome.casefold():
+            continue
+        lista.append({"id": item.tipo_documento_id, "nome": nome})
+
+    return JsonResponse({"unidade": unidade.sigla, "documentos": lista})
 
 
 def _configurar_bairro_form(form, municipio):
