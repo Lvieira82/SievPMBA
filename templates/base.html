@@ -42,6 +42,7 @@
                         <li><a href="{% url 'opos_geradas' %}" title="Documentação / OPO"><i class="bi bi-folder2-open"></i><span>Documentação / OPO</span></a></li>
                         <li><a href="{% url 'listar_pendentes_opo' %}" title="Gerar OPO"><i class="bi bi-file-earmark-pdf"></i><span>Gerar OPO</span></a></li>
                         <li><a href="{% url 'lancamento_manual' %}" title="Lançamento Interno"><i class="bi bi-pencil-square"></i><span>Lançamento Interno</span></a></li>
+                        <li><a href="{% url 'configuracoes_opm' %}" title="Configurações da OPM"><i class="bi bi-sliders"></i><span>Configurações da OPM</span></a></li>
                     {% endif %}
                     {% if user.acesso_institucional.perfil == "UNIDADE" %}
                         <li><a href="{% url 'administracao_sistema' %}" title="Administração"><i class="bi bi-gear"></i><span>Administração</span></a>
