@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}Configurações da OPM{% endblock %}
+{% block content %}
+<style>
+.config-opm{max-width:1000px;margin:28px auto;padding:0 16px}.config-opm h1{color:#907c64;font-size:30px;margin-bottom:8px}.config-sub{color:#6b7280;margin-bottom:22px}.config-box{background:#fff;border-radius:14px;padding:24px;box-shadow:0 5px 18px rgba(0,0,0,.07);margin-bottom:18px}.doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}.doc-option{display:flex;gap:12px;align-items:flex-start;padding:14px;border:1px solid #e5e7eb;border-radius:10px;background:#fff}.doc-option:has(input:checked){border-color:#907c64;background:#faf8f5}.doc-option input{margin-top:4px;width:18px;height:18px;accent-color:#907c64;flex-shrink:0}.doc-name{font-weight:700;color:#1f2937}.doc-desc{font-size:12px;color:#6b7280;margin-top:3px}.doc-required{display:flex;align-items:center;gap:10px;padding:14px;border:1px solid #bbf7d0;background:#f0fdf4;border-radius:10px;margin-bottom:18px}.btn-salvar{background:#907c64;color:#fff;border:0;border-radius:8px;padding:11px 18px;font-weight:700}.btn-salvar:hover{background:#78664f;color:#fff}.unit-select{max-width:420px}.config-actions{display:flex;justify-content:flex-end;margin-top:22px}
+</style>
+<div class="config-opm">
+  <h1><i class="bi bi-sliders"></i> Configurações da OPM</h1>
+  <p class="config-sub">Defina quais documentos, além do Ofício ao Comandante, deverão ser apresentados nas solicitações encaminhadas à sua unidade.</p>
+  {% if eh_desenvolvedor %}
+  <div class="config-box">
+    <form method="get">
+      <label for="unidade" class="form-label fw-bold">OPM para configurar</label>
+      <div class="d-flex gap-2 flex-wrap">
+        <select class="form-select unit-select" id="unidade" name="unidade" required>
+          {% for item in unidades %}<option value="{{ item.pk }}" {% if item.pk == unidade.pk %}selected{% endif %}>{{ item.sigla }} — {{ item.nome }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-outline-secondary" type="submit">Selecionar</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {% if eh_desenvolvedor %}<input type="hidden" name="unidade" value="{{ unidade.pk }}">{% endif %}
+    <div class="config-box">
+      <h2 class="h5 mb-3">Documento obrigatório para todas as OPMs</h2>
+      <div class="doc-required">
+        <i class="bi bi-file-earmark-check fs-4 text-success"></i>
+        <div><div class="doc-name">Ofício ao Comandante</div><div class="doc-desc">Permanece obrigatório para todas as unidades e não pode ser desmarcado nesta tela.</div></div>
+        <span class="badge text-bg-success ms-auto">Obrigatório</span>
+      </div>
+      <h2 class="h5 mb-2">Documentos adicionais exigidos por {{ unidade.sigla }}</h2>
+      <p class="text-secondary small">Marque somente os documentos que esta OPM exige. A lista usa os tipos de documentos já cadastrados no SIEVPMBA.</p>
+      {% if tipos_documento %}
+      <div class="doc-grid">
+        {% for tipo in tipos_documento %}
+        <label class="doc-option">
+          <input type="checkbox" name="documentos" value="{{ tipo.pk }}" {% if tipo.pk in selecionados %}checked{% endif %}>
+          <span><span class="doc-name">{{ tipo.nome }}</span>{% if tipo.descricao %}<div class="doc-desc">{{ tipo.descricao }}</div>{% endif %}</span>
+        </label>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-warning mb-0">Não há tipos de documentos ativos cadastrados no sistema. Nenhum documento novo foi criado por esta tela.</div>
+      {% endif %}
+      <div class="config-actions"><button class="btn btn-salvar" type="submit"><i class="bi bi-check2-circle"></i> Salvar configurações</button></div>
+    </div>
+  </form>
+</div>
+{% endblock %}
