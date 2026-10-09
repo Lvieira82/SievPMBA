@@ -10,6 +10,7 @@
 {% if form.errors %}<div class="erro"><strong>⚠ Corrija os seguintes erros antes de enviar:</strong><ul>{% for field in form %}{% for error in field.errors %}<li><strong>{{ field.label }}:</strong> {{ error }}</li>{% endfor %}{% endfor %}{% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}</ul></div>{% endif %}
 <div id="areaFormulario"><form method="post" enctype="multipart/form-data" id="form-solicitacao">{% csrf_token %}{% if solicitacao %}<input type="hidden" name="correcao" value="1">{% endif %}
 <div class="grid">
+{% if form.bairro %}<div class="full"><label for="{{ form.bairro.id_for_label }}">Bairro *</label>{{ form.bairro }}{% if form.bairro.errors %}<div class="erro-campo">{{ form.bairro.errors.0 }}</div>{% endif %}</div>{% endif %}
 <div><label>Nome do Responsável *</label>{{ form.solicitante }}{% if form.solicitante.errors %}<div class="erro-campo">{{ form.solicitante.errors.0 }}</div>{% endif %}</div>
 <div><label>CPF *</label>{{ form.cpf }}{% if form.cpf.errors %}<div class="erro-campo">{{ form.cpf.errors.0 }}</div>{% endif %}</div>
 <div><label>Telefone *</label>{{ form.telefone }}{% if form.telefone.errors %}<div class="erro-campo">{{ form.telefone.errors.0 }}</div>{% endif %}</div>
