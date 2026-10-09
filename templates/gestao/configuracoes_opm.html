@@ -36,7 +36,7 @@
       <div class="doc-grid">
         {% for tipo in tipos_documento %}
         <label class="doc-option">
-          <input type="checkbox" name="documentos" value="{{ tipo.pk }}" {% if tipo.pk in selecionados %}checked{% endif %}>
+          <input type="checkbox" name="documentos" value="{{ tipo.pk }}" {% if tipo.pk in selecionados %}checked{% endif %} {% if not pode_editar %}disabled{% endif %}>
           <span><span class="doc-name">{{ tipo.nome }}</span>{% if tipo.descricao %}<div class="doc-desc">{{ tipo.descricao }}</div>{% endif %}</span>
         </label>
         {% endfor %}
@@ -44,7 +44,11 @@
       {% else %}
       <div class="alert alert-warning mb-0">Não há tipos de documentos ativos cadastrados no sistema. Nenhum documento novo foi criado por esta tela.</div>
       {% endif %}
+      {% if pode_editar %}
       <div class="config-actions"><button class="btn btn-salvar" type="submit"><i class="bi bi-check2-circle"></i> Salvar configurações</button></div>
+      {% else %}
+      <div class="alert alert-info mt-3 mb-0">Modo de consulta: somente o policial na função de Gestor da OPM pode alterar e salvar estas exigências.</div>
+      {% endif %}
     </div>
   </form>
 </div>
