@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.shortcuts import redirect
 
 from apps.solicitacoes.portal_views import (
-    consultar_protocolo, corrigir_solicitacao, lista_bairros,
+    consultar_protocolo, corrigir_solicitacao, lista_bairros, documentos_opm_por_bairro,
     lista_municipios, listar_unidades, nova_solicitacao, portal,
     selecionar_unidade,
 )
@@ -113,6 +113,7 @@ urlpatterns = [
     path("pesquisa/<str:token>/", responder_pesquisa, name="responder_pesquisa"),
     path("api/municipios/", lista_municipios, name="lista_municipios"),
     path("api/municipios/<int:municipio_id>/bairros/", lista_bairros, name="lista_bairros"),
+    path("api/documentos-opm/", documentos_opm_por_bairro, name="documentos_opm_por_bairro"),
     path("api/unidades/<int:cpr_id>/", listar_unidades, name="listar_unidades"),
     path("api/gestao/municipios/<int:municipio_id>/bairros/", bairros_por_municipio, name="bairros_por_municipio"),
     path("eventos-do-dia/", eventos_dia, name="eventos_dia"),
