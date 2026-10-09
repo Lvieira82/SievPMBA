@@ -33,9 +33,51 @@ def configuracoes_opm(request):
         messages.error(request, "Não foi possível identificar uma OPM ativa para configurar.")
         return redirect("painel_gestao")
 
-    tipos = list(TipoDocumento.objects.filter(ativo=True).order_by("nome"))
-    tipos_opcionais = [tipo for tipo in tipos if not _nome_oficio(tipo)]
-    oficio = next((tipo for tipo in tipos if _nome_oficio(tipo)), None)
+    # Lista oficial de tipos já utilizada pelo formulário público do SIEVPMBA.
+    # Mantém os nomes e a ordem existentes no sistema, mesmo que algum tipo
+    # ainda não tenha sido cadastrado na tabela TipoDocumento deste ambiente.
+    nomes_documentos_siev = [
+        "Corpo de Bombeiros",
+        "Vigilância Sanitária",
+        "Meio Ambiente",
+        "Ministério Público",
+        "TAC",
+        "CREA",
+        "CRM",
+        "CRMV",
+        "CRO",
+        "IBAMA",
+        "INEMA",
+        "Prefeitura",
+        "Polícia Civil",
+        "Exército Brasileiro",
+        "Marinha do Brasil",
+        "PRF",
+        "DETRAN",
+        "Defesa Civil",
+        "ANAC",
+        "DNIT",
+        "DERBA / SIT",
+        "Outro Documento",
+    ]
+
+    # Garante que cada opção já existente no formulário tenha um registro
+    # correspondente para poder ser associada à unidade, sem criar tabelas.
+    tipos_por_nome = {}
+    for nome in nomes_documentos_siev:
+        tipo, _ = TipoDocumento.objects.get_or_create(
+            nome=nome,
+            defaults={"descricao": nome, "ativo": True},
+        )
+        if not tipo.ativo:
+            tipo.ativo = True
+            tipo.save(update_fields=["ativo"])
+        tipos_por_nome[nome] = tipo
+
+    tipos_opcionais = [tipos_por_nome[nome] for nome in nomes_documentos_siev]
+    oficio = TipoDocumento.objects.filter(ativo=True).filter(
+        nome__icontains="Ofício"
+    ).filter(nome__icontains="Comandante").first()
 
     if request.method == "POST":
         ids_recebidos = set(request.POST.getlist("documentos"))
