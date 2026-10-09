@@ -12,7 +12,9 @@ from django.utils import timezone
 
 from .forms import CorrecaoSolicitacaoForm, SolicitacaoForm
 from .models import (
+    AreaResponsabilidade,
     Bairro,
+    ConfiguracaoUnidade,
     DocumentoSolicitacao,
     Municipio,
     Solicitacao,
@@ -83,6 +85,41 @@ def lista_municipios(request):
 def lista_bairros(request, municipio_id):
     return lista_bairros_api(request, municipio_id)
 
+def documentos_opm_por_bairro(request):
+    """Retorna os documentos obrigatórios da OPM responsável pelo bairro."""
+    bairro_id = request.GET.get("bairro")
+    municipio_id = request.GET.get("municipio")
+    municipio = Municipio.objects.filter(pk=municipio_id, ativo=True).first()
+    if not municipio:
+        return JsonResponse({"documentos": []}, status=400)
+
+    bairro = Bairro.objects.filter(pk=bairro_id, municipio=municipio, ativo=True).first() if bairro_id else None
+    try:
+        unidade = validar_direcionamento(municipio, bairro)
+    except Exception:
+        unidade = None
+
+    if not unidade:
+        unidade = municipio.unidade_responsavel
+
+    if not unidade:
+        return JsonResponse({"documentos": []})
+
+    documentos = ConfiguracaoUnidade.objects.filter(
+        unidade=unidade, ativo=True, obrigatorio=True,
+        tipo_documento__isnull=False, tipo_documento__ativo=True,
+    ).select_related("tipo_documento").order_by("tipo_documento__nome")
+
+    return JsonResponse({
+        "unidade": unidade.sigla,
+        "documentos": [
+            {"id": item.tipo_documento_id, "nome": item.tipo_documento.nome}
+            for item in documentos
+            if "ofício" not in item.tipo_documento.nome.casefold()
+            or "comandante" not in item.tipo_documento.nome.casefold()
+        ],
+    })
+
 
 def _configurar_bairro_form(form, municipio):
     if "bairro" not in form.fields:
@@ -144,6 +181,20 @@ def nova_solicitacao(request):
                 if multiplas and not unidade:
                     form.add_error("bairro", "O bairro selecionado ainda não possui uma unidade responsável cadastrada.")
                 else:
+                    unidade = unidade or municipio.unidade_responsavel
+                    configuracoes_obrigatorias = ConfiguracaoUnidade.objects.filter(
+                        unidade=unidade, ativo=True, obrigatorio=True,
+                        tipo_documento__isnull=False, tipo_documento__ativo=True,
+                    ).select_related("tipo_documento") if unidade else ConfiguracaoUnidade.objects.none()
+                    faltantes = [
+                        item.tipo_documento.nome for item in configuracoes_obrigatorias
+                        if "ofício" not in item.tipo_documento.nome.casefold()
+                        or "comandante" not in item.tipo_documento.nome.casefold()
+                        if not request.FILES.get(f"documento_opm_{item.tipo_documento_id}")
+                    ]
+                    if faltantes:
+                        form.add_error(None, "Envie todos os documentos obrigatórios da OPM: " + ", ".join(faltantes) + ".")
+                        return _render_nova(request, form, municipio)
                     solicitacao = form.save(commit=False)
                     solicitacao.municipio = municipio
                     solicitacao.unidade = unidade
@@ -201,6 +252,28 @@ def _salvar_documentos(request, solicitacao):
             )
         except Exception as erro:
             messages.error(request, f"Documento rejeitado: {erro}")
+
+    # Salva os documentos que a OPM marcou como obrigatórios.
+    if solicitacao.unidade_id:
+        obrigatorios = ConfiguracaoUnidade.objects.filter(
+            unidade_id=solicitacao.unidade_id, ativo=True, obrigatorio=True,
+            tipo_documento__isnull=False, tipo_documento__ativo=True,
+        ).select_related("tipo_documento")
+        for configuracao in obrigatorios:
+            tipo = configuracao.tipo_documento
+            if "ofício" in tipo.nome.casefold() and "comandante" in tipo.nome.casefold():
+                continue
+            arquivo_configurado = request.FILES.get(f"documento_opm_{tipo.pk}")
+            if not arquivo_configurado:
+                continue
+            validar_pdf_upload(arquivo_configurado)
+            arquivo_configurado = _pdf_para_armazenar(arquivo_configurado)
+            DocumentoSolicitacao.objects.create(
+                solicitacao=solicitacao,
+                tipo_documento=tipo,
+                descricao=tipo.nome,
+                arquivo=arquivo_configurado,
+            )
 
     tipos = request.POST.getlist("tipo_documento")
     descricoes = request.POST.getlist("descricao_documento")
