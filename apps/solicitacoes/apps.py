@@ -8,9 +8,8 @@ class SolicitacoesConfig(AppConfig):
     def ready(self):
         from django.conf import settings
 
-        if not settings.DEBUG:
-            from .scheduler import iniciar_scheduler
-            iniciar_scheduler()
+        # O agendamento é executado exclusivamente pelo Render Cron Job.
+        # Nao iniciar APScheduler nos workers web: isso pode duplicar envios.
 
         # Registra os sinais de criação de usuários institucionais.
         from . import signals  # noqa: F401
