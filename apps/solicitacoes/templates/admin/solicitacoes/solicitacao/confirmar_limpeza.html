@@ -1,0 +1,35 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Confirmar limpeza de solicitações</h1>
+  <p>
+    Você está prestes a excluir permanentemente <strong>{{ quantidade }}</strong>
+    solicitação(ões) selecionada(s), junto com os documentos, anexos, históricos
+    e transferências associados.
+  </p>
+  <p>
+    <strong>Os registros de Log serão preservados</strong>, mas ficarão sem vínculo
+    com a solicitação excluída. Usuários, unidades, municípios, bairros e configurações
+    do sistema não serão excluídos por esta ação.
+  </p>
+
+  <h2>Solicitações selecionadas</h2>
+  <ul>
+    {% for solicitacao in solicitacoes %}
+      <li>{{ solicitacao.protocolo }} — {{ solicitacao.nome_evento }}</li>
+    {% endfor %}
+  </ul>
+
+  <p><strong>Esta operação não pode ser desfeita pelo painel.</strong> Confirme que existe um backup recente do banco de dados.</p>
+
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="limpar_solicitacoes_selecionadas">
+    <input type="hidden" name="confirmar_limpeza" value="sim">
+    {% for pk in selected_ids %}
+      <input type="hidden" name="_selected_action" value="{{ pk }}">
+    {% endfor %}
+    <button type="submit" class="default">Sim, excluir as solicitações selecionadas</button>
+    <a href="{% url 'admin:solicitacoes_solicitacao_changelist' %}" class="button cancel-link">Cancelar</a>
+  </form>
+{% endblock %}
