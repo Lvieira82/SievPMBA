@@ -102,14 +102,28 @@ def eventos_dia_resultado(request):
             request.session.pop("eventos_municipio_publico_id",None)
             return redirect("eventos_dia")
         hoje=timezone.localdate()
-        eventos=Solicitacao.objects.filter(status="APROVADA",municipio_id=municipio.id).filter(
-            _filtro_evento_ativo(hoje)
-        ).select_related("municipio","unidade","bairro").order_by("hora_inicio","nome_evento")
+        try:
+            data_inicio=datetime.strptime(request.session.get("eventos_data_inicio_publico",""),"%Y-%m-%d").date()
+            data_fim=datetime.strptime(request.session.get("eventos_data_fim_publico",""),"%Y-%m-%d").date()
+        except (TypeError,ValueError):
+            return redirect("eventos_dia")
+        limite_data=hoje+timedelta(days=15)
+        if data_inicio < hoje or data_fim > limite_data or data_fim < data_inicio:
+            for chave in ("eventos_municipio_publico_id","eventos_data_inicio_publico","eventos_data_fim_publico"):
+                request.session.pop(chave,None)
+            messages.error(request,"A consulta expirou ou as datas estão fora do período permitido. Faça uma nova consulta.")
+            return redirect("eventos_dia")
+        eventos=Solicitacao.objects.filter(
+            status="APROVADA", municipio_id=municipio.id,
+            data_evento__gte=data_inicio, data_evento__lte=data_fim,
+        ).select_related("municipio","unidade","bairro").order_by("data_evento","hora_inicio","nome_evento")
         return render(request,"solicitacoes/eventos_dia_resultado.html",{
             "eventos":eventos,
             "municipio_publico":municipio,
-            "data":hoje,
-            "data_eventos":hoje,
+            "data":data_inicio,
+            "data_eventos":data_inicio,
+            "data_inicio":data_inicio,
+            "data_fim":data_fim,
             "publico":True,
         })
 
