@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Eventos do Dia - SiEv{% endblock %}
+{% block title %}{% if publico %}Próximos Eventos{% else %}Eventos do Dia{% endif %} - SiEv{% endblock %}
 
 {% block css %}
 <style>
@@ -33,8 +33,9 @@
 <div class="pagina-eventos">
     <div class="card-eventos">
         <div class="cabecalho-eventos">
-            <h1>📅 Eventos do Dia</h1>
-            {% if data_eventos %}<div class="data-eventos">{{ data_eventos|date:"d/m/Y" }}</div>{% endif %}
+            <h1>📅 {% if publico %}Próximos Eventos{% else %}Eventos do Dia{% endif %}</h1>
+            {% if publico %}<div class="data-eventos">{{ data_inicio|date:"d/m/Y" }} até {{ data_fim|date:"d/m/Y" }}</div>{% elif data_eventos %}<div class="data-eventos">{{ data_eventos|date:"d/m/Y" }}</div>{% endif %}
+            {% if publico and municipio_publico %}<div class="data-eventos">Município: {{ municipio_publico.nome }}</div>{% endif %}
         </div>
 
         {% if not publico %}
@@ -71,7 +72,7 @@
                 </div>
             {% endfor %}
         {% else %}
-            <div class="nenhum-evento">{% if publico %}Não há eventos registrados pela PM neste município para hoje!{% else %}Não há eventos/OPOs aprovados para hoje nesta unidade.{% endif %}</div>
+            <div class="nenhum-evento">{% if publico %}Não há eventos aprovados pela PM neste município no período selecionado.{% else %}Não há eventos/OPOs aprovados para hoje nesta unidade.{% endif %}</div>
         {% endif %}
 
         <div class="acoes-evento">
