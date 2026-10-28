@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Eventos do Dia - SiEv{% endblock %}
+{% block title %}Próximos Eventos - SiEv{% endblock %}
 
 {% block css %}
 <style>
@@ -12,8 +12,9 @@
 <div class="pagina-eventos">
     <a href="{% url 'portal' %}" class="btn-voltar-inicio"><i class="bi bi-house-door-fill" aria-hidden="true"></i><span>Voltar à página inicial</span></a>
     <div class="card-eventos">
-        <h1>📅 Eventos do Dia</h1>
-        <p class="subtitulo">{% if consulta_publica %}Selecione o município para consultar os eventos da PMBA programados para hoje.{% else %}Consulte as OPOs autorizadas para a sua unidade e abra os detalhes da OPO.{% endif %}</p>
+        <h1>📅 {% if consulta_publica %}Próximos Eventos{% else %}Eventos do Dia{% endif %}</h1>
+        <p class="subtitulo">{% if consulta_publica %}Consulte os eventos da PMBA previstos para um município, escolhendo um período de até 15 dias a partir de hoje.{% else %}Consulte as OPOs autorizadas para a sua unidade e abra os detalhes da OPO.{% endif %}</p>
+        {% if erro %}<div class="mensagem-eventos">{{ erro }}</div>{% endif %}
 
         {% if messages %}{% for message in messages %}<div class="mensagem-eventos {% if message.tags == 'success' %}sucesso{% endif %}">{{ message }}</div>{% endfor %}{% endif %}
 
@@ -31,7 +32,12 @@
             <input type="text" id="pesquisaMunicipio" placeholder="Digite o município..." autocomplete="off" required>
             <input type="hidden" id="municipioSelecionado" name="municipio">
             <div id="listaMunicipios" class="list-group mt-2"></div>
-            <button type="submit" id="btnContinuar" class="btn-consultar-eventos">Consultar Eventos</button>
+            <label for="data_inicio">Data inicial</label>
+            <input type="date" id="data_inicio" name="data_inicio" min="{{ hoje }}" max="{{ limite_data }}" value="{{ data_inicio_valor|default:hoje }}" required>
+            <label for="data_fim">Data final</label>
+            <input type="date" id="data_fim" name="data_fim" min="{{ hoje }}" max="{{ limite_data }}" value="{{ data_fim_valor|default:hoje }}" required>
+            <p class="text-muted" style="font-size:13px;margin-top:-8px">As duas datas são obrigatórias e devem ficar entre hoje e os próximos 15 dias.</p>
+            <button type="submit" id="btnContinuar" class="btn-consultar-eventos">Consultar Próximos Eventos</button>
         </form>
         {% else %}
         <form id="form-eventos" method="POST" class="form-eventos">
@@ -69,7 +75,12 @@ if(pesquisaMunicipio){
       }).catch(()=>{});
   });
   document.getElementById('form-eventos').addEventListener('submit',function(e){
-    if(!municipioSelecionado.value){e.preventDefault();alert('Selecione um município.');}
+    if(!municipioSelecionado.value){e.preventDefault();alert('Selecione um município da lista.');return;}
+    const inicio=document.getElementById('data_inicio').value;
+    const fim=document.getElementById('data_fim').value;
+    if(!inicio||!fim){e.preventDefault();alert('Informe a data inicial e a data final.');return;}
+    if(fim<inicio){e.preventDefault();alert('A data final não pode ser anterior à inicial.');return;}
+    if(inicio<'{{ hoje }}'||fim>'{{ limite_data }}'){e.preventDefault();alert('Escolha datas entre hoje e os próximos 15 dias.');}
   });
 }
 {% else %}
