@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 from django.utils import timezone
 
-from apps.solicitacoes.models import Solicitacao, PerfilUsuario
+from apps.solicitacoes.models import Solicitacao, PerfilUsuario, COPPM, CPR, Unidade
 from apps.solicitacoes.models_apoio import ApoioEvento
 from apps.solicitacoes.permissoes import (
     acesso_do_usuario,
@@ -42,10 +42,25 @@ def painel_gestao(request):
         return redirect("login_gestao")
 
     unidades = escopo_unidades(user)
+    visao_desenvolvedor = request.session.get("siev_visao_desenvolvedor") if user.is_superuser else None
     if eh_desenvolvedor(user):
         solicitacoes = Solicitacao.objects.all()
         titulo = "Administração do Sistema"
         nivel = "DESENVOLVEDOR"
+        if visao_desenvolvedor:
+            tipo = visao_desenvolvedor.get("tipo")
+            objeto_id = visao_desenvolvedor.get("id")
+            if tipo == "COPPM":
+                solicitacoes = solicitacoes.filter(unidade__cpr__coppm_id=objeto_id)
+            elif tipo == "CPR":
+                solicitacoes = solicitacoes.filter(unidade__cpr_id=objeto_id)
+            elif tipo == "UNIDADE":
+                solicitacoes = solicitacoes.filter(unidade_id=objeto_id)
+            else:
+                visao_desenvolvedor = None
+            if visao_desenvolvedor:
+                titulo = f"Visão: {visao_desenvolvedor.get('rotulo', 'âmbito selecionado')}"
+                nivel = tipo
     else:
         acesso = acesso_do_usuario(user)
         solicitacoes = Solicitacao.objects.filter(unidade__in=unidades)
@@ -67,6 +82,7 @@ def painel_gestao(request):
         "nivel": nivel,
         "funcao": "DESENVOLVEDOR" if eh_desenvolvedor(user) else acesso.funcao,
         "titulo_painel": titulo,
+        "visao_desenvolvedor": visao_desenvolvedor,
         "descricao_acesso": descricao_acesso(user),
         "eh_desenvolvedor": eh_desenvolvedor(user),
         "eh_gestor": eh_gestor(user),
