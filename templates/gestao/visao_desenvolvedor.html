@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Visão institucional{% endblock %}
+{% block titulo %}Visão institucional{% endblock %}
+{% block content %}
+<style>
+.visao-wrap{max-width:850px;margin:24px auto;padding:0 14px}.visao-card{background:#fff;border-radius:16px;padding:26px;box-shadow:0 5px 18px rgba(0,0,0,.08)}.visao-card h1{color:#907c64;font-size:28px}.visao-card p{color:#4b5563}.visao-card label{display:block;font-weight:700;margin:16px 0 7px}.visao-card select,.visao-card input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;background:#fff}.visao-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.visao-btn{display:inline-block;border:0;border-radius:8px;padding:12px 17px;background:#907c64;color:#fff;text-decoration:none;font-weight:700}.visao-btn.sec{background:#f3f4f6;color:#374151;border:1px solid #d1d5db}
+</style>
+<div class="visao-wrap"><div class="visao-card">
+<h1>🔎 Visão institucional</h1>
+<p>Como desenvolvedor, selecione o âmbito que deseja consultar. Não é necessário criar uma conta individual para cada CPR ou unidade.</p>
+<form method="post">
+{% csrf_token %}
+<label for="tipo">Âmbito</label>
+<select id="tipo" name="tipo" required>
+<option value="">Selecione...</option><option value="COPPM">COPPM / Comando</option><option value="CPR">CPR</option><option value="UNIDADE">Unidade operacional</option>
+</select>
+<label for="objeto_id">Pesquisar e selecionar</label>
+<input id="filtro" type="search" placeholder="Digite a sigla ou o nome para filtrar a lista..." autocomplete="off">
+<select id="objeto_id" name="objeto_id" required size="7">
+<option value="">Primeiro selecione o âmbito</option>
+{% for item in coppms %}<option data-tipo="COPPM" value="{{ item.pk }}">{{ item.sigla }} — {{ item.nome }}</option>{% endfor %}
+{% for item in cprs %}<option data-tipo="CPR" value="{{ item.pk }}">{{ item.sigla }} — {{ item.nome }} ({{ item.coppm.sigla }})</option>{% endfor %}
+{% for item in unidades %}<option data-tipo="UNIDADE" value="{{ item.pk }}">{{ item.sigla }} — {{ item.nome }} ({{ item.cpr.sigla }})</option>{% endfor %}
+</select>
+<div class="visao-actions"><button class="visao-btn" type="submit">Abrir painel deste âmbito</button><a class="visao-btn sec" href="{% url 'painel_gestao' %}">Cancelar</a></div>
+</form></div></div>
+<script>
+(function(){
+const tipo=document.getElementById('tipo'), lista=document.getElementById('objeto_id'), filtro=document.getElementById('filtro');
+const opcoes=Array.from(lista.querySelectorAll('option[data-tipo]'));
+function atualizar(){const escolhido=tipo.value;const termo=filtro.value.toLocaleLowerCase();let visiveis=0;opcoes.forEach(o=>{const mostrar=(!escolhido||o.dataset.tipo===escolhido)&&o.textContent.toLocaleLowerCase().includes(termo);o.hidden=!mostrar;o.disabled=!mostrar;if(mostrar)visiveis++;});if(lista.value && (lista.selectedOptions[0]?.hidden))lista.value='';}
+tipo.addEventListener('change',atualizar);filtro.addEventListener('input',atualizar);atualizar();
+})();
+</script>
+{% endblock %}
