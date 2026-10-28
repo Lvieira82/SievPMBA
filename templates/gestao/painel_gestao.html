@@ -7,6 +7,7 @@
 <div class="painel">
   <h1>⚙️ {{ titulo_painel|default:'Painel' }}</h1>
   <p class="subacesso">Acesso: {{ descricao_acesso }}</p>
+  {% if eh_desenvolvedor %}<div style="display:flex;gap:10px;flex-wrap:wrap;margin:0 0 20px"><a href="{% url 'visao_desenvolvedor' %}" class="btn-detalhes">🔎 Visão institucional</a>{% if visao_desenvolvedor %}<span style="align-self:center;color:#374151;font-weight:700">Visualizando: {{ visao_desenvolvedor.rotulo }}</span><a href="{% url 'sair_visao_desenvolvedor' %}" class="btn-detalhes" style="background:#374151">Voltar à visão geral</a>{% endif %}</div>{% endif %}
   <div class="cards">
     {% if eh_desenvolvedor %}
       <a href="{% url 'administracao_sistema' %}" class="card-painel"><div class="icone">⚙️</div><h2>Administração</h2><p>Cadastrar e gerenciar usuários institucionais.</p></a>
