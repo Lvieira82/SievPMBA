@@ -48,6 +48,7 @@ from apps.solicitacoes.views.dashboard import dashboard
 from apps.solicitacoes.views.analise import analise_unidades
 from apps.solicitacoes.views.eventos import eventos_dia, eventos_dia_resultado
 from apps.solicitacoes.views.painel_acesso import painel_gestao
+from apps.solicitacoes.views.visao_desenvolvedor import visao_desenvolvedor, sair_visao_desenvolvedor
 from apps.solicitacoes.views.cumprimento_opo import cumprimento_opo, abrir_opo_operador, abrir_oficio_comandante_operador
 from apps.solicitacoes.views.agenda_gestao_segura import agenda_gestao_segura, proximos_eventos_gestao_seguro
 from apps.solicitacoes.views.protocolo import (
@@ -128,6 +129,8 @@ urlpatterns = [
     path("gestao/primeiro-acesso/senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
     path("logout/", logout_gestao_seguro, name="logout_gestao"),
     path("painel/", painel_gestao, name="painel_gestao"),
+    path("gestao/visao/", visao_desenvolvedor, name="visao_desenvolvedor"),
+    path("gestao/visao/sair/", sair_visao_desenvolvedor, name="sair_visao_desenvolvedor"),
     path("gestao/configuracoes-opm/", configuracoes_opm, name="configuracoes_opm"),
     path("gestao/analise/", analise_unidades, name="analise_unidades"),
     path("gestao/administracao/", administracao_sistema, name="administracao_sistema"),
