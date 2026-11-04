@@ -35,15 +35,32 @@ def _formatar_duracao(delta):
 def _tempo_aceite_envio(request):
     if not request.user.is_superuser:
         return _negar(request, "Esta visualização está disponível somente para o Administrador.")
-    logs = LogSistema.objects.filter(acao="TEMPO_ACEITE_TERMO_ATE_ENVIO").select_related("solicitacao")
+    # Somente medições vinculadas a solicitações externas ainda existentes.
+    # O middleware antigo também criava medições, podendo duplicar o registro
+    # criado pela própria submissão. Mantemos os dados no banco, mas exibimos
+    # apenas uma medição por solicitação (a mais recente).
+    logs = (
+        LogSistema.objects
+        .filter(
+            acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
+            solicitacao__isnull=False,
+            solicitacao__origem="EXTERNA",
+        )
+        .select_related("solicitacao")
+        .order_by("-criado_em", "-id")
+    )
     valores = []
+    solicitacoes_processadas = set()
     for log in logs:
+        if log.solicitacao_id in solicitacoes_processadas:
+            continue
         try:
             segundos = float((log.detalhes or "").split("segundos=", 1)[1].split()[0])
         except (IndexError, ValueError):
             continue
         if 0 <= segundos <= 24 * 60 * 60:
             valores.append((log, segundos))
+            solicitacoes_processadas.add(log.solicitacao_id)
     total = len(valores)
     media = sum(v for _, v in valores) / total if total else 0
     minimo = min((v for _, v in valores), default=0)
