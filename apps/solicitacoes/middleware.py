@@ -4,7 +4,7 @@ from django.contrib.auth import logout
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 
-from .models import LogSistema, Solicitacao
+from .models import LogSistema
 
 
 class MonitoramentoAcessosMiddleware:
@@ -67,38 +67,6 @@ class MonitoramentoAcessosMiddleware:
         if not request.path.startswith(self.CAMINHOS_IGNORADOS):
             self._registrar_auditoria_requisicao(request, response, inicio_requisicao)
 
-        if request.method == "POST" and request.path in ("/nova/", "/confirmar-datas/"):
-            try:
-                valor = request.session.get(self.CHAVE_ACEITE_TERMOS)
-                if valor and response.status_code < 400:
-                    aceito_em = datetime.fromisoformat(valor)
-                    if timezone.is_naive(aceito_em):
-                        aceito_em = timezone.make_aware(aceito_em, timezone.get_current_timezone())
-                    # Usa o início do POST como término da medição: representa
-                    # a chegada do clique/enviado ao servidor, sem incluir OCR,
-                    # gravação de arquivos ou envio de e-mail.
-                    segundos = max(0.0, (inicio_requisicao - aceito_em).total_seconds())
-                    if segundos <= 24 * 60 * 60:
-                        solicitacoes = Solicitacao.objects.filter(
-                            origem="EXTERNA",
-                            criado_em__gte=inicio_requisicao,
-                        ).order_by("-criado_em")
-                        for solicitacao in solicitacoes:
-                            if not LogSistema.objects.filter(
-                                solicitacao=solicitacao,
-                                acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
-                            ).exists():
-                                LogSistema.objects.create(
-                                    solicitacao=solicitacao,
-                                    acao="TEMPO_ACEITE_TERMO_ATE_ENVIO",
-                                    detalhes=f"segundos={segundos:.3f}",
-                                    ip=self._ip(request),
-                                )
-                        if solicitacoes:
-                            request.session.pop(self.CHAVE_ACEITE_TERMOS, None)
-                            request.session.modified = True
-            except Exception:
-                pass
 
         return response
 
