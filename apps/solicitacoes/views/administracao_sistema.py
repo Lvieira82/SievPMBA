@@ -91,6 +91,9 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["unidade"].queryset = Unidade.objects.filter(cpr=scope["cpr"], ativo=True).select_related("cpr").order_by("nome")
 
             elif scope["perfil"] == "UNIDADE":
+                # O Gestor da Unidade pode ajustar o âmbito de subordinados
+                # da própria Unidade (Membro de Unidade ou Operador).
+                # Não pode conceder a função de Gestor nem alterar o vínculo.
                 self.fields["perfil"].choices = [("UNIDADE", "Membro de Unidade"), ("OPERADOR", "Operador")]
                 self.fields["perfil"].initial = "UNIDADE"
                 self.fields["cpr"].queryset = CPR.objects.filter(pk=scope["unidade"].cpr_id)
@@ -98,6 +101,8 @@ class UsuarioSistemaForm(forms.Form):
                 self.fields["cpr"].disabled = True
                 self.fields["unidade"].queryset = Unidade.objects.filter(pk=scope["unidade"].pk)
                 self.fields["unidade"].initial = scope["unidade"].pk
+                self.fields["unidade"].disabled = True
+                self.fields["funcao"].choices = [("MEMBRO", "Membro")]
                 self.fields["funcao"].initial = "MEMBRO"
                 self.fields["funcao"].disabled = True
 
@@ -124,11 +129,13 @@ class UsuarioSistemaForm(forms.Form):
                     "ativo": acesso.ativo and instance.is_active,
                 })
                 if scope and not scope["desenvolvedor"]:
-                    self.fields["perfil"].disabled = True
-                    if scope.get("funcao") == "MEMBRO":
-                        self.fields["funcao"].disabled = True
-                        self.fields["cpr"].disabled = True
-                        self.fields["unidade"].disabled = True
+                    # Gestor de Unidade pode alternar apenas entre Membro de
+                    # Unidade e Operador dentro da própria Unidade.
+                    if not (scope.get("funcao") == "GESTOR" and scope.get("perfil") == "UNIDADE"):
+                        self.fields["perfil"].disabled = True
+                    self.fields["funcao"].disabled = True
+                    self.fields["cpr"].disabled = True
+                    self.fields["unidade"].disabled = True
 
     def clean_matricula(self):
         valor = self.cleaned_data["matricula"].strip()
@@ -377,7 +384,11 @@ def usuario_editar(request, id):
         if form.is_valid():
             data = form.cleaned_data
             if not scope["desenvolvedor"]:
-                data["perfil"] = acesso.perfil
+                # O Gestor de Unidade pode alterar o perfil operacional de
+                # subordinados da própria Unidade, mas nunca sua função
+                # hierárquica nem seu CPR/Unidade.
+                if not (scope.get("funcao") == "GESTOR" and scope.get("perfil") == "UNIDADE"):
+                    data["perfil"] = acesso.perfil
                 data["funcao"] = acesso.funcao
                 data["cpr"] = acesso.cpr
                 data["unidade"] = acesso.unidade
