@@ -21,7 +21,7 @@ from apps.solicitacoes.views.administracao import (
 )
 from apps.solicitacoes.views.login_acesso import login_gestao
 from apps.solicitacoes.views.acesso import (
-    logout_gestao as logout_gestao_seguro, esqueci_senha, redefinir_senha,
+    logout_gestao as logout_gestao_seguro, esqueci_senha, redefinir_senha, alterar_propria_senha,
     trocar_senha_primeiro_acesso, verificar_novo_navegador,
 )
 from apps.solicitacoes.views.administracao_sistema import (
@@ -125,6 +125,7 @@ urlpatterns = [
     path("gestao/", login_gestao, name="login_gestao"),
     path("gestao/verificar-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
     path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
+    path("gestao/minha-conta/alterar-senha/", alterar_propria_senha, name="alterar_propria_senha"),
     path("gestao/redefinir-senha/<uidb64>/<token>/", redefinir_senha, name="redefinir_senha"),
     path("gestao/primeiro-acesso/senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
     path("logout/", logout_gestao_seguro, name="logout_gestao"),
