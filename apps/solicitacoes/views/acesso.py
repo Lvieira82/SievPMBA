@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.forms import SetPasswordForm, PasswordChangeForm
 from django.contrib.auth.models import User
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
@@ -230,6 +230,23 @@ def trocar_senha_primeiro_acesso(request):
         form = SetPasswordForm(request.user)
     return render(request, "gestao/trocar_senha_primeiro_acesso.html", {"form": form})
 
+
+
+@login_required
+def alterar_propria_senha(request):
+    """Permite ao usuário autenticado alterar a própria senha com validação da senha atual."""
+    if request.method == "POST":
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            usuario = form.save()
+            # Mantém a sessão ativa após a troca de senha.
+            from django.contrib.auth import update_session_auth_hash
+            update_session_auth_hash(request, usuario)
+            messages.success(request, "Sua senha foi alterada com sucesso.")
+            return redirect("painel_gestao")
+    else:
+        form = PasswordChangeForm(user=request.user)
+    return render(request, "gestao/alterar_propria_senha.html", {"form": form})
 
 def esqueci_senha(request):
     if request.method == "POST":
