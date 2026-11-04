@@ -126,6 +126,7 @@ urlpatterns = [
     path("gestao/verificar-navegador/", verificar_novo_navegador, name="verificar_novo_navegador"),
     path("gestao/esqueci-senha/", esqueci_senha, name="esqueci_senha"),
     path("gestao/minha-conta/alterar-senha/", alterar_propria_senha, name="alterar_propria_senha"),
+    path("gestao/minha-conta/", alterar_propria_senha, name="minha_conta"),
     path("gestao/redefinir-senha/<uidb64>/<token>/", redefinir_senha, name="redefinir_senha"),
     path("gestao/primeiro-acesso/senha/", trocar_senha_primeiro_acesso, name="trocar_senha_primeiro_acesso"),
     path("logout/", logout_gestao_seguro, name="logout_gestao"),
