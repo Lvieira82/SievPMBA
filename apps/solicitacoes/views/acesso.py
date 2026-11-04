@@ -234,19 +234,50 @@ def trocar_senha_primeiro_acesso(request):
 
 @login_required
 def alterar_propria_senha(request):
-    """Permite ao usuário autenticado alterar a própria senha com validação da senha atual."""
+    """Área de conta: permite editar os próprios dados e alterar a própria senha."""
+    from django.contrib.auth import update_session_auth_hash
+
+    senha_form = PasswordChangeForm(user=request.user)
+    perfil_dados = {
+        "first_name": request.user.first_name,
+        "last_name": request.user.last_name,
+        "email": request.user.email,
+    }
+    erros_perfil = {}
+
     if request.method == "POST":
-        form = PasswordChangeForm(user=request.user, data=request.POST)
-        if form.is_valid():
-            usuario = form.save()
-            # Mantém a sessão ativa após a troca de senha.
-            from django.contrib.auth import update_session_auth_hash
-            update_session_auth_hash(request, usuario)
-            messages.success(request, "Sua senha foi alterada com sucesso.")
-            return redirect("painel_gestao")
-    else:
-        form = PasswordChangeForm(user=request.user)
-    return render(request, "gestao/alterar_propria_senha.html", {"form": form})
+        acao = request.POST.get("acao", "senha")
+        if acao == "perfil":
+            primeiro_nome = request.POST.get("first_name", "").strip()
+            sobrenome = request.POST.get("last_name", "").strip()
+            email = request.POST.get("email", "").strip()
+            perfil_dados = {"first_name": primeiro_nome, "last_name": sobrenome, "email": email}
+            if not primeiro_nome:
+                erros_perfil["first_name"] = "Informe seu nome."
+            if not email:
+                erros_perfil["email"] = "Informe seu e-mail."
+            elif User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+                erros_perfil["email"] = "Este e-mail já está sendo utilizado por outro usuário."
+            if not erros_perfil:
+                request.user.first_name = primeiro_nome
+                request.user.last_name = sobrenome
+                request.user.email = email
+                request.user.save(update_fields=["first_name", "last_name", "email"])
+                messages.success(request, "Seus dados foram atualizados com sucesso.")
+                return redirect("alterar_propria_senha")
+        elif acao == "senha":
+            senha_form = PasswordChangeForm(user=request.user, data=request.POST)
+            if senha_form.is_valid():
+                usuario = senha_form.save()
+                update_session_auth_hash(request, usuario)
+                messages.success(request, "Sua senha foi alterada com sucesso.")
+                return redirect("alterar_propria_senha")
+
+    return render(request, "gestao/alterar_propria_senha.html", {
+        "form": senha_form,
+        "perfil_dados": perfil_dados,
+        "erros_perfil": erros_perfil,
+    })
 
 def esqueci_senha(request):
     if request.method == "POST":
