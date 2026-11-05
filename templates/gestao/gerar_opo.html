@@ -11,7 +11,7 @@
 </style>
 <div class="opo-gerar">
     <h1>📄 Gerar OPO</h1>
-    <p class="sub">Defina se este evento será considerado extraordinário antes de gerar a Ordem de Policiamento.</p>
+    <p class="sub">A OPO já é gerada automaticamente como ORDINÁRIA. Se necessário, altere abaixo para EXTRAORDINÁRIA e atualize o PDF.</p>
 
     <div class="resumo">
         <strong>Protocolo:</strong> {{ solicitacao.protocolo }}<br>
@@ -25,11 +25,11 @@
         <div class="opcoes">
             <h3>Evento extra?</h3>
             <label class="opcao">
-                <input type="radio" name="evento_extra" value="SIM" required>
+                <input type="radio" name="evento_extra" value="SIM" {% if evento_extra_atual %}checked{% endif %}>
                 <span><strong>SIM — Evento extra</strong>O campo EFETIVO da OPO será apresentado como: “Efetivo extraordinário escalado.”</span>
             </label>
             <label class="opcao">
-                <input type="radio" name="evento_extra" value="NAO" required>
+                <input type="radio" name="evento_extra" value="NAO" {% if not evento_extra_atual %}checked{% endif %}>
                 <span><strong>NÃO — Evento normal</strong>A OPO manterá o efetivo operacional padrão.</span>
             </label>
         </div>
@@ -42,7 +42,7 @@
 
         <div class="acoes">
             <a href="{% url 'aprovacoes' %}" class="btn btn-voltar">← Voltar</a>
-            <button type="submit" class="btn btn-gerar" onclick="return confirm('Confirma a geração da OPO com a opção selecionada?');">✅ Gerar OPO</button>
+            <button type="submit" class="btn btn-gerar" onclick="return confirm('Confirma a atualização da OPO com a classificação selecionada?');">✅ Salvar / Atualizar OPO</button>
         </div>
     </form>
 </div>
