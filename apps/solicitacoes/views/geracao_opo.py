@@ -1,6 +1,8 @@
 import base64
 from io import BytesIO
 from django.contrib import messages
+from django.core.files.storage import default_storage
+from django.db import transaction
 from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404, redirect, render
@@ -77,6 +79,105 @@ def _gerar_pdf_opo(request, solicitacao, evento_extra=False, unidade_executor=No
     ).write_pdf()
 
 
+def _evento_extra_do_anexo(anexo):
+    """Recupera a classificação registrada na descrição do anexo."""
+    if not anexo:
+        return False
+    return "Evento extra: SIM" in (anexo.descricao or "")
+
+
+def _salvar_ou_atualizar_anexo_opo(request, solicitacao, conteudo, evento_extra, unidade_executor):
+    """
+    Mantém um único anexo principal de OPO por solicitação.
+    Se já existir, substitui o PDF; não cria outro registro.
+    """
+    nome = f"OPO_{solicitacao.protocolo}.pdf"
+    descricao = (
+        "OPO gerada pelo SiEv — Evento extra: "
+        f"{'SIM' if evento_extra else 'NÃO'}"
+    )
+    arquivo_antigo = None
+
+    with transaction.atomic():
+        # Serializa duas tentativas simultâneas para a mesma solicitação.
+        solicitacao_bloqueada = Solicitacao.objects.select_for_update().get(pk=solicitacao.pk)
+        anexo = (
+            AnexoOPO.objects.select_for_update()
+            .filter(solicitacao=solicitacao_bloqueada)
+            .order_by("-criado_em", "-pk")
+            .first()
+        )
+
+        if anexo is None:
+            anexo = AnexoOPO(solicitacao=solicitacao_bloqueada)
+
+        if anexo.arquivo and anexo.arquivo.name:
+            arquivo_antigo = anexo.arquivo.name
+
+        anexo.descricao = descricao
+        anexo.arquivo.save(nome, ContentFile(conteudo), save=False)
+        anexo.save()
+
+        HistoricoSolicitacao.objects.create(
+            solicitacao=solicitacao_bloqueada,
+            usuario=request.user,
+            acao="OPO ATUALIZADA" if arquivo_antigo else "OPO GERADA",
+            observacao=(
+                f"Arquivo {anexo.arquivo.name} "
+                f"{'atualizado' if arquivo_antigo else 'gerado'} pela unidade "
+                f"{unidade_executor.nome if unidade_executor else 'não definida'}. "
+                f"Evento extra: {'SIM' if evento_extra else 'NÃO'}."
+            ),
+        )
+
+    # Só remove a versão física anterior depois que o novo arquivo foi salvo.
+    if arquivo_antigo and arquivo_antigo != anexo.arquivo.name:
+        try:
+            default_storage.delete(arquivo_antigo)
+        except Exception:
+            # A falha de limpeza do arquivo antigo não invalida a OPO nova.
+            pass
+
+    return anexo
+
+
+def _garantir_opo_padrao(request, solicitacao):
+    """
+    Garante que toda solicitação aprovada tenha um PDF acessível.
+    Se já existir um PDF válido, não o recria nem altera.
+    """
+    anexos = (
+        AnexoOPO.objects.filter(solicitacao=solicitacao)
+        .order_by("-criado_em", "-pk")
+    )
+    anexo = anexos.first()
+
+    if anexo and anexo.arquivo and anexo.arquivo.name:
+        try:
+            if default_storage.exists(anexo.arquivo.name):
+                return anexo
+        except Exception:
+            pass
+
+    # Ausência de escolha equivale sempre a evento ORDINÁRIO.
+    evento_extra = _evento_extra_do_anexo(anexo)
+    unidade_executor = _unidade_executor(request, solicitacao)
+    conteudo = _gerar_pdf_opo(
+        request,
+        solicitacao,
+        evento_extra=evento_extra,
+        unidade_executor=unidade_executor,
+        observacoes_adicionais="",
+    )
+    return _salvar_ou_atualizar_anexo_opo(
+        request,
+        solicitacao,
+        conteudo,
+        evento_extra,
+        unidade_executor,
+    )
+
+
 @login_required
 def gerar_opo_com_evento_extra(request, id):
     solicitacao = get_object_or_404(
@@ -97,13 +198,23 @@ def gerar_opo_com_evento_extra(request, id):
         )
         return redirect("aprovacoes")
 
+    # A abertura desta tela já garante um PDF padrão ORDINÁRIO.
+    # Assim, sair sem responder à pergunta não deixa a solicitação sem OPO.
+    anexo = _garantir_opo_padrao(request, solicitacao)
+    evento_extra_atual = _evento_extra_do_anexo(anexo)
+
     if request.method == "GET":
         return render(
             request,
             "gestao/gerar_opo.html",
-            {"solicitacao": solicitacao},
+            {
+                "solicitacao": solicitacao,
+                "evento_extra_atual": evento_extra_atual,
+                "opo_ja_gerada": bool(anexo and anexo.arquivo),
+            },
         )
 
+    # Campo ausente ou sem seleção significa ORDINÁRIO (False).
     evento_extra = request.POST.get("evento_extra") == "SIM"
     observacoes_adicionais = (request.POST.get("observacoes_adicionais") or "").strip()
     unidade_executor = _unidade_executor(request, solicitacao)
@@ -114,30 +225,18 @@ def gerar_opo_com_evento_extra(request, id):
         unidade_executor=unidade_executor,
         observacoes_adicionais=observacoes_adicionais,
     )
-    nome = f"OPO_{solicitacao.protocolo}.pdf"
 
-    anexo = AnexoOPO.objects.create(
-        solicitacao=solicitacao,
-        descricao=(
-            "OPO gerada pelo SiEv — Evento extra: "
-            f"{'SIM' if evento_extra else 'NÃO'}"
-        ),
-    )
-    anexo.arquivo.save(nome, ContentFile(conteudo), save=True)
-
-    HistoricoSolicitacao.objects.create(
-        solicitacao=solicitacao,
-        usuario=request.user,
-        acao="OPO GERADA",
-        observacao=(
-            f"Arquivo {nome} gerado pela unidade "
-            f"{unidade_executor.nome if unidade_executor else 'não definida'}. "
-            f"Evento extra: {'SIM' if evento_extra else 'NÃO'}."
-        ),
+    _salvar_ou_atualizar_anexo_opo(
+        request,
+        solicitacao,
+        conteudo,
+        evento_extra,
+        unidade_executor,
     )
 
     messages.success(
         request,
-        f"OPO {solicitacao.protocolo} gerada com sucesso.",
+        f"OPO {solicitacao.protocolo} atualizada com sucesso. "
+        "O PDF já está disponível em OPOs Geradas.",
     )
     return redirect("detalhe_opo", id=id)
