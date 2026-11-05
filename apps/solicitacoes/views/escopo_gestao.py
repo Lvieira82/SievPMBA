@@ -31,7 +31,7 @@ from apps.solicitacoes.permissoes import (
     pode_ver_documentacao_solicitacao,
     escopo_unidades,
 )
-from .geracao_opo import _gerar_pdf_opo, gerar_opo_com_evento_extra
+from .geracao_opo import _gerar_pdf_opo, _garantir_opo_padrao, gerar_opo_com_evento_extra
 from ..forms import EditarOPOForm
 
 
@@ -145,7 +145,27 @@ def opos_geradas_seguro(request):
     if eh_operador(request.user):
         messages.error(request, "Operadores só podem visualizar as OPOs liberadas em Eventos do Dia.")
         return redirect("eventos_dia")
-    anexos = AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro").filter(solicitacao__unidade__in=escopo_unidades(request.user)).exclude(arquivo="").order_by("-criado_em")
+    unidades_usuario = escopo_unidades(request.user)
+
+    # Recupera OPOs de solicitações já aprovadas que ficaram sem PDF.
+    # A rotina é idempotente: preserva PDFs existentes e só gera o que falta.
+    solicitacoes_aprovadas = (
+        Solicitacao.objects.filter(
+            unidade__in=unidades_usuario,
+            status__in=("APROVADA", "CONCLUIDA"),
+        )
+        .select_related("unidade", "municipio", "bairro", "tipo_evento")
+        .order_by("data_evento", "id")
+    )
+    for solicitacao_aprovada in solicitacoes_aprovadas:
+        if pode_gerar_opo(request.user, solicitacao_aprovada):
+            try:
+                _garantir_opo_padrao(request, solicitacao_aprovada)
+            except Exception:
+                # Uma falha pontual não impede a listagem das demais OPOs.
+                continue
+
+    anexos = AnexoOPO.objects.select_related("solicitacao", "solicitacao__unidade", "solicitacao__municipio", "solicitacao__bairro").filter(solicitacao__unidade__in=unidades_usuario).exclude(arquivo="").order_by("-criado_em")
     grupos = {}
     for a in anexos:
         if a.solicitacao.protocolo not in grupos:
