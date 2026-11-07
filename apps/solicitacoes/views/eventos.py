@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from ..models import AnexoOPO, CumprimentoOPO, LogSistema, Municipio, Solicitacao
+from ..models import AnexoOPO, CumprimentoOPO, DocumentoSolicitacao, LogSistema, Municipio, Solicitacao
 from ..models_acesso import AcessoInstitucional
 
 MOTIVOS_NAO={"VIATURA_PROBLEMA":"Viatura apresentou problema","DELEGACIA":"Apresentação na delegacia","OCORRENCIA":"Guarnição em Ocorrência","ENDERECO":"Endereço não encontrado","CANCELADO":"Evento Cancelado","HORARIO":"Horário alterado"}
@@ -48,6 +48,50 @@ def _eventos_registrados(eventos, usuario):
     ids=[e.id for e in eventos]
     if not ids:return set()
     return set(CumprimentoOPO.objects.filter(opo__solicitacao_id__in=ids,operador=usuario,respondido_em__isnull=False).values_list("opo__solicitacao_id",flat=True))
+
+def _arquivo_disponivel(nome):
+    """Confere o arquivo no storage configurado ou no MEDIA_ROOT legado."""
+    if not nome:
+        return False
+    try:
+        if default_storage.exists(nome):
+            return True
+    except (OSError, ValueError):
+        pass
+    try:
+        return (Path(settings.MEDIA_ROOT) / nome).is_file()
+    except (OSError, ValueError, TypeError):
+        return False
+
+
+def _preparar_documentos_eventos(eventos):
+    """Anexa ao objeto do evento apenas links para documentos realmente existentes."""
+    for evento in eventos:
+        evento.opo_anexo_id = None
+        evento.oficio_disponivel = False
+
+        anexos = AnexoOPO.objects.filter(solicitacao_id=evento.id).exclude(arquivo="").order_by("-criado_em", "-id")
+        for anexo in anexos:
+            nome = getattr(anexo.arquivo, "name", "") or ""
+            if _arquivo_disponivel(nome):
+                evento.opo_anexo_id = anexo.id
+                break
+
+        documentos = DocumentoSolicitacao.objects.filter(
+            solicitacao_id=evento.id,
+            tipo_documento__nome__iexact="Ofício ao Comandante",
+        ).exclude(arquivo="").order_by("-enviado_em", "-id")
+        for documento in documentos:
+            nome = getattr(documento.arquivo, "name", "") or ""
+            if _arquivo_disponivel(nome):
+                evento.oficio_disponivel = True
+                break
+
+        if not evento.oficio_disponivel and evento.protocolo:
+            evento.oficio_disponivel = _arquivo_disponivel(
+                f"protocolos/{evento.protocolo}/oficio_comandante.pdf"
+            )
+
 
 def _eventos_offline_payload(eventos,operador=None):
     registrados=_eventos_registrados(eventos,operador) if operador else set()
@@ -115,6 +159,7 @@ def eventos_dia(request):
     if acesso.usuario_id != request.user.id:
         return render(request, "solicitacoes/eventos_dia.html", {"erro": "A matrícula informada não corresponde ao usuário autenticado.", "acesso_logado": acesso_logado})
     eventos = _eventos_do_acesso(acesso, hoje)
+    _preparar_documentos_eventos(eventos)
     request.session["eventos_acesso_id"] = acesso.id
     request.session["eventos_matricula"] = acesso.matricula
     request.session["eventos_opos_autorizadas"] = list(eventos.values_list("id", flat=True))
@@ -167,6 +212,7 @@ def eventos_dia_resultado(request):
         return redirect("login_gestao")
     hoje = timezone.localdate()
     eventos = _eventos_do_acesso(acesso, hoje)
+    _preparar_documentos_eventos(eventos)
     request.session["eventos_opos_autorizadas"] = list(eventos.values_list("id", flat=True))
     return render(request, "solicitacoes/eventos_dia_resultado.html", {
         "eventos": eventos, "perfil": acesso, "acesso": acesso, "matricula": acesso.matricula,
