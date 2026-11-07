@@ -58,7 +58,12 @@
                     {% if not publico %}
                     <div class="acoes-evento">
                         {% if acesso.perfil == 'OPERADOR' %}
+                            {% if evento.opo_anexo_id %}
+                            <a href="{% url 'abrir_opo_operador' evento.opo_anexo_id %}" class="btn-oficio-comandante" target="_blank" rel="noopener">📑 Consultar OPO e recomendações</a>
+                            {% endif %}
+                            {% if evento.oficio_disponivel %}
                             <a href="{% url 'abrir_oficio_comandante_operador' evento.id %}" class="btn-oficio-comandante" target="_blank" rel="noopener">📄 Ofício do Comandante</a>
+                            {% endif %}
                             {% if evento.id in eventos_registrados %}
                             <span class="btn-registrado">✓ Atendimento já registrado</span>
                             {% else %}
